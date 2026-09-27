@@ -120,6 +120,26 @@ def test_display_name_spoofing_detected():
     assert spoof["claimed_brand"] == "paypal"
 
 
+def test_display_name_spoofing_detected_for_regional_brand():
+    # Regression test for a real false negative: a real phishing email impersonating
+    # "kvish6" (Highway 6, a real Israeli toll-road company) sending from a free Russian
+    # webhost went undetected because KNOWN_BRANDS had zero regional coverage -- the fuzzy
+    # matching logic itself was already correct (see test_display_name_spoofing_detected
+    # above, same code path), it just had nothing to match against.
+    parsed = _base_parsed_email(
+        from_=EmailAddress(
+            display_name="kvish6 (810635)",
+            address="test.sender@test.sweb.example",
+            domain="test.sweb.example",
+        ),
+    )
+    result = check_identity_mismatch(parsed)
+
+    spoof = result["display_name_spoofing"]
+    assert spoof["suspected"] is True
+    assert spoof["claimed_brand"] == "kvish6"
+
+
 def test_display_name_spoofing_not_flagged_for_legitimate_sender():
     parsed = _base_parsed_email(
         from_=EmailAddress(display_name="PayPal Support", address="service@paypal.com", domain="paypal.com"),

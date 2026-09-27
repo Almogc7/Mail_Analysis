@@ -18,6 +18,18 @@ URGENCY_PHRASES: list[str] = [
     "your payment could not be processed",
     "update your billing information",
     "your access will be restricted",
+    # Hebrew -- drafted, not reviewed by a native speaker; correct/extend as needed.
+    # First entry grounded in a real phishing email's actual wording; the rest are
+    # Hebrew equivalents of the English categories above (account threat / urgency /
+    # financial), not yet validated against real-world Hebrew phishing samples.
+    "תקף לחודש בלבד",  # "valid for one month only" -- real example, soft expiry pressure
+    "אנא אשר",  # "please confirm"
+    "החשבון שלך ייחסם",  # "your account will be blocked"
+    "נדרשת פעולה מיידית",  # "immediate action required"
+    "פעילות חשודה זוהתה",  # "suspicious activity detected"
+    "אמת את זהותך",  # "verify your identity"
+    "החשבון שלך הוגבל",  # "your account has been limited"
+    "פרטי התשלום שלך",  # "your payment details"
 ]
 
 

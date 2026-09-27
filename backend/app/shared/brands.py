@@ -19,6 +19,16 @@ KNOWN_BRANDS: dict[str, list[str]] = {
     "fedex": ["fedex.com"],
     "linkedin": ["linkedin.com"],
     "facebook": ["facebook.com", "meta.com"],
+    # Regional (Israeli) starter set -- added after a real phishing email impersonating
+    # "kvish6" went undetected purely because this list had zero regional coverage. The
+    # "kvish6" entry is confirmed from that real case; the rest are a best-effort starter
+    # set of likely-relevant major brands, not vetted -- extend/correct as needed.
+    "kvish6": ["kvish6.co.il"],
+    "bank hapoalim": ["bankhapoalim.co.il"],
+    "bank leumi": ["leumi.co.il"],
+    "discount bank": ["discountbank.co.il"],
+    "fibi": ["fibi.co.il"],
+    "israel post": ["israelpost.co.il"],
 }
 
 # Used only by auth_check.spoofing's fuzzy display-name match.

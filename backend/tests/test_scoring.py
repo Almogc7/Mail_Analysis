@@ -22,8 +22,13 @@ def _enrichment_result(findings=None, enriched_iocs=None, status="ok") -> Module
     )
 
 
-def _content_result(findings=None, status="ok") -> ModuleResult:
-    return ModuleResult(module="content_analysis", status=status, findings=findings or [], raw_data=None)
+def _content_result(findings=None, status="ok", script_coverage=1.0) -> ModuleResult:
+    return ModuleResult(
+        module="content_analysis",
+        status=status,
+        findings=findings or [],
+        raw_data={"script_coverage": script_coverage},
+    )
 
 
 def test_clean_auth_plus_malicious_enrichment_triggers_floor_override():
@@ -170,6 +175,44 @@ def test_conflicting_signals_trigger_needs_review():
             Finding(module="content_analysis", severity="high", title="Urgency/pressure language detected", description="", evidence={}, weight=25.0),
             Finding(module="content_analysis", severity="medium", title="Generic greeting combined with personalized account claim", description="", evidence={}, weight=15.0),
         ]
+    )
+
+    outcome = run_scoring([auth, enrichment, content])
+
+    assert outcome.breakdown.weighted_score == 10.0
+    assert outcome.confidence < 0.6
+    assert outcome.verdict == "needs_review"
+    assert any(o.rule == "low_confidence_needs_review" for o in outcome.breakdown.applied_overrides)
+
+
+def test_reduced_content_script_coverage_can_trigger_needs_review():
+    # Regression test for a real false negative: a Hebrew phishing email scored "legit"
+    # because content_analysis's coverage was unconditionally 1.0 regardless of whether its
+    # (English-only, at the time) phrase lists could actually read the content. This proves
+    # the fix's other half -- with enrichment ALSO incomplete (a plausible combination for
+    # an email whose links a provider couldn't evaluate) and content flagged as
+    # low-script-coverage, confidence correctly drops enough for needs_review, even though
+    # auth_check itself is clean/fully covered.
+    auth = _auth_result(findings=[], header_present=True)
+    enrichment = _enrichment_result(
+        findings=[
+            Finding(
+                module="enrichment",
+                severity="info",
+                title="Enrichment incomplete for http://unknown.example.com",
+                description="virustotal did not return a usable result (status: rate_limited).",
+                evidence={"ioc_value": "http://unknown.example.com", "provider": "virustotal"},
+                weight=0.0,
+            )
+        ],
+        enriched_iocs=["http://unknown.example.com"],
+    )
+    content = _content_result(
+        findings=[
+            Finding(module="content_analysis", severity="high", title="Urgency/pressure language detected", description="", evidence={}, weight=25.0),
+            Finding(module="content_analysis", severity="medium", title="Generic greeting combined with personalized account claim", description="", evidence={}, weight=15.0),
+        ],
+        script_coverage=0.5,
     )
 
     outcome = run_scoring([auth, enrichment, content])

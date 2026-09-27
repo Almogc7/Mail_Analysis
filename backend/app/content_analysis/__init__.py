@@ -1,5 +1,5 @@
 from app.content_analysis.brand_impersonation import check_brand_url_mismatch, detect_brand_in_body
-from app.content_analysis.text_utils import get_searchable_text
+from app.content_analysis.text_utils import estimate_script_coverage, get_searchable_text
 from app.content_analysis.urgency import detect_urgency
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding, ModuleResult
@@ -14,6 +14,10 @@ GENERIC_GREETINGS: list[str] = [
     "dear member",
     "dear sir/madam",
     "to whom it may concern",
+    # Hebrew -- drafted, not reviewed by a native speaker; correct/extend as needed.
+    "לקוח יקר",  # "dear customer"
+    "משתמש יקר",  # "dear user"
+    "שלום רב",  # formal generic "hello"
 ]
 
 _GREETING_LEAD_CHARS = 200
@@ -94,7 +98,8 @@ def run_content_analysis(parsed: ParsedEmail) -> ModuleResult:
     if greeting and urgency_matches:
         findings.append(_greeting_mismatch_finding(greeting, urgency_matches))
 
-    return ModuleResult(module=MODULE_NAME, status="ok", findings=findings, raw_data=None)
+    raw_data = {"script_coverage": estimate_script_coverage(text)}
+    return ModuleResult(module=MODULE_NAME, status="ok", findings=findings, raw_data=raw_data)
 
 
 __all__ = ["run_content_analysis"]

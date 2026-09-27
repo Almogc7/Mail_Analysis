@@ -33,8 +33,15 @@ def category_coverage(category: str, result: ModuleResult | None) -> float:
         }
         return max(0.0, 1.0 - len(incomplete_iocs) / enriched_count)
 
-    # content_analysis (and any future category with no external dependency): always
-    # fully computable from whatever body text exists.
+    if category == "content_analysis":
+        # Not unconditionally 1.0: the fixed phrase lists only cover certain scripts
+        # (see content_analysis.text_utils.estimate_script_coverage). A non-English email
+        # with weak/no findings elsewhere previously looked "fully checked" here even
+        # though the heuristics couldn't meaningfully read it -- this is what lets
+        # needs_review actually trigger for that case instead of silently reading as clean.
+        return (result.raw_data or {}).get("script_coverage", 1.0)
+
+    # Any future category with no external dependency: always fully computable.
     return 1.0
 
 
