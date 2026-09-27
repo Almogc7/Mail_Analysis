@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 import extract_msg
+from bs4 import UnicodeDammit
 
 from app.parser.raw import RawAddress, RawAttachment, RawParseResult
 
@@ -34,6 +35,15 @@ def _split_address_list(raw: str | None) -> list[RawAddress]:
     return [addr for p in parts if (addr := _split_address(p)) is not None]
 
 
+def _decode_html_bytes(data: bytes | None) -> str | None:
+    """extract_msg's htmlBody is always bytes (auto-generated from RTF or plain text when
+    no direct HTML stream exists), never str -- decode it the same way BeautifulSoup's own
+    encoding auto-detection works, since there's no reliable encoding hint exposed for it."""
+    if not data:
+        return None
+    return UnicodeDammit(data).unicode_markup
+
+
 def parse_msg(raw_bytes: bytes) -> RawParseResult:
     warnings: list[str] = []
 
@@ -56,6 +66,8 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
     received_raw: list[str] = []
     auth_results_raw: list[str] = []
 
+    return_path: RawAddress | None = None
+
     raw_header_text = getattr(msg, "header", None)
     if raw_header_text:
         try:
@@ -67,6 +79,7 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
                     received_raw.append(str_value)
                 elif name.lower() == "authentication-results":
                     auth_results_raw.append(str_value)
+            return_path = _split_address(parsed_headers.get("return-path"))
         except Exception as exc:
             warnings.append(f"Failed to parse embedded raw headers: {exc}")
     else:
@@ -105,11 +118,11 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
         to=_split_address_list(msg.to),
         cc=_split_address_list(msg.cc),
         reply_to=_split_address_list(getattr(msg, "replyTo", None)),
-        return_path=None,
+        return_path=return_path,
         received_raw=received_raw,
         authentication_results_raw=auth_results_raw,
         body_text=msg.body,
-        body_html=getattr(msg, "htmlBody", None) if isinstance(getattr(msg, "htmlBody", None), str) else None,
+        body_html=_decode_html_bytes(getattr(msg, "htmlBody", None)),
         attachments=attachments,
         parse_warnings=warnings,
     )

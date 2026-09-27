@@ -1,6 +1,33 @@
+import re
 from typing import Any
 
 import authres
+
+# authres is a strict RFC 8601 parser and rejects real-world headers that deviate from the
+# grammar in ways multiple mail providers (observed from real Microsoft/Office365-generated
+# headers) actually produce: no authserv-id before the first resinfo, and/or a trailing ";"
+# after the last resinfo. Both are handled by normalize-and-retry below rather than failing
+# outright -- a parse failure here means SPF/DKIM/DMARC results are silently lost, which for
+# a triage tool risks hiding a real DMARC fail behind what looks like "no data".
+_LOOKS_LIKE_MISSING_AUTHSERV_ID = re.compile(r"^\s*(spf|dkim|dmarc)\s*=", re.IGNORECASE)
+_METHOD_RESULT_RE = re.compile(r"\b(spf|dkim|dmarc)\s*=\s*([a-zA-Z]+)", re.IGNORECASE)
+
+
+def _normalize_header_value(raw_header: str) -> str:
+    value = raw_header.strip().rstrip(";").strip()
+    if _LOOKS_LIKE_MISSING_AUTHSERV_ID.match(value):
+        value = f"unknown-authserv; {value}"
+    return value
+
+
+def _regex_fallback_results(raw_header: str) -> dict[str, Any]:
+    """Last-resort extraction when authres can't parse the header at all, even after
+    normalization -- guarantees a pass/fail/etc. result is never fully lost just because
+    of a structural quirk we haven't anticipated. No domain/property detail in this path."""
+    results: dict[str, Any] = {}
+    for method, value in _METHOD_RESULT_RE.findall(raw_header):
+        results[method.lower()] = {"result": value.lower(), "reason": None, "properties": {}}
+    return results
 
 
 def _parse_one(raw_header: str) -> dict[str, Any]:
@@ -9,23 +36,39 @@ def _parse_one(raw_header: str) -> dict[str, Any]:
     `authres` expects the header without the leading "Authentication-Results:" name,
     so callers must pass the header *value* only.
     """
-    try:
-        result = authres.AuthenticationResultsHeader.parse(f"Authentication-Results: {raw_header}")
-    except Exception as exc:
-        return {"parse_error": str(exc), "raw": raw_header, "authserv_id": None, "results": {}}
+    attempts = [raw_header]
+    normalized = _normalize_header_value(raw_header)
+    if normalized != raw_header:
+        attempts.append(normalized)
 
-    results: dict[str, Any] = {}
-    for r in result.results:
-        method = getattr(r, "method", None)
-        if method is None:
+    last_error: Exception | None = None
+    for attempt in attempts:
+        try:
+            result = authres.AuthenticationResultsHeader.parse(f"Authentication-Results: {attempt}")
+        except Exception as exc:
+            last_error = exc
             continue
-        properties = {f"{p.type}.{p.name}": p.value for p in getattr(r, "properties", [])}
-        results[method] = {
-            "result": getattr(r, "result", "unknown"),
-            "reason": getattr(r, "reason", None),
-            "properties": properties,
-        }
-    return {"authserv_id": result.authserv_id, "results": results, "raw": raw_header}
+
+        results: dict[str, Any] = {}
+        for r in result.results:
+            method = getattr(r, "method", None)
+            if method is None:
+                continue
+            properties = {f"{p.type}.{p.name}": p.value for p in getattr(r, "properties", [])}
+            results[method] = {
+                "result": getattr(r, "result", "unknown"),
+                "reason": getattr(r, "reason", None),
+                "properties": properties,
+            }
+        return {"authserv_id": result.authserv_id, "results": results, "raw": raw_header}
+
+    fallback_results = _regex_fallback_results(raw_header)
+    return {
+        "parse_error": str(last_error),
+        "raw": raw_header,
+        "authserv_id": None,
+        "results": fallback_results,
+    }
 
 
 def _extract_domain(properties: dict[str, str]) -> str | None:
