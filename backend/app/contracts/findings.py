@@ -18,4 +18,4 @@ class ModuleResult(BaseModel):
     module: str
     status: Literal["ok", "error", "skipped"]
     findings: list[Finding] = []
-    raw_data: dict[str, Any] = {}
+    raw_data: dict[str, Any] | None = None

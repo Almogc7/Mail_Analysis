@@ -7,4 +7,8 @@ extract-msg
 authres
 rapidfuzz
 
+# Importing IOC_Enricher.py (via the sys.path bridge in app/enrichment/ioc_bridge.py)
+# transitively requires its own top-level dependency:
+requests
+
 pytest

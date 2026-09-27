@@ -10,10 +10,18 @@ the import path so it's ready to build against.
 """
 
 import sys
+from typing import Any
 
-from app.config import IOC_ENRICHER_PATH
+from app.config import (
+    IOC_ENRICHER_PATH,
+    MALWAREBAZAAR_API_KEY,
+    THREATFOX_API_KEY,
+    URLSCAN_API_KEY,
+    VT_API_KEY,
+)
 
 _bridged = False
+_clients: dict[str, Any] | None = None
 
 
 def ensure_ioc_enricher_on_path() -> None:
@@ -29,3 +37,33 @@ def ensure_ioc_enricher_on_path() -> None:
     if path_str not in sys.path:
         sys.path.insert(0, path_str)
     _bridged = True
+
+
+def get_clients() -> dict[str, Any]:
+    """Lazily imports and instantiates the IOC_Enricher provider clients relevant to
+    URL/attachment-hash enrichment, using Mail_Analysis's own API keys. Cached as a
+    module-level singleton -- tests should monkeypatch this function to inject stub
+    clients instead of hitting the real network."""
+    global _clients
+    if _clients is not None:
+        return _clients
+
+    ensure_ioc_enricher_on_path()
+    from IOC_Enricher import (
+        MalwareBazaarClient,
+        RiskScorer,
+        ScoreConfig,
+        ThreatFoxClient,
+        URLScanClient,
+        VirusTotalClient,
+    )
+
+    _clients = {
+        "virustotal": VirusTotalClient(api_key=VT_API_KEY or ""),
+        "urlscan": URLScanClient(api_key=URLSCAN_API_KEY or ""),
+        "threatfox": ThreatFoxClient(api_key=THREATFOX_API_KEY or ""),
+        "malwarebazaar": MalwareBazaarClient(api_key=MALWAREBAZAAR_API_KEY or ""),
+        "risk_scorer": RiskScorer,
+        "score_config": ScoreConfig.from_env(),
+    }
+    return _clients
