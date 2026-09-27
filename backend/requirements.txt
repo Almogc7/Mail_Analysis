@@ -11,4 +11,7 @@ rapidfuzz
 # transitively requires its own top-level dependency:
 requests
 
+# Importing IOC_Enricher's api.chat (via app/llm/gemini_bridge.py) transitively requires:
+google-genai
+
 pytest

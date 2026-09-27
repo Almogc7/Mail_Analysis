@@ -23,3 +23,6 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 # Per-email enrichment caps (Module 3) -- bound worst-case runtime/API usage.
 MAX_URLS_TO_ENRICH = int(os.getenv("MAX_URLS_TO_ENRICH", "10"))
 MAX_HASHES_TO_ENRICH = int(os.getenv("MAX_HASHES_TO_ENRICH", "10"))
+
+# Module 6 (Gemini second opinion) -- get_chat_client() exposes no timeout of its own.
+LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "25"))

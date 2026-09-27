@@ -7,6 +7,7 @@ from app.contracts.email import (
     ReceivedHop,
 )
 from app.contracts.findings import Finding, ModuleResult
+from app.contracts.llm_opinion import LLMOpinion
 from app.contracts.scoring import AppliedOverride, CategoryScore, ScoringBreakdown
 from app.contracts.analysis import AnalysisResult
 
@@ -22,5 +23,6 @@ __all__ = [
     "AppliedOverride",
     "CategoryScore",
     "ScoringBreakdown",
+    "LLMOpinion",
     "AnalysisResult",
 ]
