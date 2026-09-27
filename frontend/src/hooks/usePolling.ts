@@ -18,17 +18,33 @@ export interface UsePollingResult {
   extendTimeout: () => void
 }
 
+interface Snapshot {
+  jobId: string | null
+  job: AnalysisJob | null
+  error: string | null
+  timedOut: boolean
+}
+
+const EMPTY_SNAPSHOT: Omit<Snapshot, 'jobId'> = { job: null, error: null, timedOut: false }
+
 export function usePolling(jobId: string | null, options: UsePollingOptions = {}): UsePollingResult {
   const intervalMs = options.intervalMs ?? DEFAULT_POLL_INTERVAL_MS
   const timeoutMs = options.timeoutMs ?? DEFAULT_OVERALL_TIMEOUT_MS
 
-  const [job, setJob] = useState<AnalysisJob | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [timedOut, setTimedOut] = useState(false)
+  // Snapshot is tagged with the jobId it was captured for. Reading it below always checks
+  // that tag against the *current* jobId prop and falls back to EMPTY_SNAPSHOT otherwise --
+  // a synchronous, render-time guard. This matters because setState calls inside this
+  // hook's effect (resetting state for a new jobId) don't apply until the *next* render;
+  // App.tsx's own effect (which triggers the stage transition to "results") runs in the
+  // *same* post-render effect flush and would otherwise still observe the previous job's
+  // stale "done" data for one tick -- jumping straight back to the last analysis's result
+  // before the new one has even started. Deriving from the tag sidesteps effect ordering
+  // entirely instead of racing against it.
+  const [snapshot, setSnapshot] = useState<Snapshot>({ jobId: null, ...EMPTY_SNAPSHOT })
   const [deadline, setDeadline] = useState(() => Date.now() + timeoutMs)
 
   const extendTimeout = () => {
-    setTimedOut(false)
+    setSnapshot((s) => ({ ...s, timedOut: false }))
     setDeadline(Date.now() + timeoutMs)
   }
 
@@ -38,6 +54,10 @@ export function usePolling(jobId: string | null, options: UsePollingOptions = {}
   useEffect(() => {
     if (!jobId) return
 
+    const newDeadline = Date.now() + timeoutMs
+    deadlineRef.current = newDeadline
+    setDeadline(newDeadline)
+
     let cancelled = false
     let retries = 0
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -46,7 +66,7 @@ export function usePolling(jobId: string | null, options: UsePollingOptions = {}
       if (cancelled) return
 
       if (Date.now() > deadlineRef.current) {
-        setTimedOut(true)
+        setSnapshot((s) => (s.jobId === jobId ? { ...s, timedOut: true } : { jobId, ...EMPTY_SNAPSHOT, timedOut: true }))
         timer = setTimeout(poll, intervalMs)
         return
       }
@@ -55,20 +75,24 @@ export function usePolling(jobId: string | null, options: UsePollingOptions = {}
         const result = await getJob(jobId)
         if (cancelled) return
         retries = 0
-        setJob(result)
-        setError(null)
+        setSnapshot({ jobId, job: result, error: null, timedOut: false })
         if (result.status === 'done' || result.status === 'error') {
           return
         }
       } catch (err) {
         if (cancelled) return
         if (err instanceof ApiError && err.status === 404) {
-          setError('Job not found -- the server may have restarted.')
+          setSnapshot({ jobId, job: null, error: 'Job not found -- the server may have restarted.', timedOut: false })
           return
         }
         retries += 1
         if (retries > MAX_TRANSIENT_RETRIES) {
-          setError(err instanceof Error ? err.message : 'Failed to poll job status')
+          setSnapshot({
+            jobId,
+            job: null,
+            error: err instanceof Error ? err.message : 'Failed to poll job status',
+            timedOut: false,
+          })
           return
         }
       }
@@ -82,7 +106,9 @@ export function usePolling(jobId: string | null, options: UsePollingOptions = {}
       cancelled = true
       if (timer) clearTimeout(timer)
     }
-  }, [jobId, intervalMs])
+  }, [jobId, intervalMs, timeoutMs])
 
-  return { job, error, timedOut, extendTimeout }
+  const current = snapshot.jobId === jobId ? snapshot : { jobId, ...EMPTY_SNAPSHOT }
+
+  return { job: current.job, error: current.error, timedOut: current.timedOut, extendTimeout }
 }
