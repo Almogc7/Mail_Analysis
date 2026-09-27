@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+python-multipart
 pydantic>=2
 python-dotenv
 beautifulsoup4
@@ -15,3 +16,4 @@ requests
 google-genai
 
 pytest
+httpx

@@ -26,3 +26,6 @@ MAX_HASHES_TO_ENRICH = int(os.getenv("MAX_HASHES_TO_ENRICH", "10"))
 
 # Module 6 (Gemini second opinion) -- get_chat_client() exposes no timeout of its own.
 LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "25"))
+
+# /analyze route upload limit.
+MAX_UPLOAD_SIZE_BYTES = int(os.getenv("MAX_UPLOAD_SIZE_BYTES", str(25 * 1024 * 1024)))
