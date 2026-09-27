@@ -3,27 +3,7 @@ from typing import Any
 from rapidfuzz import fuzz
 
 from app.contracts.email import EmailAddress, ParsedEmail
-
-# Small curated list for v1 — brand name to its legitimate domain(s).
-# Extend as needed; false negatives here just mean "not flagged", not "safe".
-KNOWN_BRANDS: dict[str, list[str]] = {
-    "paypal": ["paypal.com"],
-    "microsoft": ["microsoft.com", "outlook.com", "office.com"],
-    "docusign": ["docusign.com", "docusign.net"],
-    "amazon": ["amazon.com"],
-    "apple": ["apple.com", "icloud.com"],
-    "google": ["google.com", "gmail.com"],
-    "netflix": ["netflix.com"],
-    "chase": ["chase.com"],
-    "bank of america": ["bankofamerica.com"],
-    "wells fargo": ["wellsfargo.com"],
-    "dhl": ["dhl.com"],
-    "fedex": ["fedex.com"],
-    "linkedin": ["linkedin.com"],
-    "facebook": ["facebook.com", "meta.com"],
-}
-
-FUZZY_MATCH_THRESHOLD = 80
+from app.shared.brands import FUZZY_MATCH_THRESHOLD, KNOWN_BRANDS
 
 
 def _domain_mismatch(a: EmailAddress | None, b: EmailAddress | None) -> dict[str, Any]:

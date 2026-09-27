@@ -1,0 +1,29 @@
+From: Newsletter <news@service-example.com>
+To: bob@example.org
+Return-Path: <news@service-example.com>
+Subject: News from PayPal partners
+Date: Mon, 01 Sep 2025 18:00:00 -0000
+Message-ID: <esp1@service-example.com>
+Authentication-Results: mx.example.org; spf=pass
+ smtp.mailfrom=service-example.com; dkim=pass header.d=service-example.com;
+ dmarc=pass header.from=service-example.com
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============3103170178361749211=="
+
+--===============3103170178361749211==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Our partner PayPal has news for you. Read more: http://track.esp-provider.com=
+/click?x=3D1
+
+--===============3103170178361749211==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Hello,</p><p>Our partner PayPal has news for you. <a href=3D"h=
+ttp://track.esp-provider.com/click?x=3D1">Read more</a></p></body></html>
+
+--===============3103170178361749211==--

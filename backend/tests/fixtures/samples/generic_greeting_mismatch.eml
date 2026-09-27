@@ -1,0 +1,20 @@
+From: Support <support@service-example.com>
+To: bob@example.org
+Return-Path: <support@service-example.com>
+Subject: Important account update
+Date: Mon, 01 Sep 2025 16:00:00 -0000
+Message-ID: <greeting1@service-example.com>
+Authentication-Results: mx.example.org; spf=pass
+ smtp.mailfrom=service-example.com; dkim=pass header.d=service-example.com;
+ dmarc=pass header.from=service-example.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Dear Customer,
+
+Your account will be suspended unless you take action. Please log in to resol=
+ve this.
+
+Regards,
+Support

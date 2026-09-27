@@ -1,0 +1,29 @@
+From: Security <security@notify-service.net>
+To: bob@example.org
+Return-Path: <security@notify-service.net>
+Subject: Please verify your PayPal account
+Date: Mon, 01 Sep 2025 17:00:00 -0000
+Message-ID: <brand1@notify-service.net>
+Authentication-Results: mx.example.org; spf=pass
+ smtp.mailfrom=notify-service.net; dkim=pass header.d=notify-service.net;
+ dmarc=pass header.from=notify-service.net
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============1673978144032798464=="
+
+--===============1673978144032798464==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Please confirm your details. PayPal Security Team.
+
+--===============1673978144032798464==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Hello,</p><p>Please confirm your details by visiting the link =
+below.</p><p><a href=3D"http://totally-fake.ru/login">https://paypal.com/logi=
+n</a></p><p>Best regards,<br>PayPal Security Team</p></body></html>
+
+--===============1673978144032798464==--

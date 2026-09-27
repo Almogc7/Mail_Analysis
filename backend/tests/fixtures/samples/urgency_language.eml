@@ -1,0 +1,21 @@
+From: Alerts <alerts@service-example.com>
+To: bob@example.org
+Return-Path: <alerts@service-example.com>
+Subject: Account notice
+Date: Mon, 01 Sep 2025 15:00:00 -0000
+Message-ID: <urgency1@service-example.com>
+Authentication-Results: mx.example.org; spf=pass
+ smtp.mailfrom=service-example.com; dkim=pass header.d=service-example.com;
+ dmarc=pass header.from=service-example.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Hi Bob,
+
+Urgent action required: unusual activity detected on your account. Your accou=
+nt will be suspended unless you confirm your identity immediately. Please res=
+pond within 24 hours to avoid your access will be restricted.
+
+Thanks,
+Alerts Team
