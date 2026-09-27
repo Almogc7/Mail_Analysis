@@ -12,6 +12,18 @@ FAIL_AUTH_RESULTS = (
     "dkim=fail; dmarc=fail header.from=evil.example"
 )
 
+# Real-world regression fixture: a Cisco IronPort ESA cloud (iphmx.com)-generated header.
+# Structurally valid (has an authserv-id, no trailing ";") -- the one surface quirk is
+# capitalized "spf=Pass" instead of lowercase, which authres already normalizes correctly.
+# Found while investigating a report of auth-check showing "no data" for a real .eml; the
+# actual cause turned out to be a UI gap (module 2 only ever reported failures, so a
+# cleanly-passing email rendered identically to "header absent"), not a parser bug -- this
+# fixture locks in that IronPort's capitalization variant keeps parsing correctly.
+IRONPORT_CAPITALIZED_PASS_RESULTS = (
+    "esa1.hc1528-17.c3s2.iphmx.com; spf=Pass smtp.mailfrom=test.sender@gmail.com; "
+    "dkim=pass (signature verified) header.i=@gmail.com; dmarc=pass (p=none dis=none) d=gmail.com"
+)
+
 
 def _base_parsed_email(**overrides) -> ParsedEmail:
     defaults = dict(
@@ -44,6 +56,35 @@ def test_check_auth_headers_picks_first_as_primary_and_keeps_both():
 
     assert result["spf"]["result"] == "fail"
     assert len(result["all_parsed"]) == 2
+
+
+def test_check_auth_headers_handles_ironport_capitalized_pass_result():
+    result = check_auth_headers([IRONPORT_CAPITALIZED_PASS_RESULTS])
+
+    assert result["spf"]["result"] == "pass"
+    assert result["dkim"]["result"] == "pass"
+    assert result["dmarc"]["result"] == "pass"
+    assert result["all_parsed"][0].get("parse_error") is None  # succeeded on the first attempt, no fallback needed
+
+
+def test_run_auth_check_confirms_full_pass_with_a_visible_info_finding():
+    parsed = _base_parsed_email(
+        return_path=EmailAddress(address="alice@example.com", domain="example.com"),
+        authentication_results_raw=[PASS_AUTH_RESULTS],
+    )
+    module_result = run_auth_check(parsed)
+
+    pass_findings = [f for f in module_result.findings if f.title == "SPF/DKIM/DMARC all passed"]
+    assert len(pass_findings) == 1
+    assert pass_findings[0].severity == "info"
+    assert pass_findings[0].weight == 0.0
+
+
+def test_run_auth_check_no_pass_confirmation_when_header_absent():
+    parsed = _base_parsed_email(authentication_results_raw=[])
+    module_result = run_auth_check(parsed)
+
+    assert not any(f.title == "SPF/DKIM/DMARC all passed" for f in module_result.findings)
 
 
 def test_from_return_path_mismatch_detected():

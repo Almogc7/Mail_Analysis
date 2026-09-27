@@ -36,6 +36,26 @@ def _auth_findings(auth: dict) -> list[Finding]:
                 )
             )
 
+    if auth["header_present"] and all(auth[m]["result"] == "pass" for m in ("spf", "dkim", "dmarc")):
+        # Module 2 otherwise only ever reports failures -- without this, a cleanly
+        # authenticated email renders identically to "no Authentication-Results header at
+        # all" (both show zero findings), which reads as "couldn't check" rather than
+        # "checked and confirmed clean". info/weight=0: visibility only, no scoring effect.
+        findings.append(
+            Finding(
+                module=MODULE_NAME,
+                severity="info",
+                title="SPF/DKIM/DMARC all passed",
+                description="Authentication-Results confirmed SPF, DKIM, and DMARC all passed for this message.",
+                evidence={
+                    "spf_domain": auth["spf"]["domain"],
+                    "dkim_domain": auth["dkim"]["domain"],
+                    "dmarc_domain": auth["dmarc"]["domain"],
+                },
+                weight=0.0,
+            )
+        )
+
     return findings
 
 
