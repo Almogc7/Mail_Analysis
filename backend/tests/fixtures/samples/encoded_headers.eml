@@ -1,0 +1,17 @@
+From: =?utf-8?q?Fran=C3=A7ois_M=C3=BCller?= <francois@example.fr>
+To: bob@example.org
+Return-Path: <francois@example.fr>
+Subject: =?utf-8?b?UsOpdW5pb24gY29uZmlybcOpZSDigJMgw6A=?= 09h00
+Date: Mon, 01 Sep 2025 14:00:00 -0000
+Message-ID: <encoded1@example.fr>
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=example.fr;
+ dkim=pass header.d=example.fr; dmarc=pass header.from=example.fr
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+Bonjour,
+
+La réunion est confirmée.
+
+François

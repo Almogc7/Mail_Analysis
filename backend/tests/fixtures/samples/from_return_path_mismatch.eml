@@ -1,0 +1,16 @@
+From: Newsletter <news@corp-example.com>
+To: bob@example.org
+Return-Path: <bounce-12345@mailer-relay.net>
+Subject: This week's updates
+Date: Mon, 01 Sep 2025 11:00:00 -0000
+Message-ID: <mismatch1@corp-example.com>
+Authentication-Results: mx.example.org; spf=pass
+ smtp.mailfrom=mailer-relay.net; dkim=pass header.d=corp-example.com;
+ dmarc=pass header.from=corp-example.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Hello,
+
+Here are this week's updates.

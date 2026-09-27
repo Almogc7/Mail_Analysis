@@ -1,0 +1,18 @@
+From: PayPal Support <security@totally-legit-mailer.ru>
+To: victim@example.org
+Reply-To: security@totally-legit-mailer.ru
+Return-Path: <security@totally-legit-mailer.ru>
+Subject: Your account has been limited
+Date: Mon, 01 Sep 2025 10:00:00 -0000
+Message-ID: <spoof1@totally-legit-mailer.ru>
+Authentication-Results: mx.example.org; spf=fail
+ smtp.mailfrom=totally-legit-mailer.ru; dkim=none; dmarc=fail
+ header.from=totally-legit-mailer.ru
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Dear Customer,
+
+Your account has been limited. Click here to verify: http://paypal.verify-acc=
+ount-now.ru/login
