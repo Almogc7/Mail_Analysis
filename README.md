@@ -143,14 +143,15 @@ samples matters even when synthetic fixtures already provide good structural cov
 
 ## Screenshots
 
-*(placeholders — real screenshots from the scrubbed `.msg` sample and a live run to be added)*
+From a live run against the `spoofed_display_name.eml` fixture (real SPF/DMARC failure,
+display-name spoofing, and a real Gemini call — nothing here is mocked).
 
 - **Summary/verdict card** — final verdict, score, confidence, and top scoring drivers
-  ![summary card placeholder](docs/screenshots/summary-card.png)
+  ![Summary card showing a Suspicious verdict at 31/100](docs/screenshots/summary-card.png)
 - **Expanded per-module evidence panel** — a module's Findings with evidence drilled down
-  ![module evidence placeholder](docs/screenshots/module-evidence.png)
+  ![Authentication & Identity panel expanded with SPF/DMARC/spoofing findings](docs/screenshots/module-evidence.png)
 - **LLM opinion card** — visually distinct from the rule-based verdict sections above it
-  ![llm opinion placeholder](docs/screenshots/llm-opinion.png)
+  ![AI-generated commentary card, visually distinct from the rule-based sections above it](docs/screenshots/llm-opinion.png)
 
 ## Tech stack & setup
 
