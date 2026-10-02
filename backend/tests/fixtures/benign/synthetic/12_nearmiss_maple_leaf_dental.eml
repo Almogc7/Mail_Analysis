@@ -1,0 +1,14 @@
+Received: from mta2.mapleleaf.example.org (mta2.mapleleaf.example.org [198.51.100.102]) by mx.example.org with ESMTPS; Mon, 21 Sep 2026 10:02:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=mapleleaf.example.org; dkim=pass header.d=mapleleaf.example.org; dmarc=pass header.from=mapleleaf.example.org
+From: "Maple Leaf Dental Clinic" <reception@mapleleaf.example.org>
+To: Test Recipient <recipient@example.com>
+Subject: Appointment reminder for Tuesday
+Date: Mon, 21 Sep 2026 10:00:00 +0000
+Message-ID: <m2.1669@mail.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+This is a reminder of your appointment on Tuesday at 10:00.
+Manage: https://mapleleaf.example.org/appt
+

@@ -1,0 +1,14 @@
+Received: from mta1.pineapple.example.com (mta1.pineapple.example.com [198.51.100.101]) by mx.example.org with ESMTPS; Mon, 21 Sep 2026 10:01:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=pineapple.example.com; dkim=pass header.d=pineapple.example.com; dmarc=pass header.from=pineapple.example.com
+From: "Pineapple Weekly" <news@pineapple.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: Your weekly fruit digest
+Date: Mon, 21 Sep 2026 10:00:00 +0000
+Message-ID: <m1.50451@mail.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Fresh picks this week.
+Read: https://pineapple.example.com/digest
+

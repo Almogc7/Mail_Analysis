@@ -1,0 +1,16 @@
+Received: from mta7.mailer.example.org (mta7.mailer.example.org [198.51.100.107]) by mx.example.org with ESMTPS; Mon, 21 Sep 2026 10:07:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=mailer.example.org; dkim=pass header.d=mailer.example.org; dmarc=pass header.from=mailer.example.org
+From: =?utf-8?q?Micros=D0=BEft_Security?= <security@mailer.example.org>
+To: Test Recipient <recipient@example.com>
+Subject: Security notice
+Date: Mon, 21 Sep 2026 10:00:00 +0000
+Message-ID: <m7.20657@mail.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Hello,
+
+A security notice is available.
+https://mailer.example.org/n/2
+

@@ -97,17 +97,34 @@ def _identity_findings(identity: dict) -> list[Finding]:
 
     spoof = identity["display_name_spoofing"]
     if spoof["suspected"]:
+        via = spoof.get("normalization")
+        evasion = f" (matched after {via} folding -- deliberate look-alike characters)" if via in ("homoglyph", "leet") else ""
         findings.append(
             Finding(
                 module=MODULE_NAME,
                 severity="high",
                 title=f"Possible display-name spoofing of '{spoof['claimed_brand']}'",
                 description=(
-                    f"From display name resembles brand '{spoof['claimed_brand']}' but the sending "
-                    f"domain '{spoof['actual_domain']}' does not match that brand's known domains."
+                    f"From display name contains the brand '{spoof['claimed_brand']}' as a whole word{evasion} "
+                    f"but the sending domain '{spoof['actual_domain']}' is not one of that brand's known domains."
                 ),
                 evidence=spoof,
                 weight=25.0,
+            )
+        )
+    elif spoof["fuzzy_suspected"]:
+        findings.append(
+            Finding(
+                module=MODULE_NAME,
+                severity="medium",
+                title=f"Display name resembles brand '{spoof['claimed_brand']}'",
+                description=(
+                    f"From display name is one character away from the brand '{spoof['claimed_brand']}' "
+                    f"and the sending domain '{spoof['actual_domain']}' is not one of its known domains. "
+                    "Fuzzy-only match: possible typosquat, but not enough alone to raise the verdict floor."
+                ),
+                evidence=spoof,
+                weight=10.0,
             )
         )
 

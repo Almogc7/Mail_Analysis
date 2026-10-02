@@ -1,0 +1,14 @@
+Received: from mta4.grapple.example.com (mta4.grapple.example.com [198.51.100.104]) by mx.example.org with ESMTPS; Mon, 21 Sep 2026 10:04:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=grapple.example.com; dkim=pass header.d=grapple.example.com; dmarc=pass header.from=grapple.example.com
+From: "Grapple Fitness" <hello@grapple.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: Class schedule updated
+Date: Mon, 21 Sep 2026 10:00:00 +0000
+Message-ID: <m4.96012@mail.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+The class schedule was updated.
+See: https://grapple.example.com/schedule
+

@@ -1,0 +1,14 @@
+Received: from mta3.fibonacci.example.net (mta3.fibonacci.example.net [198.51.100.103]) by mx.example.org with ESMTPS; Mon, 21 Sep 2026 10:03:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=fibonacci.example.net; dkim=pass header.d=fibonacci.example.net; dmarc=pass header.from=fibonacci.example.net
+From: "Fibonacci Books" <orders@fibonacci.example.net>
+To: Test Recipient <recipient@example.com>
+Subject: Your order has shipped
+Date: Mon, 21 Sep 2026 10:00:00 +0000
+Message-ID: <m3.11663@mail.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Your order has shipped.
+Track: https://fibonacci.example.net/track/123
+

@@ -1,0 +1,14 @@
+Received: from mta5.tires.example.com (mta5.tires.example.com [198.51.100.105]) by mx.example.org with ESMTPS; Mon, 21 Sep 2026 10:05:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=tires.example.com; dkim=pass header.d=tires.example.com; dmarc=pass header.from=tires.example.com
+From: "Discount Tires Direct" <sales@tires.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: Seasonal tire offers
+Date: Mon, 21 Sep 2026 10:00:00 +0000
+Message-ID: <m5.76636@mail.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Seasonal offers on tires.
+Shop: https://tires.example.com/offers
+

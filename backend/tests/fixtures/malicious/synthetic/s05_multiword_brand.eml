@@ -1,0 +1,16 @@
+Received: from mta10.secure-banking.example.org (mta10.secure-banking.example.org [198.51.100.110]) by mx.example.org with ESMTPS; Mon, 21 Sep 2026 10:00:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=secure-banking.example.org; dkim=pass header.d=secure-banking.example.org; dmarc=pass header.from=secure-banking.example.org
+From: "Bank of America Alerts" <alerts@secure-banking.example.org>
+To: Test Recipient <recipient@example.com>
+Subject: Alert
+Date: Mon, 21 Sep 2026 10:00:00 +0000
+Message-ID: <m10.74362@mail.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Hello,
+
+An alert is available.
+https://secure-banking.example.org/n/5
+

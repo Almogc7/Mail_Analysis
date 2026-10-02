@@ -1,0 +1,16 @@
+Received: from mta6.mailer.example.org (mta6.mailer.example.org [198.51.100.106]) by mx.example.org with ESMTPS; Mon, 21 Sep 2026 10:06:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=mailer.example.org; dkim=pass header.d=mailer.example.org; dmarc=pass header.from=mailer.example.org
+From: "PayPal Support" <support@mailer.example.org>
+To: Test Recipient <recipient@example.com>
+Subject: Notice about your account
+Date: Mon, 21 Sep 2026 10:00:00 +0000
+Message-ID: <m6.55963@mail.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Hello,
+
+Please see the notice about your account.
+https://mailer.example.org/n/1
+

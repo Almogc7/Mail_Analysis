@@ -1,9 +1,8 @@
 from typing import Any
 
-from rapidfuzz import fuzz
-
 from app.contracts.email import EmailAddress, ParsedEmail
-from app.shared.brands import FUZZY_MATCH_THRESHOLD, KNOWN_BRANDS
+from app.shared.brands import KNOWN_BRANDS
+from app.shared.matching import domain_matches_any, find_brand_matches, registrable_domain
 
 
 def _domain_mismatch(a: EmailAddress | None, b: EmailAddress | None) -> dict[str, Any]:
@@ -15,32 +14,42 @@ def _domain_mismatch(a: EmailAddress | None, b: EmailAddress | None) -> dict[str
 
 
 def _check_display_name_spoofing(from_addr: EmailAddress) -> dict[str, Any]:
-    display_name = (from_addr.display_name or "").lower().strip()
+    """Token-based (see app.shared.matching). `suspected` -- which drives the SUSPICIOUS
+    floor -- requires an EXACT whole-token brand match (plain, homoglyph or leet-folded)
+    AND a sender registrable domain outside that brand's legitimate domains. A fuzzy-only
+    (edit distance 1) look-alike sets `fuzzy_suspected` instead: a medium finding, no floor."""
     actual_domain = from_addr.domain
-    if not display_name:
-        return {"suspected": False, "claimed_brand": None, "actual_domain": actual_domain, "match_score": 0}
-
-    best_brand: str | None = None
-    best_score = 0.0
-    for brand, legit_domains in KNOWN_BRANDS.items():
-        score = fuzz.partial_ratio(brand, display_name)
-        if score > best_score:
-            best_score = score
-            best_brand = brand
-
-    if best_brand is None or best_score < FUZZY_MATCH_THRESHOLD:
-        return {"suspected": False, "claimed_brand": None, "actual_domain": actual_domain, "match_score": best_score}
-
-    legit_domains = KNOWN_BRANDS[best_brand]
-    domain_matches_brand = actual_domain is not None and any(
-        actual_domain == d or actual_domain.endswith(f".{d}") for d in legit_domains
-    )
-    return {
-        "suspected": not domain_matches_brand,
-        "claimed_brand": best_brand,
+    result: dict[str, Any] = {
+        "suspected": False,
+        "fuzzy_suspected": False,
+        "match_type": None,
+        "normalization": None,
+        "claimed_brand": None,
         "actual_domain": actual_domain,
-        "match_score": best_score,
+        "actual_registrable_domain": registrable_domain(actual_domain),
+        "match_score": 0,
     }
+    matches = find_brand_matches(from_addr.display_name, KNOWN_BRANDS)
+    # Only brands the sender domain does NOT belong to are impersonation candidates; prefer
+    # exact over fuzzy.
+    candidates = [m for m in matches if not domain_matches_any(actual_domain, KNOWN_BRANDS[m.brand])]
+    candidates.sort(key=lambda m: m.kind != "exact")
+    if not candidates:
+        legit = matches[0] if matches else None
+        if legit:
+            result.update(match_type=legit.kind, claimed_brand=legit.brand, normalization=legit.via,
+                          match_score=100.0 if legit.kind == "exact" else 90.0)
+        return result
+    top = candidates[0]
+    result.update(
+        match_type=top.kind,
+        normalization=top.via,
+        claimed_brand=top.brand,
+        match_score=100.0 if top.kind == "exact" else 90.0,
+        suspected=top.kind == "exact",
+        fuzzy_suspected=top.kind == "fuzzy",
+    )
+    return result
 
 
 def check_identity_mismatch(parsed: ParsedEmail) -> dict[str, Any]:

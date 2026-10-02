@@ -25,6 +25,10 @@ bounce-12345@mailer-relay.net
 # binary .msg fixture: trailing NUL/digit artifact of UTF-16 string scan, not a real address
 test.recipient@example.com0
 
+# --- Synthetic matcher test input (tests/test_brand_matching.py): brand/freemail domains ARE the input ---
+billing@gmail.com
+service@mail.paypal.com
+
 # --- Synthetic benign fixture: legitimate brand-domain sender (benign/synthetic/10_*) ---
 dse@docusign.net
 
@@ -32,3 +36,6 @@ dse@docusign.net
 # (sender mailbox on a Russian shared-hosting box; see MANIFEST.md, kvish6_invoice_phish.eml)
 vnz73mailr@vh319.sweb.ru
 d73cbd6d35443e38f5a68a74ddbe15c5@vh319.sweb.ru
+
+# --- Synthetic display-name-spoof positive: freemail sender (malicious/synthetic/s03_*) ---
+netflix.billing.team@gmail.com

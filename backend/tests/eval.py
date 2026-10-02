@@ -9,6 +9,8 @@ per-category coverage first (a corpus this small makes P/R alone misleading), th
 Reading the numbers:
   * "flagged" = verdict in {malicious, suspicious}. Two variants are printed because
     `needs_review` is an abstention: strict counts it as NOT flagged, lenient as flagged.
+  * malicious/synthetic/ are hand-written display-name-spoof positives (matcher tests);
+    they are not real phish and not an accuracy claim either.
   * Synthetic benign fixtures (benign/synthetic/) are hand-written regression guards against
     over-flagging. They are NOT an accuracy claim. Only benign/_from_user/ and the local
     corpus are real data.
@@ -145,7 +147,7 @@ def collect() -> list[tuple[Path, str, str]]:
                 if p.suffix.lower() in {".eml", ".msg"}:
                     items.append((p, label, source_of(p)))
 
-    add(FIXTURES / "malicious", "malicious", lambda p: "committed")
+    add(FIXTURES / "malicious", "malicious", lambda p: "kvish" if p.parent.name == "malicious" else p.parent.name)
     add(FIXTURES / "benign", "benign", lambda p: p.parent.name)
     add(FIXTURES / "_local_corpus" / "tuning", "malicious", lambda p: "local_corpus")
     if os.environ.get("EVAL_UNBLIND_HOLDOUT") == "1":
@@ -219,7 +221,9 @@ def main(argv: list[str] | None = None) -> int:
     by_src = {}
     for r in rows:
         by_src.setdefault((r.label, r.source), []).append(r.verdict)
-    print("counts:", {f"{k[0]}/{k[1]}": len(v) for k, v in by_src.items()})
+    print("flagged by source (flagged/total):")
+    for (lab, src), verdicts in sorted(by_src.items()):
+        print(f"  {lab}/{src}: {sum(v in FLAGGED for v in verdicts)}/{len(verdicts)}")
 
     if args.json:
         Path(args.json).write_text(
