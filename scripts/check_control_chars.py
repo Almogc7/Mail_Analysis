@@ -46,14 +46,28 @@ def find_control_chars(data: bytes) -> list[tuple[int, int, int]]:
     return found
 
 
-def _staged() -> list[tuple[str, bytes]]:
-    names = subprocess.run(
-        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"],
+def _staged_entries() -> list[tuple[str, str]]:
+    """[(mode, path)] for staged additions/copies/modifications. Mode 160000 is a gitlink, i.e. an
+    embedded git repository (for example a corpus clone dropped inside the project)."""
+    out = subprocess.run(
+        ["git", "diff", "--cached", "--raw", "--no-renames", "--diff-filter=ACMR", "-z"],
         cwd=ROOT, capture_output=True, check=True,
-    ).stdout.decode("utf-8").split("\0")
+    ).stdout.decode("utf-8", "replace")
+    parts = out.split(chr(0))
+    entries: list[tuple[str, str]] = []
+    i = 0
+    while i + 1 < len(parts) and parts[i].startswith(":"):
+        entries.append((parts[i].split()[1], parts[i + 1]))  # (destination mode, path)
+        i += 2
+    return entries
+
+
+def _staged() -> list[tuple[str, bytes]]:
+    # Gitlinks (embedded repositories) have no blob to read; check_fixtures.py rejects them outright.
     return [
-        (n, subprocess.run(["git", "show", f":{n}"], cwd=ROOT, capture_output=True, check=True).stdout)
-        for n in names if n
+        (path, subprocess.run(["git", "show", f":{path}"], cwd=ROOT, capture_output=True, check=True).stdout)
+        for mode, path in _staged_entries()
+        if mode != "160000"
     ]
 
 

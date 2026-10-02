@@ -93,6 +93,22 @@ def _texts_for(name: str, data: bytes) -> list[str]:
     return views
 
 
+def _staged_entries() -> list[tuple[str, str]]:
+    """[(mode, path)] for staged additions/copies/modifications. Mode 160000 is a gitlink, i.e. an
+    embedded git repository (for example a corpus clone dropped inside the project)."""
+    out = subprocess.run(
+        ["git", "diff", "--cached", "--raw", "--no-renames", "--diff-filter=ACMR", "-z"],
+        cwd=ROOT, capture_output=True, check=True,
+    ).stdout.decode("utf-8", "replace")
+    parts = out.split(chr(0))
+    entries: list[tuple[str, str]] = []
+    i = 0
+    while i + 1 < len(parts) and parts[i].startswith(":"):
+        entries.append((parts[i].split()[1], parts[i + 1]))  # (destination mode, path)
+        i += 2
+    return entries
+
+
 def _in_scope(name: str) -> tuple[bool, bool]:
     """(scanned, full_rules)."""
     p = Path(name)
@@ -158,6 +174,12 @@ def main(argv: list[str]) -> int:
                                capture_output=True, check=True).stdout.decode().split("\0")
         if DENYLIST.name in names:
             problems.append(f"{DENYLIST.name} is staged -- it must never be committed")
+        for mode, path in _staged_entries():
+            if mode == "160000":
+                problems.append(
+                    f"{path}: an embedded git repository is staged (a corpus clone dropped inside the project?). "
+                    "Raw malicious samples must never enter this repository; keep clones outside it or in an ignored path"
+                )
 
     for name, data, full_rules in _files(staged):
         seen: set[tuple[str, str]] = set()

@@ -121,3 +121,50 @@ def test_reserved_domain_rule(domain, reserved):
 )
 def test_scope_rules(path, expected):
     assert cf._in_scope(path) == expected
+
+
+# ---- embedded repositories (a corpus clone dropped inside the project) ---------------------------------
+
+import subprocess  # noqa: E402
+
+
+def _git(repo, *args):
+    subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True,
+                   env={**__import__("os").environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+                        "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com"})
+
+
+@pytest.fixture
+def repo_with_embedded_clone(tmp_path, monkeypatch):
+    repo = tmp_path / "outer"
+    inner = repo / "corpus_clone"
+    inner.mkdir(parents=True)
+    _git(inner, "init", "-q")
+    (inner / "a.eml").write_text("Subject: x\n\nbody\n")
+    _git(inner, "add", "-A")
+    _git(inner, "commit", "-q", "-m", "c")
+    _git(repo, "init", "-q")
+    (repo / "notes.txt").write_text("plain text\n")
+    _git(repo, "add", "-A")  # stages notes.txt AND the embedded repository (a gitlink)
+    monkeypatch.setattr(cc, "ROOT", repo)
+    monkeypatch.setattr(cf, "ROOT", repo)
+    return repo
+
+
+def test_staged_entries_report_the_gitlink_mode(repo_with_embedded_clone):
+    modes = dict((path, mode) for mode, path in cc._staged_entries())
+    assert modes["corpus_clone"] == "160000" and modes["notes.txt"] == "100644"
+
+
+def test_control_char_hook_no_longer_crashes_on_a_staged_embedded_repo(repo_with_embedded_clone):
+    # Regression: this raised CalledProcessError ('git show :corpus_clone') and killed the hook.
+    scanned = cc._staged()
+    assert [name for name, _ in scanned] == ["notes.txt"]
+    assert cc.scan(scanned) == []
+
+
+def test_leak_guard_rejects_a_staged_embedded_repository(repo_with_embedded_clone, monkeypatch, capsys):
+    monkeypatch.setenv("CHECK_FIXTURES_ALLOW_NO_DENYLIST", "1")
+    assert cf.main(["--staged"]) == 1
+    err = capsys.readouterr().err
+    assert "corpus_clone" in err and "embedded git repository" in err
