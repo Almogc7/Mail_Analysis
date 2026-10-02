@@ -120,11 +120,39 @@ a matching `Received` line below your first trusted hop and the check cannot tel
 authserv-id (a Microsoft quirk) can only be trusted by explicitly configuring a pattern that matches
 the placeholder `unknown-authserv`; the evidence then states that attribution was not possible.
 
+### Enrichment privacy: what leaves the machine
+
+Threat-intel lookups send **hostnames, not URLs**. The path and query of a link — where per-recipient
+tracking tokens live — are never sent unless a provider is named in `ENRICHMENT_PATH_QUERY_PROVIDERS`
+(opt-in, default none). Internal-looking hosts (no public name, `.corp`/`.local`, private or
+documentation addresses) are never sent. Attachments are looked up by **hash only**: no file and no file
+name is ever uploaded. Every provider sits behind a guard (`app/enrichment/policy.py`) that exposes only
+`lookup()` and raises rather than send a request outside the policy; VirusTotal and URLScan are queried
+with GET only, and URLScan by search, so no scan is ever submitted. Each provider can be switched off with
+`ENRICHMENT_DISABLED_PROVIDERS`.
+
+**Unknown is never clean.** A provider that is disabled, not applicable, rate-limited, timed out, failed
+or returned garbage makes that indicator *unknown*: a visible finding, lower enrichment coverage, and an
+aggregated warning — never a quiet zero. Links on **shared platforms** (mass-mailers, link wrappers,
+shorteners, SharePoint/OneDrive, Google Docs/Forms, Dropbox, site builders…) are reported as
+*uninformative* and not looked up at all: their domains are reputable but host content anyone can
+create, so "no detections" would mean nothing. The platform list is a config file
+(`backend/app/enrichment/shared_platforms.json`, generic platforms only; organisation-specific additions
+go in an untracked file named by `SHARED_PLATFORMS_EXTRA_FILE`). When an email has more lookups than the
+per-email cap, the riskiest hosts are looked up first and every dropped indicator is listed with its rank
+and reasons.
+
+One deliberate consequence: URLScan's hit count measures how often a page was *scanned*, not whether it is
+bad, so at host level it is shown as context and adds no risk.
+
 ### LLM opinion: commentary, never a second verdict
 
-Module 6 (`backend/app/llm/`) sends Gemini the already-computed `AnalysisResult` — the
-verdict, score, category breakdown, and every `Finding` with its evidence — and asks for two
-things only: a plain-language narrative explaining *why* the verdict landed where it did,
+Module 6 (`backend/app/llm/`) is **off by default** (`LLM_ENABLED`): while off, nothing is sent to any
+external model. When enabled it sends Gemini only the verdict, score, category numbers and the **titles**
+of the findings — never their descriptions or evidence — with every address, hostname, URL, file name, IP
+and internal-looking name replaced by a placeholder (`<HOST_1>`, `<URL_2>`, …). The model's reply is mapped
+back to the real values locally, so the analyst reads real names while the model never sees them. It asks
+for two things only: a plain-language narrative explaining *why* the verdict landed where it did,
 and a list of things worth a second human look. The prompt explicitly forbids stating or
 implying a different verdict than the one already computed by Module 5.
 
@@ -148,11 +176,12 @@ Read this before trusting any number from this project. Status as of 2026-10-02.
   wrappers, SPF-only senders, shared-hosting contact forms, near-miss display names). They are
   regression guards against over-flagging, **not** a sample of real mail. The slot for real benign
   mail (`benign/_from_user/`) is empty and the eval reports it as `0/0`.
-- **Malicious evidence is one real sample plus synthetic cases.** One real, sanitized phishing email
-  (the Kvish 6 invoice lure) and five hand-written display-name-spoof positives. A seeded 50/50
-  tuning/hold-out split of the public `phishing_pot` corpus is supported by `scripts/select_corpus.py`
-  (raw samples stay local and gitignored; only seed and hashes are tracked) but has not been generated
-  yet. Public phishing corpora contain **no benign mail**, so they can measure recall only.
+- **Malicious evidence is one real sample, synthetic cases, and a public corpus.** One real, sanitized
+  phishing email (the Kvish 6 invoice lure), five hand-written display-name-spoof positives, and a seeded
+  50/50 tuning/hold-out split of the public `phishing_pot` corpus made by `scripts/select_corpus.py` on
+  2026-10-02 (seed `20261003`, 8,611 usable samples, 75 tuning / 75 hold-out; raw samples stay local and
+  gitignored, only the seed and SHA256 hashes are tracked in `CORPUS_MANIFEST.md`). Public phishing corpora
+  contain **no benign mail**, so they can measure recall only.
 - **Hold-out discipline.** Detections are tuned against the tuning split only. The hold-out split is
   evaluated once, via `python -m tests.eval --final-holdout`, which logs to `backend/tests/HOLDOUT_LOG.md`
   and prints aggregates only.
