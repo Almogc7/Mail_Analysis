@@ -12,6 +12,7 @@ from app.enrichment.policy import (
     host_of,
     load_policy,
     lookup_key,
+    platform_of,
     target_for,
 )
 from app.enrichment.rate_limit import VTRateLimiter
@@ -105,6 +106,22 @@ def _internal_finding(host: str) -> Finding:
     )
 
 
+def _uninformative_finding(key: str, platform) -> Finding:
+    return Finding(
+        module=MODULE_NAME,
+        severity="info",
+        # Same title prefix as other gaps so scoring coverage counts it: no reputation evidence exists.
+        title=f"Enrichment incomplete for {key}",
+        description=(
+            f"'{key}' is on {platform.name} ({platform.kind.replace('_', ' ')}), a shared platform: its domains are "
+            "reputable but host or relay content anyone can create, so a reputation lookup cannot separate a "
+            "good link from a bad one and none was made. UNINFORMATIVE -- unknown on reputation, not clean."
+        ),
+        evidence={"provider": "all", "ioc_value": key, "state": "uninformative", "platform": platform.name, "kind": platform.kind},
+        weight=0.0,
+    )
+
+
 def _enrich_url_unit(
     key: str, url: str, providers: dict[str, GuardedProvider], policy: EnrichmentPolicy,
     clients: dict[str, Any], vt_limiter: VTRateLimiter,
@@ -185,17 +202,26 @@ def run_enrichment(
     units = _collect_units(parsed, policy)
     hashes = _collect_unique_hashes(parsed)
 
-    unit_items = list(units.items())
-    to_enrich, skipped = unit_items[:MAX_URLS_TO_ENRICH], unit_items[MAX_URLS_TO_ENRICH:]
-    hashes_to_enrich, hashes_skipped = hashes[:MAX_HASHES_TO_ENRICH], hashes[MAX_HASHES_TO_ENRICH:]
-    label = "URL" if policy.path_query_providers else "host"
-
-    for key, url in to_enrich:
+    # Hosts that need no external lookup (internal-looking, or on a shared platform) are settled
+    # immediately and do NOT consume the per-email cap; only real lookups are capped.
+    costly: list[tuple[str, str]] = []
+    for key, url in units.items():
         host = host_of(url)
         if host is not None and classify_host(host) == "internal":
             raw_data[key] = {"internal_host_not_sent": True}
             findings.append(_internal_finding(key))
             continue
+        platform = platform_of(host)
+        if platform is not None:
+            raw_data[key] = {"uninformative": {"platform": platform.name, "kind": platform.kind}}
+            findings.append(_uninformative_finding(key, platform))
+            continue
+        costly.append((key, url))
+    to_enrich, skipped = costly[:MAX_URLS_TO_ENRICH], costly[MAX_URLS_TO_ENRICH:]
+    hashes_to_enrich, hashes_skipped = hashes[:MAX_HASHES_TO_ENRICH], hashes[MAX_HASHES_TO_ENRICH:]
+    label = "URL" if policy.path_query_providers else "host"
+
+    for key, url in to_enrich:
         result = _enrich_url_unit(key, url, providers, policy, clients, vt_limiter)
         raw_data[key] = result
 

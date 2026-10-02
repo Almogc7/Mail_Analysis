@@ -20,7 +20,11 @@ Config comes from app.config at call time (so tests can monkeypatch it).
 from __future__ import annotations
 
 import ipaddress
+import json
+import os
 from dataclasses import dataclass, field
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -169,3 +173,62 @@ class GuardedProvider:
 
 def guard_clients(clients: dict[str, Any], policy: EnrichmentPolicy) -> dict[str, GuardedProvider]:
     return {name: GuardedProvider(name, clients[name], policy) for name in PROVIDERS if name in clients}
+
+
+# --------------------------------------------------------------------------------------------
+# Shared platforms: hosts where a reputation lookup cannot tell good from bad
+# --------------------------------------------------------------------------------------------
+
+DEFAULT_PLATFORMS_FILE = Path(__file__).with_name("shared_platforms.json")
+
+
+@dataclass(frozen=True)
+class Platform:
+    name: str
+    kind: str  # esp_tracker | link_wrapper | shortener | cloud_content | site_builder
+    domains: tuple[str, ...]
+
+
+def _read_platforms(path: Path) -> list[Platform]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot read shared-platforms file {path.name}: {exc}") from exc
+    entries = data.get("platforms") if isinstance(data, dict) else None
+    if not isinstance(entries, list):
+        raise ValueError(f'{path.name} must be {{"platforms": [{{"name", "kind", "domains": [...]}}]}}')
+    platforms = []
+    for e in entries:
+        ok = isinstance(e, dict) and isinstance(e.get("name"), str) and isinstance(e.get("kind"), str) \
+            and isinstance(e.get("domains"), list) and e["domains"] and all(isinstance(d, str) and d.strip() for d in e["domains"])
+        if not ok:
+            raise ValueError(f"{path.name}: malformed platform entry {e!r}")
+        platforms.append(Platform(e["name"], e["kind"], tuple(d.strip().strip(".").lower() for d in e["domains"])))
+    return platforms
+
+
+@lru_cache(maxsize=4)
+def _load_platforms(default_path: str, extra_path: str | None) -> tuple[Platform, ...]:
+    platforms = _read_platforms(Path(default_path))
+    if extra_path:
+        platforms += _read_platforms(Path(extra_path))  # organisation-specific additions (untracked)
+    return tuple(platforms)
+
+
+def load_platforms() -> tuple[Platform, ...]:
+    """Tracked generic list plus the optional untracked file named by SHARED_PLATFORMS_EXTRA_FILE."""
+    return _load_platforms(str(DEFAULT_PLATFORMS_FILE), os.getenv("SHARED_PLATFORMS_EXTRA_FILE") or None)
+
+
+def platform_of(host: str | None) -> Platform | None:
+    """The shared platform a host belongs to (host == domain or a subdomain of it; the longest matching
+    domain wins), or None."""
+    if not host:
+        return None
+    host = host.strip(".").lower()
+    best: tuple[int, Platform] | None = None
+    for platform in load_platforms():
+        for domain in platform.domains:
+            if (host == domain or host.endswith("." + domain)) and (best is None or len(domain) > best[0]):
+                best = (len(domain), platform)
+    return best[1] if best else None
