@@ -29,3 +29,16 @@ export async function getJob(jobId: string): Promise<AnalysisJob> {
   }
   return response.json()
 }
+
+export async function submitFeedback(jobId: string, agree: boolean, note: string | null): Promise<void> {
+  const response = await fetch(`/analyze/${jobId}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agree, note }),
+  })
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ detail: response.statusText }))
+    const detail = typeof body.detail === 'string' ? body.detail : 'Failed to record feedback'
+    throw new ApiError(response.status, detail)
+  }
+}

@@ -284,3 +284,49 @@ button:hover:not(:disabled) {
 .reset-button {
   align-self: flex-start;
 }
+
+.feedback-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.feedback-title {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.feedback-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.feedback-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.feedback-note textarea {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+  resize: vertical;
+}
+
+.feedback-status {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--accent-green);
+}
