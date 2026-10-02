@@ -97,3 +97,27 @@ def test_documentation_ranges_pass():
 )
 def test_reserved_domain_rule(domain, reserved):
     assert cf._reserved_domain(domain) is reserved
+
+
+# ---- check_fixtures: scope (which files get which rules) ----------------------------------------
+
+@pytest.mark.parametrize(
+    "path,expected",
+    [
+        ("backend/tests/fixtures/x.eml", (True, True)),
+        ("backend/tests/test_x.py", (True, True)),
+        ("frontend/src/test/fixtures.ts", (True, True)),
+        ("backend/app/shared/brands.py", (True, False)),  # denylist only
+        ("scripts/check_fixtures.py", (True, False)),
+        ("README.md", (True, False)),
+        ("docs/notes.md", (True, False)),
+        ("frontend/src/App.tsx", (True, False)),
+        ("backend/.env.example", (True, False)),
+        ("backend/tests/fixtures/_local_corpus/tuning/a.eml", (False, False)),  # raw local data, gitignored
+        ("docs/screenshots/summary-card.png", (False, False)),
+        ("backend/app/__pycache__/x.pyc", (False, False)),
+        ("frontend/package-lock.json", (False, False)),
+    ],
+)
+def test_scope_rules(path, expected):
+    assert cf._in_scope(path) == expected

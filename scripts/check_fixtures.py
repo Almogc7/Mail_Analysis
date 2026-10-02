@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Pre-commit guard: fail if test fixtures leak internal data.
 
-Checks every file under backend/tests (and frontend/src/test) for:
+Checks every file under backendd/tests (and frontend/src/test) for ALL of the rules below, and
+backend source/scripts/docs (DENYLIST_ONLY_PATHS) for rule 1 only:
   1. any pattern in the UNTRACKED local denylist (.denylist.local, repo root);
   2. RFC1918 IPv4 addresses (10/8, 172.16/12, 192.168/16);
   3. PUBLIC (globally routable) IPv4 addresses other than those listed in the tracked
@@ -34,7 +35,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCAN_DIRS = ("backend/tests", "frontend/src/test")
+SCAN_DIRS = ("backend/tests", "frontend/src/test")  # every rule below applies here
+# Source, scripts, docs and config: ONLY the denylist applies (an organisation name in tracked
+# code or docs leaks exactly like one in a fixture). The IP/email rules would be noise here.
+DENYLIST_ONLY_PATHS = ("backend/app", "backend/requirements.txt", "backend/.env.example", "scripts", ".githooks",
+                       "docs", "README.md", "frontend/src", "frontend/README.md")
 DENYLIST = ROOT / ".denylist.local"
 ALLOWED_ADDRESSES = ROOT / "backend/tests/fixtures/allowed_addresses.txt"
 ALLOWED_IPS = ROOT / "backend/tests/fixtures/allowed_ips.txt"
@@ -88,25 +93,40 @@ def _texts_for(name: str, data: bytes) -> list[str]:
     return views
 
 
-def _files(staged: bool) -> list[tuple[str, bytes]]:
-    result: list[tuple[str, bytes]] = []
+def _in_scope(name: str) -> tuple[bool, bool]:
+    """(scanned, full_rules)."""
+    p = Path(name)
+    if set(p.parts) & SKIP_PARTS or p.suffix.lower() in SKIP_SUFFIXES:
+        return False, False
+    if name.startswith(SCAN_DIRS):
+        return True, True
+    if name.startswith(DENYLIST_ONLY_PATHS) or name in DENYLIST_ONLY_PATHS:
+        return True, False
+    return False, False
+
+
+def _files(staged: bool) -> list[tuple[str, bytes, bool]]:
+    """[(path, content, full_rules)]"""
+    result: list[tuple[str, bytes, bool]] = []
     if staged:
         names = subprocess.run(
             ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"],
             cwd=ROOT, capture_output=True, check=True,
         ).stdout.decode("utf-8").split("\0")
         for n in filter(None, names):
-            if n.startswith(SCAN_DIRS) and not (set(Path(n).parts) & SKIP_PARTS) and Path(n).suffix.lower() not in SKIP_SUFFIXES:
+            scanned, full = _in_scope(n)
+            if scanned:
                 blob = subprocess.run(["git", "show", f":{n}"], cwd=ROOT, capture_output=True, check=True).stdout
-                result.append((n, blob))
+                result.append((n, blob, full))
         return result
-    for d in SCAN_DIRS:
-        base = ROOT / d
-        if not base.exists():
-            continue
-        for p in base.rglob("*"):
-            if p.is_file() and not (set(p.parts) & SKIP_PARTS) and p.suffix.lower() not in SKIP_SUFFIXES:
-                result.append((p.relative_to(ROOT).as_posix(), p.read_bytes()))
+    names = subprocess.run(
+        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+        cwd=ROOT, capture_output=True, check=True,
+    ).stdout.decode("utf-8").split("\0")
+    for n in filter(None, names):
+        scanned, full = _in_scope(n)
+        if scanned and (ROOT / n).is_file():
+            result.append((n, (ROOT / n).read_bytes(), full))
     return result
 
 
@@ -139,7 +159,7 @@ def main(argv: list[str]) -> int:
         if DENYLIST.name in names:
             problems.append(f"{DENYLIST.name} is staged -- it must never be committed")
 
-    for name, data in _files(staged):
+    for name, data, full_rules in _files(staged):
         seen: set[tuple[str, str]] = set()
 
         def flag(kind: str, what: str) -> None:
@@ -152,6 +172,8 @@ def main(argv: list[str]) -> int:
             for i, (pat, rx) in enumerate(deny, 1):
                 if rx.search(view):
                     flag("denylist match", str(i))
+            if not full_rules:
+                continue
             for m in _IPV4.finditer(view):
                 try:
                     ip = ipaddress.ip_address(m.group(1))
