@@ -6,3 +6,7 @@
 # sweb.ru shared-hosting sender of malicious/kvish6_invoice_phish.eml (the hop-6 sender IP
 # cited in the original analysis). STATUS: added by the assistant, PENDING OWNER CONFIRMATION.
 77.222.61.245
+
+# The same sweb.ru sender's IPv6 address, embedded in the Received-SPF record text of the
+# Kvish 6 fixture (ip6: mechanism of the sender's own SPF record). STATUS: PENDING OWNER CONFIRMATION.
+2a02:408:7722:1:77:222:61:245
