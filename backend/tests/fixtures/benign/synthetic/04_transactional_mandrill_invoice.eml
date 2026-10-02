@@ -1,0 +1,12 @@
+Received: from mail12.example.net (mail12.example.net [198.51.100.52]) by mx.example.org with ESMTPS; Fri, 11 Sep 2026 06:30:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=saas.example.com; dkim=pass header.d=saas.example.com; dmarc=pass header.from=saas.example.com
+From: "Billing" <billing@saas.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: Invoice INV-2026-0911 is ready
+Date: Fri, 11 Sep 2026 06:29:58 +0000
+Message-ID: <inv-0911@saas.example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+<html><body><p>Your invoice is ready.</p><p><a href="https://mandrillapp.com/track/click/30000001/app.saas.example.com?p=eyJzIjoiYWJjIn0">View invoice</a></p></body></html>

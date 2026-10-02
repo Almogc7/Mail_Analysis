@@ -1,0 +1,15 @@
+Received: from mbx1.corp.example.com (192.0.2.21) by mbx2.corp.example.com (192.0.2.22) with Microsoft SMTP Server id 15.2.1748.24; Thu, 17 Sep 2026 08:00:00 +0300
+From: "Ron Cohen" <ron.cohen@corp.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: Team sync moved to 14:00
+Date: Thu, 17 Sep 2026 05:00:00 +0000
+Message-ID: <sync-14@corp.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Hi all,
+
+Today's team sync moved to 14:00. Same room.
+Agenda: https://wiki.corp.example.com/sync
+

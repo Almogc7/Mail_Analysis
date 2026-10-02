@@ -1,0 +1,11 @@
+Received: from mbx1.corp.example.com (192.0.2.10) by mbx2.corp.example.com (192.0.2.11) with Microsoft SMTP Server id 15.2.1748.24; Wed, 09 Sep 2026 10:00:00 +0300
+From: "Dana Levi" <dana.levi@corp.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: Q3 planning doc - please review before Thursday
+Date: Wed, 09 Sep 2026 07:00:00 +0000
+Message-ID: <q3plan.001@corp.example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+<html><body><p>Hi, please review the plan: <a href="https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fdocs.example.com%2Fq3-plan&data=05%7C01%7Crecipient%40example.com%7C0000000000%7C1%7C0%7C0%7CAAAA&sdata=ZZZZ%3D&reserved=0">https://docs.example.com/q3-plan</a></p></body></html>

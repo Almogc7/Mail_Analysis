@@ -1,0 +1,19 @@
+Received: from mail.plumbing.example.com (mail.plumbing.example.com [203.0.113.20]) by mx.example.org with ESMTP; Mon, 14 Sep 2026 08:15:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=plumbing.example.com
+From: "Plumbing Co. Accounts" <accounts@plumbing.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: Reminder: invoice 5521 due on the 20th
+Date: Mon, 14 Sep 2026 08:14:50 +0000
+Message-ID: <5521.reminder@plumbing.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Hello,
+
+This is a friendly reminder that invoice 5521 is due on the 20th.
+You can view it at https://plumbing.example.com/invoices/5521
+
+Thanks,
+Accounts
+

@@ -1,0 +1,12 @@
+Received: from smtp.docusign.net (smtp.docusign.net [198.51.100.90]) by mx.example.org with ESMTPS; Fri, 18 Sep 2026 10:00:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=docusign.net; dkim=pass header.d=docusign.net; dmarc=pass header.from=docusign.net
+From: "DocuSign System" <dse@docusign.net>
+To: Test Recipient <recipient@example.com>
+Subject: Please review and sign: Services Agreement
+Date: Fri, 18 Sep 2026 09:59:58 +0000
+Message-ID: <env-001@mail.example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+<html><body><p>A colleague sent you a document to review and sign.</p><p><a href="https://na4.docusign.net/Signing/EmailStart.aspx?a=00000000-0000-0000-0000-000000000000">REVIEW DOCUMENT</a></p></body></html>

@@ -1,0 +1,28 @@
+Received: from mta7.mail.example.net (mta7.mail.example.net [198.51.100.25]) by mx.example.org with ESMTPS; Tue, 08 Sep 2026 09:12:03 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=mail.example.com; dkim=pass header.d=mail.example.com; dmarc=pass header.from=mail.example.com
+From: "Example Weekly" <news@mail.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: This week: 5 things we shipped, and a limited-time offer
+Date: Tue, 08 Sep 2026 09:11:58 +0000
+Message-ID: <20260908091158.1a2b3c@mail.example.com>
+List-Unsubscribe: <https://click.mailer.example.net/u/abc123>, <mailto:unsub@mail.example.com>
+Return-Path: <bounce-8812@bounce.mail.example.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="BOUNDARY-001"
+
+--BOUNDARY-001
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Hi there,
+
+Here is what's new this week.
+Read more: https://click.mailer.example.net/c/Zm9vYmFy?u=1
+Unsubscribe: https://click.mailer.example.net/u/abc123
+
+--BOUNDARY-001
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+<html><body><h2>Example Weekly</h2><p>Here is what's new.</p><p><a href="https://click.mailer.example.net/c/Zm9vYmFy?u=1">Read the full update</a></p><p><a href="https://click.mailer.example.net/c/YmF6cXV4?u=1">Claim your offer (ends Friday)</a></p><img src="https://img.mail.example.com/hdr.png"><p><a href="https://click.mailer.example.net/u/abc123">Unsubscribe</a></p></body></html>
+--BOUNDARY-001--

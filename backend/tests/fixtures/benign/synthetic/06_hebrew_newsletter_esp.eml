@@ -1,0 +1,18 @@
+Received: from mta2.mail.example.net (mta2.mail.example.net [198.51.100.61]) by mx.example.org with ESMTPS; Sun, 13 Sep 2026 07:00:00 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=news.example.com; dkim=pass header.d=news.example.com; dmarc=pass header.from=news.example.com
+From: =?utf-8?b?15fXk9ep15XXqiDXlNeT15XXktee15Q=?= <news@news.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: =?utf-8?b?16LXk9eb15XXnyDXqdeR15XXoteZOiDXlNeY15HXlCDXnteZ15XXl9eT16o=?=
+Date: Sun, 13 Sep 2026 07:00:00 +0000
+Message-ID: <he-news-01@news.example.com>
+List-Unsubscribe: <https://click.mailer.example.net/u/he1>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: base64
+
+PGh0bWwgZGlyPSJydGwiPjxib2R5PjxwPtep15zXldedLCDXlNeg15Qg15TXoteT15vXldeg15nX
+nSDXlNep15HXldei15nXmdedINep15zXoNeVLjwvcD48cD7XlNeU15jXkdeUINeq16fXoyDXnNeX
+15XXk9epINeR15zXkdeTLjwvcD48cD48YSBocmVmPSJodHRwczovL2NsaWNrLm1haWxlci5leGFt
+cGxlLm5ldC9jL2FHVTZNUSI+15zXp9eo15nXkNeUINeg15XXodek16o8L2E+PC9wPjxwPjxhIGhy
+ZWY9Imh0dHBzOi8vY2xpY2subWFpbGVyLmV4YW1wbGUubmV0L3UvaGUxIj7XlNeh16jXlCDXnteU
+16jXqdeZ157XlDwvYT48L3A+PC9ib2R5PjwvaHRtbD4=

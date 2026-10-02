@@ -1,0 +1,13 @@
+Received: from o12.email.shop.example.com (o12.email.shop.example.com [198.51.100.40]) by mx.example.org with ESMTPS; Thu, 10 Sep 2026 14:02:11 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=shop.example.com; dkim=pass header.d=shop.example.com; dmarc=pass header.from=shop.example.com
+From: "Example Store" <orders@shop.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: Your order #100234 receipt
+Date: Thu, 10 Sep 2026 14:02:09 +0000
+Message-ID: <100234.receipt@shop.example.com>
+Return-Path: <bounces+4412-ab12@em4412.shop.example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+<html><body><p>Thanks for your order!</p><p><a href="https://u4412345.ct.sendgrid.net/ls/click?upn=u001.AbCdEfGhIjKlMnOpQrStUvWxYz0123456789">View your receipt</a></p><p><a href="https://u4412345.ct.sendgrid.net/ls/click?upn=u001.ZyXwVuTsRqPoNmLkJiHgFeDcBa9876543210">Track your package</a></p><p>Payment details: card ending 4242.</p></body></html>

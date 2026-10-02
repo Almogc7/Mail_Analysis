@@ -1,0 +1,5 @@
+# Fixture bytes must survive checkout unchanged: the manifest records their SHA256, and
+# autocrlf would rewrite CRLF -> LF inside .eml/.msg files.
+backend/tests/fixtures/**/*.eml -text
+backend/tests/fixtures/**/*.msg binary
+.githooks/* text eol=lf
