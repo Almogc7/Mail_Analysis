@@ -2,9 +2,11 @@ from app.contracts.email import Attachment, EmailAddress, ExtractedUrl, ParsedEm
 from app.enrichment import run_enrichment
 from app.enrichment.ioc_bridge import get_clients
 from app.enrichment.rate_limit import VTRateLimiter
+from app.scoring.aggregate import category_coverage
 from tests.fixtures.provider_responses import (
     CLEAN_URLSCAN_RESULT,
     CLEAN_VT_URL_RESULT,
+    DISABLED_RESULT,
     EICAR_SHA256,
     MALICIOUS_VT_URL_RESULT,
     MATCHED_MALWAREBAZAAR_RESULT,
@@ -146,7 +148,7 @@ def test_per_email_url_cap_emits_skip_finding(monkeypatch):
     assert "http://example.com/a" not in result.raw_data or "http://example.com/b" not in result.raw_data
 
 
-def test_not_applicable_provider_result_does_not_produce_finding():
+def test_not_applicable_provider_result_is_unknown_not_clean():
     parsed = _base_parsed_email(urls=[ExtractedUrl(url="http://noscore.example.com", source="body_text")])
     clients = _real_scorer_clients(
         virustotal=StubClient(NOT_APPLICABLE_RESULT),
@@ -156,4 +158,22 @@ def test_not_applicable_provider_result_does_not_produce_finding():
 
     result = run_enrichment(parsed, clients=clients, vt_limiter=_no_sleep_limiter())
 
-    assert result.findings == []
+    # No risk finding (nothing was detected), but a visible "incomplete" warning per provider.
+    assert not any(f.title.startswith("Suspicious URL") for f in result.findings)
+    incomplete = [f for f in result.findings if f.title.startswith("Enrichment incomplete")]
+    assert {f.evidence["provider"] for f in incomplete} == {"virustotal", "urlscan", "threatfox"}
+
+
+def test_disabled_providers_are_unknown_not_clean_and_drop_coverage():
+    # Providers return status="disabled" when no API key is configured.
+    parsed = _base_parsed_email(urls=[ExtractedUrl(url="http://noscore.example.com", source="body_text")])
+    clients = _real_scorer_clients(
+        virustotal=StubClient(DISABLED_RESULT),
+        urlscan=StubClient(DISABLED_RESULT),
+        threatfox=StubClient(DISABLED_RESULT),
+    )
+
+    result = run_enrichment(parsed, clients=clients, vt_limiter=_no_sleep_limiter())
+
+    assert len([f for f in result.findings if f.title.startswith("Enrichment incomplete")]) == 3
+    assert category_coverage("enrichment", result) == 0.0

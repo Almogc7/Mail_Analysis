@@ -62,3 +62,5 @@ CLEAN_URLSCAN_RESULT = {"status": "ok", "query": "page.url:\"x\"", "total_result
 RATE_LIMITED_RESULT = {"status": "rate_limited", "error": "Provider rate limit reached", "http_status": 429}
 
 NOT_APPLICABLE_RESULT = {"enabled": False, "status": "not_applicable", "error": "unsupported type"}
+
+DISABLED_RESULT = {"enabled": False, "status": "disabled"}

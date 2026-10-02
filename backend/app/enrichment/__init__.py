@@ -8,7 +8,11 @@ from app.enrichment.rate_limit import VTRateLimiter
 
 MODULE_NAME = "enrichment"
 
-_INCOMPLETE_STATUSES = {"rate_limited", "failed", "invalid_response"}
+# Any status other than "ok" means the provider did not actually evaluate the IOC, so the
+# result is "unknown", never "clean". "disabled" (no API key configured) and
+# "not_applicable" were previously missing here and silently read as a fully-covered clean
+# lookup.
+_INCOMPLETE_STATUSES = {"rate_limited", "failed", "invalid_response", "disabled", "not_applicable"}
 
 
 def _severity_for_score(score: float) -> str:
