@@ -4,7 +4,11 @@
 Checks every file under backend/tests (and frontend/src/test) for:
   1. any pattern in the UNTRACKED local denylist (.denylist.local, repo root);
   2. RFC1918 IPv4 addresses (10/8, 172.16/12, 192.168/16);
-  3. email addresses on domains that are not RFC-reserved (example.com/.net/.org,
+  3. PUBLIC (globally routable) IPv4 addresses other than those listed in the tracked
+     allowlist backend/tests/fixtures/allowed_ips.txt -- documentation ranges
+     (192.0.2/24, 198.51.100/24, 203.0.113/24) are always fine; anything else, including
+     real mail-relay/gateway IPs, must be explicitly approved there (attacker infra only);
+  4. email addresses on domains that are not RFC-reserved (example.com/.net/.org,
      *.example, *.test, *.invalid, *.localhost) unless the exact address is listed in the
      tracked allowlist backend/tests/fixtures/allowed_addresses.txt (public attacker
      infrastructure kept on purpose in malicious fixtures).
@@ -33,6 +37,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCAN_DIRS = ("backend/tests", "frontend/src/test")
 DENYLIST = ROOT / ".denylist.local"
 ALLOWED_ADDRESSES = ROOT / "backend/tests/fixtures/allowed_addresses.txt"
+ALLOWED_IPS = ROOT / "backend/tests/fixtures/allowed_ips.txt"
 SKIP_PARTS = {"__pycache__", "_local_corpus"}  # _local_corpus is gitignored raw data
 SKIP_SUFFIXES = {".pyc", ".png", ".jpg", ".gif"}
 
@@ -124,6 +129,7 @@ def main(argv: list[str]) -> int:
             problems.append(f"invalid regex in {DENYLIST.name}: {pat!r} ({exc})")
 
     allowed = {a.lower() for a in _load_lines(ALLOWED_ADDRESSES)}
+    allowed_ips = set(_load_lines(ALLOWED_IPS))
 
     if staged:
         names = subprocess.run(["git", "diff", "--cached", "--name-only", "-z"], cwd=ROOT,
@@ -154,6 +160,8 @@ def main(argv: list[str]) -> int:
                     nets = [ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")]
                     if any(ip in n for n in nets):
                         flag("RFC1918 address", m.group(1))
+                elif ip.is_global and str(ip) not in allowed_ips:
+                    flag("public IP not in allowed_ips.txt", m.group(1))
             for m in _EMAIL.finditer(view):
                 addr, domain = m.group(0), m.group(1)
                 if not _reserved_domain(domain) and addr.lower() not in allowed:

@@ -1,0 +1,8 @@
+# Public IPv4 addresses permitted in test fixtures. scripts/check_fixtures.py fails on any
+# other globally-routable IP (documentation ranges 192.0.2/24, 198.51.100/24 and 203.0.113/24
+# are always fine). Attacker infrastructure ONLY -- never a relay/gateway of a real org.
+# Each entry needs the repo owner's explicit approval.
+
+# sweb.ru shared-hosting sender of malicious/kvish6_invoice_phish.eml (the hop-6 sender IP
+# cited in the original analysis). STATUS: added by the assistant, PENDING OWNER CONFIRMATION.
+77.222.61.245
