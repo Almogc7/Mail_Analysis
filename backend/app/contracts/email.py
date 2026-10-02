@@ -54,6 +54,17 @@ class ExtractedUrl(BaseModel):
     is_anchor_mismatch: bool = False
 
 
+class ImageRef(BaseModel):
+    """An <img src> from the HTML body. Kept out of ParsedEmail.urls on purpose: images are
+    fetched automatically (not clicked), would crowd the per-email enrichment cap, and are
+    evidence about the template (hot-linked/cloned assets), not about a link target."""
+
+    url: str
+    alt: str | None = None
+    width: str | None = None
+    height: str | None = None
+
+
 class Attachment(BaseModel):
     filename: str | None = None
     content_type: str | None = None
@@ -81,6 +92,9 @@ class ParsedEmail(BaseModel):
     body_text: str | None = None
     body_html: str | None = None
     urls: list[ExtractedUrl] = []
+    images: list[ImageRef] = []
     attachments: list[Attachment] = []
     parse_warnings: list[str] = []
     raw_size_bytes: int
+    # SHA256 of the file exactly as received (before any banner/tag stripping or decoding).
+    raw_sha256: str | None = None

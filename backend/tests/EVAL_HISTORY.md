@@ -16,3 +16,5 @@ malicious fixture, so read verdicts, not percentages. Strict = `needs_review` is
 | matcher fix (token-based) | ablated | kvish **0/1**, synthetic-spoof 5/5 | **0/15** | 0 | strict P=1.00 R=0.83; Kvish still needs the structural signals (later commits) |
 | b1 parser: Received-SPF + structured hops | as-is | kvish 1/1, synthetic-spoof 5/5 | 0/15 | 0 | no verdict change expected (parser-only); confirmed |
 | b1 parser: Received-SPF + structured hops | ablated | kvish **0/1**, synthetic-spoof 5/5 | 0/15 | 0 | unchanged; hops/SPF are parsed but nothing consumes them yet |
+| b2 parser: img src, anchor/href normalization, raw sha256 | as-is | kvish 1/1, synthetic-spoof 5/5 | 0/15 | 0 | no verdict change (images are a separate field, not in urls) |
+| b2 parser: img src, anchor/href normalization, raw sha256 | ablated | kvish **0/1**, synthetic-spoof 5/5 | 0/15 | 0 | unchanged; images/anchors normalized but not yet consumed |

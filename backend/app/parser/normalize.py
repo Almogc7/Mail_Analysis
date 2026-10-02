@@ -1,6 +1,7 @@
 import hashlib
 import ipaddress
 import re
+import unicodedata
 from email.utils import parsedate_to_datetime
 
 from bs4 import BeautifulSoup
@@ -10,6 +11,7 @@ from app.contracts.email import (
     EmailAddress,
     ExtractedUrl,
     HeaderField,
+    ImageRef,
     ParsedEmail,
     ReceivedHop,
     ReceivedSpf,
@@ -124,16 +126,27 @@ def _extract_urls_from_text(text: str | None) -> list[ExtractedUrl]:
     return [ExtractedUrl(url=m.group(0), source="body_text") for m in _URL_RE.finditer(text)]
 
 
+def _clean_text(text: str) -> str:
+    """Collapse all whitespace (CR/LF, tabs, NBSP) and drop invisible format characters
+    (zero-width space/joiners, bidi marks). Without this, anchor text that wraps across lines
+    or hides a zero-width char reads as one string but compares as another."""
+    text = "".join(c for c in text if unicodedata.category(c) != "Cf")
+    return " ".join(text.split())
+
+
+_HREF_CONTROL_RE = re.compile(r"[\t\r\n]")  # browsers drop these inside URLs
+
+
 def _extract_urls_from_html(html: str | None) -> list[ExtractedUrl]:
     if not html:
         return []
     urls: list[ExtractedUrl] = []
     soup = BeautifulSoup(html, "html.parser")
     for anchor in soup.find_all("a", href=True):
-        href = anchor["href"].strip()
+        href = _HREF_CONTROL_RE.sub("", anchor["href"].strip())
         if not href.lower().startswith(("http://", "https://")):
             continue
-        anchor_text = anchor.get_text(strip=True) or None
+        anchor_text = _clean_text(anchor.get_text()) or None
         is_mismatch = bool(
             anchor_text
             and _URL_RE.match(anchor_text)
@@ -148,6 +161,30 @@ def _extract_urls_from_html(html: str | None) -> list[ExtractedUrl]:
             )
         )
     return urls
+
+
+def _extract_images_from_html(html: str | None) -> list[ImageRef]:
+    """http(s) <img src> references, deduplicated by URL in document order."""
+    if not html:
+        return []
+    images: list[ImageRef] = []
+    seen: set[str] = set()
+    for img in BeautifulSoup(html, "html.parser").find_all("img", src=True):
+        src = _HREF_CONTROL_RE.sub("", img["src"].strip())
+        if src.startswith("//"):
+            src = "https:" + src
+        if not src.lower().startswith(("http://", "https://")) or src in seen:
+            continue
+        seen.add(src)
+        images.append(
+            ImageRef(
+                url=src,
+                alt=_clean_text(img.get("alt", "")) or None,
+                width=str(img["width"]) if img.get("width") else None,
+                height=str(img["height"]) if img.get("height") else None,
+            )
+        )
+    return images
 
 
 def _hash_attachment(raw: RawAttachment) -> Attachment:
@@ -185,6 +222,7 @@ def to_parsed_email(raw: RawParseResult) -> ParsedEmail:
         body_text=raw.body_text,
         body_html=raw.body_html,
         urls=urls,
+        images=_extract_images_from_html(raw.body_html),
         attachments=[_hash_attachment(a) for a in raw.attachments],
         parse_warnings=raw.parse_warnings,
         raw_size_bytes=raw.raw_size_bytes,
