@@ -4,6 +4,7 @@ import pytest
 from app.auth_check import run_auth_check
 from app.auth_check.spf_dkim_dmarc import NOT_EVALUATED, evaluate_authentication
 from app.contracts.email import EmailAddress, ParsedEmail, ReceivedHop, ReceivedSpf
+from app.contracts.findings import ModuleResult
 from app.parser import parse_email_file
 from app.scoring import run_scoring
 from tests.eval import FIXTURES
@@ -28,6 +29,13 @@ def _email(**kw):
 def _kvish():
     path = FIXTURES / "malicious" / "kvish6_invoice_phish.eml"
     return parse_email_file(path.read_bytes(), path.name)
+
+
+def _score(auth_result):
+    """Score like the real pipeline: all three categories present (scoring the auth module alone
+    makes overall confidence artificially low and trips the needs_review rule)."""
+    quiet = [ModuleResult(module=m, status="ok", findings=[], raw_data={}) for m in ("enrichment", "content_analysis")]
+    return run_scoring([auth_result, *quiet])
 
 
 def _titles(result):
@@ -146,7 +154,7 @@ def test_trusted_spf_pass_changes_no_score_and_no_finding_has_negative_weight(mo
     trusted = run_auth_check(parsed)
     assert sum(f.weight for f in trusted.findings) == sum(f.weight for f in untrusted.findings)
     assert all(f.weight >= 0 for f in trusted.findings + untrusted.findings)
-    s_untrusted, s_trusted = run_scoring([untrusted]), run_scoring([trusted])
+    s_untrusted, s_trusted = _score(untrusted), _score(trusted)
     assert s_untrusted.score == s_trusted.score and s_untrusted.verdict == s_trusted.verdict == "suspicious"
 
 
@@ -158,7 +166,7 @@ def _spoof_email(**kw):
 def test_display_name_floor_survives_with_and_without_trusted_receivers(monkeypatch, patterns):
     monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", patterns)
     result = run_auth_check(_spoof_email(authentication_results_raw=[PASS_AR], received_chain=[_hop("mx.example.org")]))
-    outcome = run_scoring([result])  # a "pass" in the headers must not talk the floor away
+    outcome = _score(result)  # a "pass" in the headers must not talk the floor away
     assert outcome.verdict == "suspicious"
     assert any(o.rule == "auth_check_floor" for o in outcome.breakdown.applied_overrides)
 
@@ -168,11 +176,11 @@ def test_trusted_spf_fail_still_floors_but_an_untrusted_fail_does_not(monkeypatc
     monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [MX])
     trusted = run_auth_check(parsed)
     assert "SPF check failed" in _titles(trusted)
-    assert any(o.rule == "auth_check_floor" for o in run_scoring([trusted]).breakdown.applied_overrides)
+    assert any(o.rule == "auth_check_floor" for o in _score(trusted).breakdown.applied_overrides)
     monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [])
     untrusted = run_auth_check(parsed)
     assert "SPF check failed" not in _titles(untrusted)
-    assert not run_scoring([untrusted]).breakdown.applied_overrides
+    assert not _score(untrusted).breakdown.applied_overrides
     # ...but the claim stays visible to the analyst
     ignored = next(f for f in untrusted.findings if f.title.startswith("Authentication claims from untrusted"))
     assert any(c["result"] == "fail" for c in ignored.evidence["claims"])

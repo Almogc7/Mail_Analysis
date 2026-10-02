@@ -23,3 +23,5 @@ malicious fixture, so read verdicts, not percentages. Strict = `needs_review` is
 | c1 auth: trusted receivers / not_evaluated (eval trusts fixture gateway hosts) | as-is | kvish 1/1, synthetic-spoof 5/5 | 0/15 | 0 | no verdict change; Kvish auth coverage stays 0.40 (SPF-only gateway) |
 | c1 auth: trusted receivers / not_evaluated (eval trusts fixture gateway hosts) | ablated | kvish **0/1**, synthetic-spoof 5/5 | 0/15 | 0 | unchanged; an intermediate version let SPF-only evaluation set coverage 1.0 (caught here, fixed + tested) |
 | c1 auth (`--trusted-receivers none`, the out-of-box default) | as-is / ablated | 1/1 / **0/1**, spoof 5/5 | 0/15 | 0 | identical verdicts; every method not_evaluated |
+| c2 auth: alignment findings | as-is (trust fixtures / none) | kvish 1/1, synthetic-spoof 5/5 | 0/15 | 0 | no verdict change: alignment findings are weight 0 except "no aligned authentication" (needs SPF+DKIM both trusted-evaluated) |
+| c2 auth: alignment findings | ablated (trust fixtures / none) | kvish **0/1**, synthetic-spoof 5/5 | 0/15 | 0 | unchanged. Kvish: trusted SPF pass is aligned (From == envelope == sweb.ru) -- correctly worth nothing |
