@@ -14,8 +14,10 @@ from app.enrichment.policy import (
     lookup_key,
     platform_of,
     target_for,
+    url_priority,
 )
 from app.enrichment.rate_limit import VTRateLimiter
+from app.shared.matching import registrable_domain
 
 MODULE_NAME = "enrichment"
 
@@ -48,6 +50,23 @@ def _collect_units(parsed: ParsedEmail, policy: EnrichmentPolicy) -> dict[str, s
     return units
 
 
+def _unit_priority(key: str, representative: str, parsed: ParsedEmail, policy: EnrichmentPolicy) -> tuple[int, list[str]]:
+    """Priority of one lookup unit: the best (highest) score among the URLs that map to it."""
+    best: tuple[int, list[str]] = (-1, [])
+    for u in parsed.urls:
+        if lookup_key(u.url, policy) != key:
+            continue
+        candidate = url_priority(
+            u.url,
+            anchor_mismatch=u.is_anchor_mismatch,
+            is_cta=u.source == "body_html" and bool(u.anchor_text),
+            sender_domain=parsed.from_.domain,
+        )
+        if candidate[0] > best[0]:
+            best = candidate
+    return best if best[0] >= 0 else url_priority(representative, anchor_mismatch=False, is_cta=False, sender_domain=parsed.from_.domain)
+
+
 def _collect_unique_hashes(parsed: ParsedEmail) -> list[tuple[str, str | None]]:
     """Returns (sha256, filename) pairs, deduped by sha256."""
     seen: dict[str, str | None] = {}
@@ -57,16 +76,17 @@ def _collect_unique_hashes(parsed: ParsedEmail) -> list[tuple[str, str | None]]:
     return list(seen.items())
 
 
-def _skip_finding(ioc_kind: str, ioc_value: str) -> Finding:
+def _skip_finding(ioc_kind: str, ioc_value: str, priority: int | None = None, reasons: list[str] | None = None) -> Finding:
+    detail = f" It ranked {priority} for risk ({'; '.join(reasons)})." if priority is not None and reasons else ""
     return Finding(
         module=MODULE_NAME,
         severity="low",
         title=f"Not enriched: per-email limit reached ({ioc_kind})",
         description=(
-            f"{ioc_kind.capitalize()} '{ioc_value}' was not looked up because this email "
-            f"exceeded the per-email enrichment limit."
+            f"{ioc_kind.capitalize()} '{ioc_value}' was not looked up because this email exceeded the per-email "
+            f"enrichment limit; the riskiest indicators are looked up first.{detail} It is UNKNOWN, not clean."
         ),
-        evidence={"ioc_kind": ioc_kind, "ioc_value": ioc_value},
+        evidence={"ioc_kind": ioc_kind, "ioc_value": ioc_value, "priority": priority, "reasons": reasons or []},
         weight=0.0,
     )
 
@@ -217,6 +237,10 @@ def run_enrichment(
             findings.append(_uninformative_finding(key, platform))
             continue
         costly.append((key, url))
+    # Risk-ordered, not first-listed: a link-heavy phish must not push its one suspicious link past the cap.
+    # sorted() is stable, so equal priorities keep their first-seen order.
+    priorities = {key: _unit_priority(key, url, parsed, policy) for key, url in costly}
+    costly.sort(key=lambda item: -priorities[item[0]][0])
     to_enrich, skipped = costly[:MAX_URLS_TO_ENRICH], costly[MAX_URLS_TO_ENRICH:]
     hashes_to_enrich, hashes_skipped = hashes[:MAX_HASHES_TO_ENRICH], hashes[MAX_HASHES_TO_ENRICH:]
     label = "URL" if policy.path_query_providers else "host"
@@ -264,7 +288,7 @@ def run_enrichment(
         tally(provider_results)
 
     for key, _url in skipped:
-        findings.append(_skip_finding(label.lower(), key))
+        findings.append(_skip_finding(label.lower(), key, *priorities[key]))
     for sha256, _ in hashes_skipped:
         findings.append(_skip_finding("hash", sha256))
 

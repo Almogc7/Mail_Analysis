@@ -23,15 +23,18 @@ def category_coverage(category: str, result: ModuleResult | None) -> float:
         return 1.0 if auth_headers.get("header_present") else 0.4
 
     if category == "enrichment":
-        enriched_count = len(result.raw_data or {})
-        if enriched_count == 0:
+        # An indicator counts as covered only if every provider answered and it was not left out. Gaps
+        # come in three forms, all reported as findings: "Enrichment incomplete" (a provider did not
+        # answer, or the host is uninformative/internal) and "Not enriched" (dropped by the per-email cap).
+        enriched = set(result.raw_data or {})
+        dropped = {f.evidence.get("ioc_value") for f in result.findings if f.title.startswith("Not enriched:")}
+        total = enriched | dropped
+        if not total:
             return 1.0  # nothing to enrich -- nothing to be uncertain about
-        incomplete_iocs = {
-            f.evidence.get("ioc_value")
-            for f in result.findings
-            if f.title.startswith("Enrichment incomplete for")
+        incomplete = dropped | {
+            f.evidence.get("ioc_value") for f in result.findings if f.title.startswith("Enrichment incomplete for")
         }
-        return max(0.0, 1.0 - len(incomplete_iocs) / enriched_count)
+        return max(0.0, 1.0 - len(incomplete & total) / len(total))
 
     if category == "content_analysis":
         # Not unconditionally 1.0: the fixed phrase lists only cover certain scripts

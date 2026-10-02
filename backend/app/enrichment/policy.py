@@ -232,3 +232,48 @@ def platform_of(host: str | None) -> Platform | None:
             if (host == domain or host.endswith("." + domain)) and (best is None or len(domain) > best[0]):
                 best = (len(domain), platform)
     return best[1] if best else None
+
+
+# --------------------------------------------------------------------------------------------
+# Risk-ordered capping: when there are more lookups than the per-email cap, look up the riskiest
+# --------------------------------------------------------------------------------------------
+
+def url_priority(url: str, *, anchor_mismatch: bool, is_cta: bool, sender_domain: str | None) -> tuple[int, list[str]]:
+    """How much a URL deserves one of the limited lookups, from LOCAL evidence only (the path is read here
+    but never sent anywhere). Higher = look up first. Returns (score, reasons). Not a verdict: it only
+    orders the queue, so a cap drops the least interesting indicators instead of the last-listed ones."""
+    from app.shared.brands import KNOWN_BRANDS
+    from app.shared.matching import domain_matches_any, find_brand_matches
+
+    score, reasons = 0, []
+    parts = urlsplit(url)
+    host = host_of(url) or ""
+    if anchor_mismatch:
+        score += 4
+        reasons.append("link text shows a different address than the real target")
+    if host and classify_host(host) == "ip":
+        score += 4
+        reasons.append("IP-literal host")
+    if any(label.startswith("xn--") for label in host.split(".")):
+        score += 3
+        reasons.append("punycode (internationalised) host")
+    if host.count(".") >= 4:
+        score += 2
+        reasons.append("many subdomain levels")
+    if len(host) > 40:
+        score += 1
+        reasons.append("very long host name")
+    host_reg = registrable_domain(host)
+    sender_reg = registrable_domain(sender_domain) if sender_domain else None
+    if host_reg and sender_reg and host_reg != sender_reg:
+        score += 1
+        reasons.append("target is not the sender's domain")
+    for match in find_brand_matches(f"{host} {parts.path}", KNOWN_BRANDS):
+        if match.kind == "exact" and not domain_matches_any(host, KNOWN_BRANDS[match.brand]):
+            score += 3
+            reasons.append(f"brand token '{match.brand}' in the URL on an unrelated domain")
+            break
+    if is_cta:
+        score += 1
+        reasons.append("clickable link with visible text")
+    return score, reasons
