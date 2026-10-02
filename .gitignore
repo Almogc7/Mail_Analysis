@@ -14,3 +14,6 @@ backend/tests/fixtures/_local_corpus/
 
 # Organisation-specific brand entries -- never commit (see app/shared/brands.py)
 backend/brands.local.json
+
+# Analyst feedback log -- local only (hashes/verdicts/signal names; see backend/app/feedback.py)
+backend/feedback.local.sqlite*

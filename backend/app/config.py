@@ -52,5 +52,8 @@ GATEWAY_SUBJECT_TAG_PATTERNS = _json_pattern_list("GATEWAY_SUBJECT_TAG_PATTERNS"
 # "not_evaluated". Tenant-specific hostnames live ONLY in the untracked backend/.env.
 TRUSTED_RECEIVER_PATTERNS = _json_pattern_list("TRUSTED_RECEIVER_PATTERNS")
 
+# Local analyst feedback log (app/feedback.py): SQLite, gitignored, hashes/verdicts/signal names only.
+FEEDBACK_DB = Path(os.getenv("FEEDBACK_DB", str(Path(__file__).resolve().parents[1] / "feedback.local.sqlite")))
+
 # /analyze route upload limit.
 MAX_UPLOAD_SIZE_BYTES = int(os.getenv("MAX_UPLOAD_SIZE_BYTES", str(25 * 1024 * 1024)))
