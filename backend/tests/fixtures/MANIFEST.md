@@ -45,7 +45,8 @@ subject, HTML length, header-name list, and the auth_check and content_analysis 
 
 * `benign/synthetic/*` are regression guards against over-flagging. They are **not** an
   accuracy claim and must not be reported as precision.
-* `benign/_from_user/` is the slot for sanitized *real* benign mail (currently empty).
+* `benign/_from_user/` is the slot for sanitized *real* benign mail. It stays EMPTY: the owner is not
+  supplying real benign mail, so **real-world precision is not established** and every report says so.
 * There is exactly ONE real malicious fixture (`malicious/kvish6_*`) until the local corpus exists.
   `malicious/synthetic/*` are hand-written spoof positives for the matcher: they inflate recall
   and are not an accuracy claim. Read the per-fixture table, not the percentages.

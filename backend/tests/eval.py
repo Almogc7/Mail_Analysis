@@ -276,7 +276,7 @@ def main(argv: list[str] | None = None) -> int:
     holdout = corpus / "holdout"
     if holdout.exists():
         print(f"eval: hold-out present ({sum(1 for _ in holdout.glob('*.eml'))} files) -- not read; only --final-holdout evaluates it")
-    print("note: synthetic fixtures are regression guards, not an accuracy claim\n")
+    print("note: benign evidence is SYNTHETIC ONLY (regression guards, not an accuracy claim); real-world precision is not established\n")
 
     header = f"{'label':9} {'source':13} {'verdict':12} {'score':>5} {'conf':>5}  {'cov auth/enr/content':21} fixture"
     print(header)
@@ -308,20 +308,21 @@ def main(argv: list[str] | None = None) -> int:
         kind = {"kvish": "real, 1 sample", "synthetic": "hand-written spoof positives", "tuning_corpus": "real, tuning split"}.get(src, "")
         print(f"  {src:14} strict {s}/{len(verdicts)}  lenient {l}/{len(verdicts)}   ({kind})")
 
-    print("\nBenign fixtures flagged -- each source on its own (the only basis for any precision statement):")
+    print("\nBenign fixtures flagged -- SYNTHETIC ONLY; each source on its own, real-world precision NOT established:")
     for src in benign_sources:
         verdicts = by_src[("benign", src)]
         flagged_n = sum(_flagged(v, False) for v in verdicts)
         review_n = sum(v == "needs_review" for v in verdicts)
         metrics["benign_flagged"][src] = {"flagged": flagged_n, "needs_review": review_n, "n": len(verdicts)}
-        kind = "hand-written regression guards, NOT an accuracy claim" if src == "synthetic" else "real mail supplied by the owner"
-        shown = f"{flagged_n}/{len(verdicts)} flagged, {review_n} needs_review" if verdicts else "0/0 (none supplied yet)"
+        kind = "hand-written regression guards, NOT an accuracy claim" if src == "synthetic" else "real mail; the owner is not supplying any"
+        shown = f"{flagged_n}/{len(verdicts)} flagged, {review_n} needs_review" if verdicts else "0/0 (none -- no real benign mail)"
         print(f"  {src:14} {shown}   ({kind})")
 
     benign_mal = [r.name for r in rows if r.label == "benign" and r.verdict == "malicious"]
     print(f"\nbenign fixtures reaching MALICIOUS: {len(benign_mal)}" + (f" -> {benign_mal}" if benign_mal else ""))
     print("No combined precision/recall is printed: the malicious sets are all-malicious corpora and the benign sets are\n"
-          "small, so pooling them would produce a number that means nothing. Read the per-source lines above.")
+          "small, so pooling them would produce a number that means nothing. Read the per-source lines above.\n"
+          "REAL-WORLD PRECISION IS NOT ESTABLISHED: the only benign evidence is synthetic (hand-written).")
 
     if args.json:
         Path(args.json).write_text(

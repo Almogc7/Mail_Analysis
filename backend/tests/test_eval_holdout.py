@@ -111,6 +111,8 @@ def test_report_lists_recall_per_set_and_benign_per_source_with_no_pooled_precis
     for source in ("kvish", "synthetic", "tuning_corpus"):
         assert f"  {source}" in out
     assert "synthetic      0/15 flagged" in out and "NOT an accuracy claim" in out
-    assert "_from_user     0/0 (none supplied yet)" in out
+    assert "_from_user     0/0 (none -- no real benign mail)" in out
+    assert out.count("REAL-WORLD PRECISION IS NOT ESTABLISHED") == 1
+    assert "SYNTHETIC ONLY" in out and "real-world precision is not established" in out
     assert "No combined precision/recall is printed" in out
     assert "precision=" not in out and "TP=" not in out

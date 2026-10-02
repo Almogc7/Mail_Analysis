@@ -1,6 +1,6 @@
 # Eval history
 
-Output of `python -m tests.eval` (enrichment=clean: providers stubbed to "no detections").
+**Benign evidence is synthetic only; real-world precision is NOT established.** Output of `python -m tests.eval` (enrichment=clean: providers stubbed to "no detections").
 Two rows per commit: **as-is**, and **ablated** (`--ablate-seeds`: the "kvish6" brand token and
 the Hebrew urgency phrase taken from that one sample removed). The ablated row is the honest
 one. Synthetic benign results are regression guards, not an accuracy claim; there is 1

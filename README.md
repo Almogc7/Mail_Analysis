@@ -137,9 +137,45 @@ carries its own full evidence trail; the LLM's job is to make that reasoning rea
 to compete with it. If the LLM's narrative reveals something the rules missed, it surfaces
 as a flagged note for human review, not an overriding verdict.
 
+## Evaluation scope: what is and is not established
+
+Read this before trusting any number from this project. Status as of 2026-10-02.
+
+**What the evidence is**
+
+- **Benign evidence is synthetic only.** The benign fixtures (`backend/tests/fixtures/benign/synthetic/`)
+  are hand-written mails modelled on legitimate-but-scary patterns (ESP click-tracking, Safe Links
+  wrappers, SPF-only senders, shared-hosting contact forms, near-miss display names). They are
+  regression guards against over-flagging, **not** a sample of real mail. The slot for real benign
+  mail (`benign/_from_user/`) is empty and the eval reports it as `0/0`.
+- **Malicious evidence is one real sample plus synthetic cases.** One real, sanitized phishing email
+  (the Kvish 6 invoice lure) and five hand-written display-name-spoof positives. A seeded 50/50
+  tuning/hold-out split of the public `phishing_pot` corpus is supported by `scripts/select_corpus.py`
+  (raw samples stay local and gitignored; only seed and hashes are tracked) but has not been generated
+  yet. Public phishing corpora contain **no benign mail**, so they can measure recall only.
+- **Hold-out discipline.** Detections are tuned against the tuning split only. The hold-out split is
+  evaluated once, via `python -m tests.eval --final-holdout`, which logs to `backend/tests/HOLDOUT_LOG.md`
+  and prints aggregates only.
+
+**What is NOT established**
+
+- **Real-world precision (the false-positive rate on real mail) is unproven.** No pooled
+  precision/recall is reported anywhere, because combining all-malicious corpora with small synthetic
+  benign sets produces a number that means nothing.
+- Recall on real phishing beyond the single sample is unknown until the held-out public samples are
+  evaluated, and even then it is recall on *public, reported* samples (older, skewed toward what
+  gets reported), not on what reaches an inbox.
+- The offline eval assumes threat-intel providers report "no detections" for every URL, so it measures
+  the structural signals alone, not enrichment.
+- Results depend on configuration: with no trusted receivers configured, SPF/DKIM/DMARC are
+  `not_evaluated`.
+
+**How real-world false positives will be measured**: the local analyst feedback log (see below) records
+agree/disagree per analysis, keyed by file hash, with verdict and signal names only.
+
 ## Testing & real-world validation
 
-The backend has 61 tests, all network-isolated via dependency injection — every module that
+The backend test suite is network-isolated via dependency injection — every module that
 touches an external service (`enrichment`'s provider clients, `llm`'s Gemini client) accepts
 an injectable client so tests run against stub responses shaped like real provider payloads,
 never live calls.
@@ -230,9 +266,9 @@ dev-server proxy.
 - **Content analysis is deliberately rule-based, not ML-driven.** Module 4 uses fixed
   phrase lists and exact-match brand detection rather than a trained classifier or fuzzy
   NLP. This is a scoping choice, not a gap: it keeps every finding explainable (an analyst
-  can see the exact phrase or brand match that fired) and keeps the false-positive rate low
-  and predictable — a deliberate trade-off against the more general but less transparent
-  detection an ML model could offer. Module 6 (the LLM layer) is where more open-ended
+  can see the exact phrase or brand match that fired) — a deliberate trade-off against the more
+  general but less transparent detection an ML model could offer. Whether it also keeps the
+  false-positive rate low is *not* established: see "Evaluation scope" above. Module 6 (the LLM layer) is where more open-ended
   pattern recognition lives, scoped narrowly as commentary rather than a verdict source.
 - **The `.msg` test fixture validates pipeline correctness, not phishing-pattern coverage.**
   The real sample used to close out the `.msg` parsing gap (and that found the two bugs
