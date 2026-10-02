@@ -13,7 +13,7 @@ records only how the split was made and SHA256 hashes of the files **as received
 | Created (UTC) | 2026-10-02 09:16 |
 
 Rules: only TUNING verdicts may be looked at while building detections. HOLD-OUT is evaluated once,
-after the verdict-model work, with `EVAL_UNBLIND_HOLDOUT=1`. Attachments are never opened.
+after the verdict-model work, with `python -m tests.eval --final-holdout` (logged). Attachments are never opened.
 Re-running the split after looking at results invalidates the hold-out.
 
 ## Tuning (75)

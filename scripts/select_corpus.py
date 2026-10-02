@@ -11,7 +11,7 @@
 * Selection is a seeded random sample, never hand-picked. The first half becomes the TUNING set
   (the only set whose verdicts may be looked at while building detections) and the second half the
   HOLD-OUT set (not evaluated until the tuning work is finished; tests/eval.py refuses to read it
-  without EVAL_UNBLIND_HOLDOUT=1).
+  except via --final-holdout, which logs the run).
 * Files are COPIED as raw bytes into backend/tests/fixtures/_local_corpus/{tuning,holdout}/ under
   their SHA256 prefix. That directory is gitignored: raw malicious mail never enters the repo.
   A local-only SOURCE_MAP.json (hash -> original relative path) stays beside them.
@@ -78,7 +78,7 @@ def render_manifest(source_label: str, seed: int, n: int, total: int, tuning: li
         f"| Created (UTC) | {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} |",
         "",
         "Rules: only TUNING verdicts may be looked at while building detections. HOLD-OUT is evaluated once,",
-        "after the verdict-model work, with `EVAL_UNBLIND_HOLDOUT=1`. Attachments are never opened.",
+        "after the verdict-model work, with `python -m tests.eval --final-holdout` (logged). Attachments are never opened.",
         "Re-running the split after looking at results invalidates the hold-out.",
         "",
         f"## Tuning ({len(tuning)})",
