@@ -91,6 +91,35 @@ of the weighted score, `scoring/overrides.py` applies explicit **floor and ceili
   guessing — this distinguishes "checked and clean" from "couldn't check," which a raw score
   can't express on its own.
 
+### Authentication trust: who may vouch for SPF/DKIM/DMARC
+
+`Authentication-Results` and `Received-SPF` are just headers: any hop, **including the sender's
+own server**, can write one that says `pass`. So a result only counts when a *trusted receiver*
+demonstrably added it. Trusted receivers are a list of hostname regexes in
+`TRUSTED_RECEIVER_PATTERNS` (JSON array in the untracked `backend/.env`; see `.env.example`),
+and a result is trusted only if the host named in the header both matches a pattern **and** is the
+`by` host of a hop in the message's `Received` chain.
+
+- **Default: nothing is trusted.** Every method is reported `not_evaluated`, with the reason shown
+  as a finding. Claims found in the headers are still listed, never hidden.
+- **A pass is worth nothing.** A trusted SPF/DKIM/DMARC pass authenticates the sending
+  infrastructure and domain; it never lowers a score. An attacker authorises their own servers for
+  their own domain, so a pass is the expected result for phishing sent from attacker-controlled
+  infrastructure. Alignment findings say exactly what was and was not proven.
+- **An untrusted fail is a weak signal** (low weight): attackers gain nothing by forging a
+  failure, but forwarded or stale upstream results can fail legitimately. An untrusted pass is zero.
+- **Header position is an extra signal, not a gate.** A header added by a hop normally sits above
+  that hop's `Received` line. When it sits below, an info finding says so. Exchange and some
+  gateways reorder headers (the Kvish 6 sample's gateway SPF header sits below every `Received`
+  line although the gateway really added it), and a sender can forge a whole header block, so
+  position can neither prove nor disprove anything on its own.
+
+**This trust model assumes your perimeter gateway strips inbound `Authentication-Results` and
+`Received-SPF` headers before adding its own.** If it does not, a sender can forge both a header and
+a matching `Received` line below your first trusted hop and the check cannot tell. Headers with no
+authserv-id (a Microsoft quirk) can only be trusted by explicitly configuring a pattern that matches
+the placeholder `unknown-authserv`; the evidence then states that attribution was not possible.
+
 ### LLM opinion: commentary, never a second verdict
 
 Module 6 (`backend/app/llm/`) sends Gemini the already-computed `AnalysisResult` — the

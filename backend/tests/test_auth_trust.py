@@ -205,3 +205,77 @@ def test_spf_only_gateway_does_not_claim_full_auth_coverage(monkeypatch):
     assert result.raw_data["auth_headers"]["spf"]["evaluated"] is True
     assert result.raw_data["auth_headers"]["header_present"] is False
     assert category_coverage("auth_check", result) == 0.4
+
+
+# ---- untrusted FAIL is a weak signal; untrusted PASS is nothing ----------------------------------
+
+def test_untrusted_fail_is_a_low_weight_finding_and_untrusted_pass_is_zero(monkeypatch):
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [])
+    fail = run_auth_check(_email(authentication_results_raw=[FAIL_AR], received_chain=[_hop("mx.example.org")]))
+    spf = next(f for f in fail.findings if f.title == "SPF failure claimed by an untrusted source")
+    assert spf.severity == "low" and spf.weight == 4.0
+    assert {"DKIM failure claimed by an untrusted source", "DMARC failure claimed by an untrusted source"} <= set(_titles(fail))
+    assert "SPF check failed" not in _titles(fail)  # the established-failure finding stays trusted-only
+    ok = run_auth_check(_email(authentication_results_raw=[PASS_AR], received_chain=[_hop("mx.example.org")]))
+    assert not [f for f in ok.findings if f.weight > 0]  # an untrusted pass contributes nothing at all
+
+
+def test_untrusted_fail_alone_cannot_reach_suspicious(monkeypatch):
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [])
+    result = run_auth_check(_email(authentication_results_raw=[FAIL_AR], received_chain=[_hop("mx.example.org")]))
+    outcome = _score(result)
+    assert outcome.verdict == "legit" and not outcome.breakdown.applied_overrides
+
+
+def test_a_trusted_fail_replaces_the_weak_untrusted_one(monkeypatch):
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [MX])
+    titles = _titles(run_auth_check(_email(authentication_results_raw=[FAIL_AR], received_chain=[_hop("mx.example.org")])))
+    assert "SPF check failed" in titles and "SPF failure claimed by an untrusted source" not in titles
+
+
+# ---- positional check: additional signal only ----------------------------------------------------
+
+from app.contracts.email import HeaderField  # noqa: E402
+
+
+def _headers(*names):
+    return [HeaderField(name=n, value="x") for n in names]
+
+
+def _positional(monkeypatch, order):
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [MX])
+    parsed = _email(authentication_results_raw=[PASS_AR], received_chain=[_hop("mx.example.org")], headers=_headers(*order))
+    return run_auth_check(parsed)
+
+
+def test_header_above_its_hops_received_line_is_positionally_ok(monkeypatch):
+    result = _positional(monkeypatch, ["Authentication-Results", "Received", "From"])
+    basis = result.raw_data["auth_headers"]["spf"]["trust_basis"]
+    assert basis["positional_ok"] is True and basis["position"] == "above_hop_received"
+    assert not [t for t in _titles(result) if "sits below" in t]
+
+
+def test_header_below_its_hops_received_line_is_flagged_but_still_trusted(monkeypatch):
+    result = _positional(monkeypatch, ["Received", "From", "Authentication-Results"])
+    auth = result.raw_data["auth_headers"]
+    assert auth["spf"]["result"] == "pass"  # position never overrides the host+hop trust decision
+    assert auth["spf"]["trust_basis"]["positional_ok"] is False
+    note = next(f for f in result.findings if "sits below" in f.title)
+    assert note.weight == 0.0 and "Exchange" in note.description
+
+
+def test_position_is_unknown_without_header_order(monkeypatch):
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [MX])
+    auth = evaluate_authentication([PASS_AR], [], [_hop("mx.example.org")])
+    assert auth["spf"]["trust_basis"]["positional_ok"] is None
+
+
+def test_kvish6_exchange_reordering_is_reported_as_below_not_as_untrusted(monkeypatch):
+    # Documented limit: this sample's gateway really added the header, yet Exchange left it below every
+    # Received line. Validates why position is a signal and not a gate.
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [ESA])
+    result = run_auth_check(_kvish())
+    basis = result.raw_data["auth_headers"]["spf"]["trust_basis"]
+    assert result.raw_data["auth_headers"]["spf"]["result"] == "pass"
+    assert basis["position"] == "below_hop_received" and basis["positional_ok"] is False
+    assert any("sits below" in t for t in _titles(result))

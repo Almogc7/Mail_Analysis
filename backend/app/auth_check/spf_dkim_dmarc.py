@@ -176,6 +176,21 @@ def _trust_basis(claimed_host: str | None, received_chain, compiled) -> dict[str
     return None
 
 
+def _position(header_index: int | None, basis: dict[str, Any], received_idx: list[int]) -> dict[str, Any]:
+    """BEST-EFFORT, signal only (never part of the trust decision): a header added by a hop is
+    normally written ABOVE that hop's own Received line, because each MTA prepends. Anything
+    sitting below it was present before that hop touched the message, i.e. could have been
+    supplied by the sender. Limits: Exchange and some gateways rewrite and reorder headers (the
+    Kvish 6 sample's gateway SPF header sits below every Received line although the gateway
+    really added it), so 'below' is a reason to look closer, not proof of forgery; and a sender can
+    forge a whole header block, position included."""
+    hop = basis.get("hop_index")
+    if header_index is None or hop is None or hop >= len(received_idx):
+        return {"position": "unknown", "positional_ok": None}
+    above = header_index < received_idx[hop]
+    return {"position": "above_hop_received" if above else "below_hop_received", "positional_ok": above}
+
+
 def _domain_of(address_or_domain: str | None) -> str | None:
     if not address_or_domain:
         return None
@@ -187,6 +202,7 @@ def evaluate_authentication(
     received_spf: list,
     received_chain: list,
     trusted_patterns: list[str] | None = None,
+    headers: list | None = None,
 ) -> dict[str, Any]:
     """SPF/DKIM/DMARC as established by TRUSTED receivers only.
 
@@ -207,6 +223,8 @@ def evaluate_authentication(
     compiled = _compile_patterns(list(patterns), warnings)
 
     parsed = [_parse_one(h) for h in authentication_results_raw]
+    received_idx = [i for i, h in enumerate(headers or []) if h.name.lower() == "received"]
+    ar_idx = [i for i, h in enumerate(headers or []) if h.name.lower() == "authentication-results"]
     methods: dict[str, dict[str, Any]] = {
         m: {"result": NOT_EVALUATED, "evaluated": False, "domain": None, "source": None, "trust_basis": None,
             "reason": None, "raw": None}
@@ -215,9 +233,11 @@ def evaluate_authentication(
     claims: list[dict[str, Any]] = []
     spf_only_receiver: str | None = None
 
-    for p in parsed:  # header order = closest to the final receiver first
+    for k, p in enumerate(parsed):  # header order = closest to the final receiver first
         authserv = p.get("authserv_id")
         basis = _trust_basis(authserv, received_chain, compiled)
+        if basis is not None:
+            basis.update(_position(ar_idx[k] if k < len(ar_idx) else None, basis, received_idx))
         for method, entry in p.get("results", {}).items():
             if method not in methods:
                 continue
@@ -233,6 +253,8 @@ def evaluate_authentication(
 
     for spf in received_spf:
         basis = _trust_basis(spf.receiver, received_chain, compiled)
+        if basis is not None:
+            basis.update(_position(spf.header_index if headers else None, basis, received_idx))
         claims.append({"source": "received-spf", "host": spf.receiver, "method": "spf", "result": spf.result,
                        "trusted": basis is not None, "x_conformance": spf.x_conformance})
         if basis is None:

@@ -5,6 +5,7 @@ from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding, ModuleResult
 
 _FAIL_RESULTS = {"fail", "softfail", "permerror"}
+_UNTRUSTED_FAIL_WEIGHT = 4.0
 
 MODULE_NAME = "auth_check"
 
@@ -79,6 +80,47 @@ def _auth_findings(auth: dict) -> list[Finding]:
                 weight=0.0,
             )
         )
+
+    # An untrusted PASS is worth nothing, but an untrusted FAIL is a weak signal: an attacker has no
+    # reason to forge a failure. Low weight because stale or forwarded upstream results also fail.
+    for method in ("spf", "dkim", "dmarc"):
+        fails = [c for c in auth["claims"] if c["method"] == method and not c["trusted"] and c["result"] in _FAIL_RESULTS]
+        if fails and not auth[method]["evaluated"]:
+            findings.append(
+                Finding(
+                    module=MODULE_NAME,
+                    severity="low",
+                    title=f"{method.upper()} failure claimed by an untrusted source",
+                    description=(
+                        f"A header from '{fails[0]['host']}' reports {method.upper()} '{fails[0]['result']}', but that "
+                        "host is not a configured trusted receiver, so it is not treated as established. Scored as a "
+                        "weak signal only: forging a failure gains an attacker nothing, but forwarded or stale "
+                        "upstream results can fail legitimately."
+                    ),
+                    evidence={"claims": fails},
+                    weight=_UNTRUSTED_FAIL_WEIGHT,
+                )
+            )
+
+    for method in ("spf", "dkim", "dmarc"):
+        basis = auth[method]["trust_basis"]
+        if basis and basis.get("positional_ok") is False:
+            findings.append(
+                Finding(
+                    module=MODULE_NAME,
+                    severity="info",
+                    title=f"Trusted {method.upper()} result sits below its receiving hop's Received line",
+                    description=(
+                        "The header normally appears above the Received line of the hop that added it. Here it is below, "
+                        "so it was present before that hop handled the message. Exchange and some gateways reorder "
+                        "headers, so this is a reason to look closer, not proof of forgery. It does not change the "
+                        "result (trust is decided by host + hop evidence)."
+                    ),
+                    evidence={"trust_basis": basis},
+                    weight=0.0,
+                )
+            )
+            break
 
     untrusted = [c for c in auth["claims"] if not c["trusted"]]
     if untrusted:
@@ -189,7 +231,9 @@ def _identity_findings(identity: dict) -> list[Finding]:
 
 
 def run_auth_check(parsed: ParsedEmail) -> ModuleResult:
-    auth = evaluate_authentication(parsed.authentication_results_raw, parsed.received_spf, parsed.received_chain)
+    auth = evaluate_authentication(
+        parsed.authentication_results_raw, parsed.received_spf, parsed.received_chain, headers=parsed.headers
+    )
     identity = check_identity_mismatch(parsed)
 
     alignment = compute_alignment(parsed, auth)
