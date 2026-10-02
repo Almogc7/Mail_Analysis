@@ -20,3 +20,6 @@ malicious fixture, so read verdicts, not percentages. Strict = `needs_review` is
 | b2 parser: img src, anchor/href normalization, raw sha256 | ablated | kvish **0/1**, synthetic-spoof 5/5 | 0/15 | 0 | unchanged; images/anchors normalized but not yet consumed |
 | b3 parser: banner/subject-tag stripping | as-is | kvish 1/1, synthetic-spoof 5/5 | 0/15 | 0 | no verdict change on current fixtures (banner words were not in any lexicon); test proves they no longer could be |
 | b3 parser: banner/subject-tag stripping | ablated | kvish **0/1**, synthetic-spoof 5/5 | 0/15 | 0 | unchanged |
+| c1 auth: trusted receivers / not_evaluated (eval trusts fixture gateway hosts) | as-is | kvish 1/1, synthetic-spoof 5/5 | 0/15 | 0 | no verdict change; Kvish auth coverage stays 0.40 (SPF-only gateway) |
+| c1 auth: trusted receivers / not_evaluated (eval trusts fixture gateway hosts) | ablated | kvish **0/1**, synthetic-spoof 5/5 | 0/15 | 0 | unchanged; an intermediate version let SPF-only evaluation set coverage 1.0 (caught here, fixed + tested) |
+| c1 auth (`--trusted-receivers none`, the out-of-box default) | as-is / ablated | 1/1 / **0/1**, spoof 5/5 | 0/15 | 0 | identical verdicts; every method not_evaluated |

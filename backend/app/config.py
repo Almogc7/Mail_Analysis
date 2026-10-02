@@ -47,5 +47,10 @@ def _json_pattern_list(name: str) -> list[str]:
 GATEWAY_BANNER_PATTERNS = _json_pattern_list("GATEWAY_BANNER_PATTERNS")
 GATEWAY_SUBJECT_TAG_PATTERNS = _json_pattern_list("GATEWAY_SUBJECT_TAG_PATTERNS")
 
+# Hostname regexes of receivers whose Received-SPF / Authentication-Results you trust (see
+# app/auth_check/spf_dkim_dmarc.py). Empty by default: with none configured, SPF/DKIM/DMARC are
+# "not_evaluated". Tenant-specific hostnames live ONLY in the untracked backend/.env.
+TRUSTED_RECEIVER_PATTERNS = _json_pattern_list("TRUSTED_RECEIVER_PATTERNS")
+
 # /analyze route upload limit.
 MAX_UPLOAD_SIZE_BYTES = int(os.getenv("MAX_UPLOAD_SIZE_BYTES", str(25 * 1024 * 1024)))

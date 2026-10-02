@@ -1,4 +1,4 @@
-from app.auth_check.spf_dkim_dmarc import check_auth_headers
+from app.auth_check.spf_dkim_dmarc import check_auth_headers, evaluate_authentication
 from app.auth_check.spoofing import check_identity_mismatch
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding, ModuleResult
@@ -8,50 +8,89 @@ _FAIL_RESULTS = {"fail", "softfail", "permerror"}
 MODULE_NAME = "auth_check"
 
 
+_REASON_TEXT = {
+    "no_trusted_receivers_configured": (
+        "No trusted receivers are configured (TRUSTED_RECEIVER_PATTERNS is empty), so authentication "
+        "results in the headers cannot be relied on: any hop, including the sender's, can add them."
+    ),
+    "claim_from_untrusted_source": (
+        "The only result for this method came from a host that is not a configured trusted receiver "
+        "(or is not a hop in the Received chain), so it was ignored."
+    ),
+    "receiver_evaluated_spf_only": (
+        "The trusted receiver evaluated SPF only (x-conformance=spf_only); it did not evaluate "
+        "DKIM or DMARC."
+    ),
+    "no_trusted_result": "No trusted receiver reported a result for this method.",
+}
+
+
 def _auth_findings(auth: dict) -> list[Finding]:
+    """Findings only ever come from results a TRUSTED receiver established. A pass has no
+    scoring effect (weight 0): it proves who authorized the sending infrastructure, never that
+    the message is benign."""
     findings: list[Finding] = []
 
     for method in ("spf", "dkim", "dmarc"):
-        result = auth[method]["result"]
+        entry = auth[method]
+        result = entry["result"]
         if result in _FAIL_RESULTS:
             findings.append(
                 Finding(
                     module=MODULE_NAME,
                     severity="high" if result == "fail" else "medium",
                     title=f"{method.upper()} check failed",
-                    description=f"{method.upper()} authentication result was '{result}'.",
-                    evidence={"raw": auth[method]["raw"], "domain": auth[method]["domain"]},
+                    description=f"{method.upper()} authentication result was '{result}' (reported by a trusted receiver).",
+                    evidence={"raw": entry["raw"], "domain": entry["domain"], "trust_basis": entry["trust_basis"]},
                     weight=25.0 if result == "fail" else 15.0,
                 )
             )
-        elif result == "none" and not auth["header_present"]:
+        elif not entry["evaluated"]:
             findings.append(
                 Finding(
                     module=MODULE_NAME,
                     severity="info",
-                    title=f"No {method.upper()} data available",
-                    description="No Authentication-Results header was present on this message.",
-                    evidence={},
+                    title=f"{method.upper()} not evaluated",
+                    description=_REASON_TEXT[entry["reason"]],
+                    evidence={
+                        "reason": entry["reason"],
+                        "claims": [c for c in auth["claims"] if c["method"] == method],
+                    },
                     weight=0.0,
                 )
             )
 
-    if auth["header_present"] and all(auth[m]["result"] == "pass" for m in ("spf", "dkim", "dmarc")):
-        # Module 2 otherwise only ever reports failures -- without this, a cleanly
-        # authenticated email renders identically to "no Authentication-Results header at
-        # all" (both show zero findings), which reads as "couldn't check" rather than
-        # "checked and confirmed clean". info/weight=0: visibility only, no scoring effect.
+    if all(auth[m]["evaluated"] and auth[m]["result"] == "pass" for m in ("spf", "dkim", "dmarc")):
         findings.append(
             Finding(
                 module=MODULE_NAME,
                 severity="info",
                 title="SPF/DKIM/DMARC all passed",
-                description="Authentication-Results confirmed SPF, DKIM, and DMARC all passed for this message.",
+                description=(
+                    "A trusted receiver reported SPF, DKIM and DMARC all passed. This authenticates the "
+                    "sending infrastructure and domain; it does not make the content safe."
+                ),
                 evidence={
                     "spf_domain": auth["spf"]["domain"],
                     "dkim_domain": auth["dkim"]["domain"],
                     "dmarc_domain": auth["dmarc"]["domain"],
                 },
+                weight=0.0,
+            )
+        )
+
+    untrusted = [c for c in auth["claims"] if not c["trusted"]]
+    if untrusted:
+        findings.append(
+            Finding(
+                module=MODULE_NAME,
+                severity="info",
+                title="Authentication claims from untrusted sources were ignored",
+                description=(
+                    f"{len(untrusted)} SPF/DKIM/DMARC claim(s) in the headers were not added by a configured "
+                    "trusted receiver and have no effect on the verdict (a sender can write any such header)."
+                ),
+                evidence={"claims": untrusted},
                 weight=0.0,
             )
         )
@@ -132,7 +171,7 @@ def _identity_findings(identity: dict) -> list[Finding]:
 
 
 def run_auth_check(parsed: ParsedEmail) -> ModuleResult:
-    auth = check_auth_headers(parsed.authentication_results_raw)
+    auth = evaluate_authentication(parsed.authentication_results_raw, parsed.received_spf, parsed.received_chain)
     identity = check_identity_mismatch(parsed)
 
     findings = _auth_findings(auth) + _identity_findings(identity)

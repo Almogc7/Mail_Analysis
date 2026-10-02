@@ -42,6 +42,12 @@ FLAGGED = {"malicious", "suspicious"}
 SEED_BRANDS = ["kvish6"]
 SEED_URGENCY = ["תקף לחודש בלבד"]
 
+# Placeholder gateway hosts used inside the fixtures. --trusted-receivers fixtures (the default)
+# trusts exactly these, mirroring a deployment that has configured its own gateway; "none" shows
+# the out-of-the-box behaviour where SPF/DKIM/DMARC are not_evaluated.
+FIXTURE_TRUSTED_RECEIVERS = [chr(94) + r"mx" + chr(92) + ".example" + chr(92) + ".org" + chr(36),
+                             chr(94) + r"esa1" + chr(92) + ".gateway" + chr(92) + ".example" + chr(92) + ".net" + chr(36)]
+
 
 @dataclass
 class Row:
@@ -174,6 +180,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ablate-seeds", action="store_true", help="remove the single-sample brand/Hebrew seeds")
     ap.add_argument("--enrichment", choices=("clean", "disabled"), default="clean")
+    ap.add_argument("--trusted-receivers", choices=("fixtures", "none"), default="fixtures")
     ap.add_argument("--json", metavar="OUT", help="also write rows + metrics as JSON")
     ap.add_argument("--no-gate", action="store_true", help="exit 0 even if a benign fixture is malicious")
     args = ap.parse_args(argv)
@@ -182,13 +189,16 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.reconfigure(encoding="utf-8")
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+    import app.config as app_config
+
+    app_config.TRUSTED_RECEIVER_PATTERNS = list(FIXTURE_TRUSTED_RECEIVERS) if args.trusted_receivers == "fixtures" else []
     if args.ablate_seeds:
         _ablate_seeds()
 
     items = collect()
     rows = [_row_for(p, label, src, args.enrichment) for p, label, src in items]
 
-    print(f"eval: enrichment={args.enrichment} ablate_seeds={args.ablate_seeds} fixtures={len(rows)}")
+    print(f"eval: enrichment={args.enrichment} trusted_receivers={args.trusted_receivers} ablate_seeds={args.ablate_seeds} fixtures={len(rows)}")
     corpus = FIXTURES / "_local_corpus"
     if not (corpus / "tuning").exists():
         print("eval: no local corpus (tests/fixtures/_local_corpus/tuning) -- skipped")

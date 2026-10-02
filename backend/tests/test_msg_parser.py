@@ -86,6 +86,10 @@ def test_msg_full_pipeline_produces_expected_verdict_and_findings(monkeypatch):
         "app.llm.gemini_bridge.get_client",
         lambda: (lambda prompt: '{"narrative": "n", "flags": []}'),
     )
+    # This header has no authserv-id (a Microsoft quirk), so it can only be trusted via the
+    # explicit placeholder opt-in. Without any trusted-receiver configuration the same sample
+    # is correctly "not_evaluated" (see tests/test_auth_trust.py).
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [r"^unknown-authserv$"])
 
     raw_bytes = SAMPLE_MSG.read_bytes()
     result = run_pipeline(raw_bytes, "sample.msg")

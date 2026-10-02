@@ -1,7 +1,7 @@
 from app.auth_check import run_auth_check
 from app.auth_check.spf_dkim_dmarc import check_auth_headers
 from app.auth_check.spoofing import check_identity_mismatch
-from app.contracts.email import EmailAddress, ParsedEmail
+from app.contracts.email import EmailAddress, ParsedEmail, ReceivedHop
 
 PASS_AUTH_RESULTS = (
     "mx.example.org; spf=pass smtp.mailfrom=example.com; "
@@ -23,6 +23,12 @@ IRONPORT_CAPITALIZED_PASS_RESULTS = (
     "esa1.gateway.example.net; spf=Pass smtp.mailfrom=test.sender@gmail.com; "
     "dkim=pass (signature verified) header.i=@gmail.com; dmarc=pass (p=none dis=none) d=gmail.com"
 )
+
+
+def _trust_mx_example_org(monkeypatch):
+    """Configure the placeholder gateway used by the fixtures as a trusted receiver."""
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [r"^mx\.example\.org$"])
+    return [ReceivedHop(raw="from relay by mx.example.org with ESMTPS", from_host="relay", by_host="mx.example.org")]
 
 
 def _base_parsed_email(**overrides) -> ParsedEmail:
@@ -67,10 +73,11 @@ def test_check_auth_headers_handles_ironport_capitalized_pass_result():
     assert result["all_parsed"][0].get("parse_error") is None  # succeeded on the first attempt, no fallback needed
 
 
-def test_run_auth_check_confirms_full_pass_with_a_visible_info_finding():
+def test_run_auth_check_confirms_full_pass_with_a_visible_info_finding(monkeypatch):
     parsed = _base_parsed_email(
         return_path=EmailAddress(address="alice@example.com", domain="example.com"),
         authentication_results_raw=[PASS_AUTH_RESULTS],
+        received_chain=_trust_mx_example_org(monkeypatch),
     )
     module_result = run_auth_check(parsed)
 
@@ -149,8 +156,9 @@ def test_display_name_spoofing_not_flagged_for_legitimate_sender():
     assert result["display_name_spoofing"]["suspected"] is False
 
 
-def test_run_auth_check_produces_findings_for_failed_and_spoofed_email():
+def test_run_auth_check_produces_findings_for_failed_and_spoofed_email(monkeypatch):
     parsed = _base_parsed_email(
+        received_chain=_trust_mx_example_org(monkeypatch),
         from_=EmailAddress(
             display_name="PayPal Support",
             address="security@totally-legit-mailer.ru",
@@ -167,10 +175,11 @@ def test_run_auth_check_produces_findings_for_failed_and_spoofed_email():
     assert any("spoofing" in t.lower() for t in titles)
 
 
-def test_run_auth_check_clean_email_has_no_high_severity_findings():
+def test_run_auth_check_clean_email_has_no_high_severity_findings(monkeypatch):
     parsed = _base_parsed_email(
         return_path=EmailAddress(address="alice@example.com", domain="example.com"),
         authentication_results_raw=[PASS_AUTH_RESULTS],
+        received_chain=_trust_mx_example_org(monkeypatch),
     )
     module_result = run_auth_check(parsed)
 
