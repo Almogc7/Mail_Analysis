@@ -11,3 +11,6 @@ backend/tests/fixtures/corpus/
 # Local-only secrets/data -- never commit
 .denylist.local
 backend/tests/fixtures/_local_corpus/
+
+# Organisation-specific brand entries -- never commit (see app/shared/brands.py)
+backend/brands.local.json
