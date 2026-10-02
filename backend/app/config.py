@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -26,6 +27,25 @@ MAX_HASHES_TO_ENRICH = int(os.getenv("MAX_HASHES_TO_ENRICH", "10"))
 
 # Module 6 (Gemini second opinion) -- get_chat_client() exposes no timeout of its own.
 LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "25"))
+
+# Gateway banner / subject-tag stripping (see app/parser/preprocess.py). JSON arrays of
+# regexes, read from the environment so tenant-specific wording lives ONLY in the untracked
+# backend/.env, e.g.  GATEWAY_BANNER_PATTERNS='["external sender warning text"]'
+def _json_pattern_list(name: str) -> list[str]:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return []
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{name} must be a JSON array of regex strings: {exc}") from exc
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        raise ValueError(f"{name} must be a JSON array of regex strings")
+    return value
+
+
+GATEWAY_BANNER_PATTERNS = _json_pattern_list("GATEWAY_BANNER_PATTERNS")
+GATEWAY_SUBJECT_TAG_PATTERNS = _json_pattern_list("GATEWAY_SUBJECT_TAG_PATTERNS")
 
 # /analyze route upload limit.
 MAX_UPLOAD_SIZE_BYTES = int(os.getenv("MAX_UPLOAD_SIZE_BYTES", str(25 * 1024 * 1024)))
