@@ -3,8 +3,9 @@ import uuid
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from app import feedback
 from app.api.pipeline import run_pipeline
 from app.config import MAX_UPLOAD_SIZE_BYTES
 from app.contracts.analysis import AnalysisResult
@@ -78,3 +79,28 @@ def get_analysis(job_id: str) -> AnalysisJob:
     if job is None:
         raise HTTPException(status_code=404, detail="Unknown job_id")
     return job
+
+
+class FeedbackIn(BaseModel):
+    agree: bool
+    note: str | None = Field(default=None, max_length=feedback.NOTE_MAX_CHARS)
+
+
+@router.post("/analyze/{job_id}/feedback")
+def submit_feedback(job_id: str, body: FeedbackIn) -> dict:
+    """Analyst agree/disagree on a finished analysis. Stored locally as hashes, verdict and signal
+    names only (see app/feedback.py); the note is the one free-text field."""
+    job = _jobs.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Unknown job_id")
+    if job.status != "done" or job.result is None:
+        raise HTTPException(status_code=409, detail="Analysis is not finished; nothing to give feedback on yet")
+    try:
+        return feedback.record_feedback(job.result, body.agree, body.note)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.get("/feedback/summary")
+def feedback_summary() -> dict:
+    return feedback.summary()
