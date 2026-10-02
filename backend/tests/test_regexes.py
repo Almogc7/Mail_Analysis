@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pytest
 
+from app.llm import prompting as _P
+
 I, S = re.IGNORECASE, re.DOTALL
 BACKEND = Path(__file__).resolve().parents[1]
 ROOT = BACKEND.parent
@@ -86,6 +88,29 @@ REGISTRY = [
     (r"[A-Za-z0-9._%+\-]+@([A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)+)", 0, [
         ("a.b+c@mail.example.com", ["mail.example.com"]), ("x@localhost", []), ("no at here", []),
         ("<u-1@sub-d.example.org>", ["sub-d.example.org"])]),
+
+    # ---- app/llm/prompting.py tokenizer (keyed by the module's own literal, so the meta-test stays exact) ----
+    (_P._URL_RE.pattern, I, [
+        ("see https://evil.example.net/a?b=1 now", ["https://evil.example.net/a?b=1"]),
+        ("(http://x.example.org/y) and 'https://q.example.org/z'", ["http://x.example.org/y", "https://q.example.org/z"]),
+        ("ftp://nope.example.com no url", [])]),
+    (_P._EMAIL_RE.pattern, 0, [
+        ("a.b+c@mail.example.com,", ["a.b+c@mail.example.com"]), ("x@localhost", []), ("no at sign", [])]),
+    (_P._FILE_RE.pattern, I, [
+        ("Invoice_JohnSmith.pdf and a.TXT", ["Invoice_JohnSmith.pdf", "a.TXT"]),
+        ("report.pdfx", []), ("notes.html", ["notes.html"]), ("no file here", [])]),
+    (_P._IPV4_RE.pattern, 0, [
+        ("from 192.0.2.7 to 198.51.100.9", ["192.0.2.7", "198.51.100.9"]), ("1.2.3.4.5", []), ("v15.2.1748.24", [])]),
+    (_P._IPV6_RE.pattern, 0, [
+        ("from 2001:db8::1 via [2001:db8:0:0:0:0:0:2]", ["2001:db8::1", "2001:db8:0:0:0:0:0:2"]),
+        ("clock 07:49:29", ["07:49:29"]), ("plain text", [])]),
+    (_P._HASH_RE.pattern, 0, [
+        ("sha " + "ab" * 32 + " end", ["ab" * 32]), ("short " + "ab" * 15 + "a", []), ("deadbeef", [])]),
+    (_P._HOST_RE.pattern, 0, [
+        ("vh319.sweb.ru and Mail.Example.COM.", ["vh319.sweb.ru", "Mail.Example.COM"]),
+        ("e.g. word and 15.2.1748.24", []), ("one-label", [])]),
+    (_P._INTERNAL_NAME_RE.pattern, 0, [
+        ("MAILGW-NODE7 and ABC-12", ["MAILGW-NODE7", "ABC-12"]), ("abc-DEF and X-YY and Plain-Name", [])]),
 ]
 
 REGISTRY_BY_PATTERN = {pat: flags for pat, flags, _ in REGISTRY}
@@ -138,7 +163,7 @@ def test_no_regex_literal_contains_a_control_character():
 def _module_level_patterns():
     mods = [importlib.import_module(m) for m in (
         "app.auth_check.spf_dkim_dmarc", "app.parser.msg_parser", "app.parser.normalize",
-        "app.parser.preprocess", "app.shared.matching")]
+        "app.parser.preprocess", "app.shared.matching", "app.llm.prompting")]
     spec = importlib.util.spec_from_file_location("check_fixtures_for_regex_test", ROOT / "scripts" / "check_fixtures.py")
     cf = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(cf)

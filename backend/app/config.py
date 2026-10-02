@@ -25,6 +25,11 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 MAX_URLS_TO_ENRICH = int(os.getenv("MAX_URLS_TO_ENRICH", "10"))
 MAX_HASHES_TO_ENRICH = int(os.getenv("MAX_HASHES_TO_ENRICH", "10"))
 
+# Module 6 (LLM second opinion) is OFF unless LLM_ENABLED is set to 1/true/yes/on. While off, nothing is sent to
+# any external model. When on, only the verdict, numbers and finding titles are sent, with addresses,
+# hostnames, URLs, file names, IPs and internal-looking names replaced by placeholders (app/llm/prompting.py).
+LLM_ENABLED = os.getenv("LLM_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
+
 # Module 6 (Gemini second opinion) -- get_chat_client() exposes no timeout of its own.
 LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "25"))
 
