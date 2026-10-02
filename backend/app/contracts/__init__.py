@@ -5,6 +5,7 @@ from app.contracts.email import (
     HeaderField,
     ParsedEmail,
     ReceivedHop,
+    ReceivedSpf,
 )
 from app.contracts.findings import Finding, ModuleResult
 from app.contracts.llm_opinion import LLMOpinion
@@ -18,6 +19,7 @@ __all__ = [
     "HeaderField",
     "ParsedEmail",
     "ReceivedHop",
+    "ReceivedSpf",
     "Finding",
     "ModuleResult",
     "AppliedOverride",

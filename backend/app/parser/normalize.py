@@ -1,4 +1,5 @@
 import hashlib
+import ipaddress
 import re
 from email.utils import parsedate_to_datetime
 
@@ -11,6 +12,7 @@ from app.contracts.email import (
     HeaderField,
     ParsedEmail,
     ReceivedHop,
+    ReceivedSpf,
 )
 from app.parser.raw import RawAddress, RawAttachment, RawParseResult
 
@@ -39,6 +41,26 @@ def _to_email_address_list(raws: list[RawAddress]) -> list[EmailAddress]:
     return [addr for r in raws if (addr := _to_email_address(r)) is not None]
 
 
+_RECEIVED_WITH_RE = re.compile(r"\bwith\s+([A-Za-z0-9_\-]+)", re.IGNORECASE)
+_RECEIVED_ENVELOPE_FROM_RE = re.compile(r"\(envelope-from\s+<?([^>)\s]*)>?\)", re.IGNORECASE)
+_RECEIVED_FROM_CLAUSE_RE = re.compile(r"\bfrom\s+(.*?)(?:\s+by\s|$)", re.IGNORECASE | re.DOTALL)
+_IP_CANDIDATE_RE = re.compile(r"[\[(]\s*(?:IPv6:)?([0-9A-Fa-f:.]{3,45})\s*[\])]")
+_AUTH_PROTOCOLS = {"esmtpa", "esmtpsa", "lmtpa", "lmtpsa", "smtpa"}
+_LOCAL_RE = re.compile(r"\(Postfix, from userid \d+\)", re.IGNORECASE)
+
+
+def _first_ip_in_from_clause(raw_line: str) -> str | None:
+    clause = _RECEIVED_FROM_CLAUSE_RE.search(raw_line)
+    if not clause:
+        return None
+    for m in _IP_CANDIDATE_RE.finditer(clause.group(1)):
+        try:
+            return str(ipaddress.ip_address(m.group(1)))
+        except ValueError:
+            continue
+    return None
+
+
 def _parse_received_hop(raw_line: str) -> ReceivedHop:
     from_match = _RECEIVED_FROM_RE.search(raw_line)
     by_match = _RECEIVED_BY_RE.search(raw_line)
@@ -49,11 +71,50 @@ def _parse_received_hop(raw_line: str) -> ReceivedHop:
             timestamp = parsedate_to_datetime(date_part)
         except (TypeError, ValueError):
             timestamp = None
+    # The protocol is the "with X" after the by-clause. An earlier "(using TLSv1.2 with cipher
+    # ...)" comment in the from-clause must not be mistaken for it.
+    with_match = _RECEIVED_WITH_RE.search(raw_line, by_match.end() if by_match else 0)
+    protocol = with_match.group(1) if with_match else None
+    proto_l = (protocol or "").lower()
+    envelope = _RECEIVED_ENVELOPE_FROM_RE.search(raw_line)
     return ReceivedHop(
         raw=raw_line,
         from_host=from_match.group(1) if from_match else None,
         by_host=by_match.group(1) if by_match else None,
         timestamp=timestamp,
+        from_ip=_first_ip_in_from_clause(raw_line),
+        protocol=protocol,
+        envelope_from=envelope.group(1) or None if envelope else None,
+        is_local_submission=proto_l == "local" or bool(_LOCAL_RE.search(raw_line)),
+        authenticated=proto_l in _AUTH_PROTOCOLS or bool(re.search(r"\(Authenticated sender:|\bauthenticated\b", raw_line, re.IGNORECASE)),
+        tls=proto_l in {"esmtps", "esmtpsa", "lmtps", "lmtpsa"} or bool(re.search(r"\bTLS|/TLS/", raw_line, re.IGNORECASE)),
+    )
+
+
+_SPF_RESULT_RE = re.compile(r"^\s*([A-Za-z]+)")
+_SPF_COMMENT_RECEIVER_RE = re.compile(r"\(\s*([^\s:()]+)\s*:")
+_SPF_PROP_RE = re.compile(r'([A-Za-z][\w-]*)\s*=\s*("[^"]*"|[^;\s]+)')
+_SPF_RESULTS = {"pass", "fail", "softfail", "neutral", "none", "temperror", "permerror"}
+
+
+def _parse_received_spf(value: str, header_index: int) -> ReceivedSpf:
+    one_line = " ".join(value.split())
+    m = _SPF_RESULT_RE.match(one_line)
+    word = m.group(1).lower() if m else ""
+    result = word if word in _SPF_RESULTS else "unknown"
+    comment_end = one_line.find(")")
+    rest = one_line[comment_end + 1 :] if one_line.lstrip().startswith(word) and "(" in one_line[:40] and comment_end != -1 else one_line
+    props = {k.lower(): v.strip('"') for k, v in _SPF_PROP_RE.findall(rest)}
+    comment = _SPF_COMMENT_RECEIVER_RE.search(one_line)
+    return ReceivedSpf(
+        result=result,
+        raw=one_line,
+        header_index=header_index,
+        receiver=props.get("receiver") or (comment.group(1) if comment else None),
+        client_ip=props.get("client-ip"),
+        envelope_from=props.get("envelope-from"),
+        identity=props.get("identity"),
+        x_conformance=props.get("x-conformance"),
     )
 
 
@@ -118,6 +179,9 @@ def to_parsed_email(raw: RawParseResult) -> ParsedEmail:
         return_path=_to_email_address(raw.return_path),
         received_chain=[_parse_received_hop(line) for line in raw.received_raw],
         authentication_results_raw=raw.authentication_results_raw,
+        received_spf=[
+            _parse_received_spf(value, i) for i, (name, value) in enumerate(raw.headers) if name.lower() == "received-spf"
+        ],
         body_text=raw.body_text,
         body_html=raw.body_html,
         urls=urls,
