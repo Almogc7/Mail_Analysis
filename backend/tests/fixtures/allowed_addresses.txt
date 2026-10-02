@@ -1,0 +1,31 @@
+# Exact email addresses permitted in test fixtures even though their domain is not
+# RFC-reserved (example.com/.net/.org, *.example, *.test, *.invalid). Tracked on purpose:
+# these are not secrets. scripts/check_fixtures.py fails on any other non-reserved address.
+# One address per line, case-insensitive.
+
+# --- Pre-existing synthetic unit-test data (brand/lookalike domains ARE the test input) ---
+test.sender@gmail.com
+bounce@other-domain.com
+security@totally-legit-mailer.ru
+spoof1@totally-legit-mailer.ru
+service@paypal.com
+security@notify-service.net
+brand1@notify-service.net
+news@service-example.com
+esp1@service-example.com
+support@service-example.com
+greeting1@service-example.com
+alerts@service-example.com
+urgency1@service-example.com
+francois@example.fr
+encoded1@example.fr
+news@corp-example.com
+mismatch1@corp-example.com
+bounce-12345@mailer-relay.net
+# binary .msg fixture: trailing NUL/digit artifact of UTF-16 string scan, not a real address
+test.recipient@example.com0
+
+# --- Public attacker infrastructure deliberately preserved in malicious fixtures ---
+# (sender mailbox on a Russian shared-hosting box; see MANIFEST.md, kvish6_invoice_phish.eml)
+vnz73mailr@vh319.sweb.ru
+d73cbd6d35443e38f5a68a74ddbe15c5@vh319.sweb.ru

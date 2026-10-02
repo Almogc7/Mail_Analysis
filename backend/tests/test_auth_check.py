@@ -12,7 +12,7 @@ FAIL_AUTH_RESULTS = (
     "dkim=fail; dmarc=fail header.from=evil.example"
 )
 
-# Real-world regression fixture: a Cisco IronPort ESA cloud (iphmx.com)-generated header.
+# Real-world regression fixture: a Cisco IronPort ESA cloud-generated header.
 # Structurally valid (has an authserv-id, no trailing ";") -- the one surface quirk is
 # capitalized "spf=Pass" instead of lowercase, which authres already normalizes correctly.
 # Found while investigating a report of auth-check showing "no data" for a real .eml; the
@@ -20,7 +20,7 @@ FAIL_AUTH_RESULTS = (
 # cleanly-passing email rendered identically to "header absent"), not a parser bug -- this
 # fixture locks in that IronPort's capitalization variant keeps parsing correctly.
 IRONPORT_CAPITALIZED_PASS_RESULTS = (
-    "esa1.hc1528-17.c3s2.iphmx.com; spf=Pass smtp.mailfrom=test.sender@gmail.com; "
+    "esa1.gateway.example.net; spf=Pass smtp.mailfrom=test.sender@gmail.com; "
     "dkim=pass (signature verified) header.i=@gmail.com; dmarc=pass (p=none dis=none) d=gmail.com"
 )
 

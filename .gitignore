@@ -7,3 +7,7 @@ backend/.env
 node_modules/
 dist/
 backend/tests/fixtures/corpus/
+
+# Local-only secrets/data -- never commit
+.denylist.local
+backend/tests/fixtures/_local_corpus/

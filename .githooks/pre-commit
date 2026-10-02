@@ -1,0 +1,8 @@
+#!/bin/sh
+# Enable once per clone:  git config core.hooksPath .githooks
+# Blocks commits whose staged test fixtures contain internal strings (see scripts/check_fixtures.py).
+root="$(git rev-parse --show-toplevel)"
+py="$root/backend/.venv/Scripts/python.exe"
+[ -x "$py" ] || py="$root/backend/.venv/bin/python"
+[ -x "$py" ] || py="$(command -v python3 || command -v python)"
+exec "$py" "$root/scripts/check_fixtures.py" --staged
