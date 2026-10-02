@@ -71,7 +71,7 @@ def test_clean_url_produces_no_finding():
     result = run_enrichment(parsed, clients=clients, vt_limiter=_no_sleep_limiter())
 
     assert result.findings == []
-    assert "http://benign.example.com" in result.raw_data
+    assert "benign.example.com" in result.raw_data  # the IOC is the HOST, not the full URL
 
 
 def test_malicious_url_produces_finding_with_both_provider_components():
@@ -116,11 +116,13 @@ def test_rate_limited_provider_produces_incomplete_finding_not_clean():
     assert any("Enrichment incomplete" in t for t in titles)
 
 
-def test_duplicate_url_across_text_and_html_enriched_only_once():
+def test_many_links_on_one_host_cost_a_single_lookup():
+    # same URL in text and html, plus other paths on the same host: one lookup per provider
     parsed = _base_parsed_email(
         urls=[
             ExtractedUrl(url="http://example.com/a", source="body_text"),
             ExtractedUrl(url="http://example.com/a", source="body_html", anchor_text="click here"),
+            ExtractedUrl(url="http://example.com/other?x=1", source="body_html"),
         ]
     )
     vt_stub = StubClient(CLEAN_VT_URL_RESULT)
@@ -128,7 +130,7 @@ def test_duplicate_url_across_text_and_html_enriched_only_once():
 
     run_enrichment(parsed, clients=clients, vt_limiter=_no_sleep_limiter())
 
-    assert vt_stub.calls.count(("http://example.com/a", "url")) == 1
+    assert vt_stub.calls == [("example.com", "domain")]
 
 
 def test_per_email_url_cap_emits_skip_finding(monkeypatch):
@@ -136,7 +138,7 @@ def test_per_email_url_cap_emits_skip_finding(monkeypatch):
     parsed = _base_parsed_email(
         urls=[
             ExtractedUrl(url="http://example.com/a", source="body_text"),
-            ExtractedUrl(url="http://example.com/b", source="body_text"),
+            ExtractedUrl(url="http://other.example.org/b", source="body_text"),
         ]
     )
     clients = _real_scorer_clients()
@@ -145,7 +147,7 @@ def test_per_email_url_cap_emits_skip_finding(monkeypatch):
 
     skip_titles = [f.title for f in result.findings if "per-email limit" in f.title]
     assert len(skip_titles) == 1
-    assert "http://example.com/a" not in result.raw_data or "http://example.com/b" not in result.raw_data
+    assert "example.com" not in result.raw_data or "other.example.org" not in result.raw_data
 
 
 def test_not_applicable_provider_result_is_unknown_not_clean():

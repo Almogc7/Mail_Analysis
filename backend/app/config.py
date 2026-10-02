@@ -52,6 +52,15 @@ GATEWAY_SUBJECT_TAG_PATTERNS = _json_pattern_list("GATEWAY_SUBJECT_TAG_PATTERNS"
 # "not_evaluated". Tenant-specific hostnames live ONLY in the untracked backend/.env.
 TRUSTED_RECEIVER_PATTERNS = _json_pattern_list("TRUSTED_RECEIVER_PATTERNS")
 
+# Enrichment privacy policy (see app/enrichment/policy.py). By default only HOSTNAMES leave this machine: the
+# path and query of a URL (where per-recipient tracking tokens live) are never sent unless a provider is
+# named in ENRICHMENT_PATH_QUERY_PROVIDERS (opt-in, default none). Providers named in
+# ENRICHMENT_DISABLED_PROVIDERS are never called; their indicators are reported UNKNOWN, never clean.
+# Valid names: virustotal, urlscan, threatfox, malwarebazaar. ENRICHMENT_GRANULARITY: hostname | registrable.
+ENRICHMENT_DISABLED_PROVIDERS = _json_pattern_list("ENRICHMENT_DISABLED_PROVIDERS")
+ENRICHMENT_PATH_QUERY_PROVIDERS = _json_pattern_list("ENRICHMENT_PATH_QUERY_PROVIDERS")
+ENRICHMENT_GRANULARITY = os.getenv("ENRICHMENT_GRANULARITY", "hostname")
+
 # Local analyst feedback log (app/feedback.py): SQLite, gitignored, hashes/verdicts/signal names only.
 FEEDBACK_DB = Path(os.getenv("FEEDBACK_DB", str(Path(__file__).resolve().parents[1] / "feedback.local.sqlite")))
 
