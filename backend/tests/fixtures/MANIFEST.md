@@ -55,8 +55,11 @@ subject, HTML length, header-name list, and the auth_check and content_analysis 
 `backend/tests/fixtures/_local_corpus/` is gitignored. Planned layout:
 `tuning/*.eml` and `holdout/*.eml`, chosen from a local clone of phishing_pot by a **seeded**
 random pick and split 50/50 with the same seed. Raw files never enter the repo; only this
-manifest does. Attachments are parsed and hashed, never opened. `holdout/` is never
-evaluated unless `EVAL_UNBLIND_HOLDOUT=1` (reserved for after the tuning work is finished).
+manifest does. Attachments are parsed and hashed, never opened. `holdout/` is never read by a
+normal eval run; the only way to evaluate it is `python -m tests.eval --final-holdout`, which logs to
+`tests/HOLDOUT_LOG.md` first and prints aggregates only (reserved for after the tuning work is finished).
+Size is 100 (50/50), or 150 (75/75) when the source has at least 150 usable samples; the seed and the
+SHA256 hashes of both sets are recorded in `CORPUS_MANIFEST.md` by `scripts/select_corpus.py`.
 
 | Item | Value |
 |---|---|
