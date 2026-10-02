@@ -39,3 +39,6 @@ d73cbd6d35443e38f5a68a74ddbe15c5@vh319.sweb.ru
 
 # --- Synthetic display-name-spoof positive: freemail sender (malicious/synthetic/s03_*) ---
 netflix.billing.team@gmail.com
+
+# --- Synthetic test input (tests/test_hosting_sender.py): a machine-named sender on the brand's own domain ---
+svc1a2b3c@srv12.paypal.com

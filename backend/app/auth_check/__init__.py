@@ -168,6 +168,23 @@ def _identity_findings(identity: dict) -> list[Finding]:
             )
         )
 
+    hosting = identity["hosting_fqdn_sender"]
+    if hosting["suspected"]:
+        findings.append(
+            Finding(
+                module=MODULE_NAME,
+                severity="medium",
+                title="Machine-provisioned sender claiming a brand",
+                description=(
+                    f"The {hosting['brand_source'].replace('_', ' ')} references '{hosting['brand']}', but the sender "
+                    f"looks machine-provisioned: {'; '.join(hosting['indicators'])}. Mail sent from a hosting "
+                    "provider's server identity rather than the brand's own infrastructure is a common phishing pattern."
+                ),
+                evidence=hosting,
+                weight=15.0,
+            )
+        )
+
     return findings
 
 
