@@ -31,4 +31,14 @@ describe('ResultsView', () => {
     expect(screen.getByText(/this check could not run: boom/i)).toBeInTheDocument()
     expect(screen.getAllByText('No findings.')).toHaveLength(2)
   })
+
+  it('offers analyst feedback only when it knows the job id', () => {
+    const { rerender } = render(<ResultsView result={makeAnalysisResult()} onReset={vi.fn()} />)
+    expect(screen.queryByRole('region', { name: 'Analyst feedback' })).not.toBeInTheDocument()
+
+    rerender(<ResultsView result={makeAnalysisResult()} jobId="job1" onReset={vi.fn()} />)
+    expect(screen.getByRole('region', { name: 'Analyst feedback' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Agree' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Disagree' })).toBeInTheDocument()
+  })
 })

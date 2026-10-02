@@ -170,8 +170,25 @@ Read this before trusting any number from this project. Status as of 2026-10-02.
 - Results depend on configuration: with no trusted receivers configured, SPF/DKIM/DMARC are
   `not_evaluated`.
 
-**How real-world false positives will be measured**: the local analyst feedback log (see below) records
+**How real-world false positives will be measured**: the local analyst feedback log (next section) records
 agree/disagree per analysis, keyed by file hash, with verdict and signal names only.
+
+### Analyst feedback log
+
+Every finished analysis shows an *Agree / Disagree* control (plus an optional note) in the UI, backed by
+`POST /analyze/{job_id}/feedback`. Entries go to a local SQLite file, `backend/feedback.local.sqlite`
+(gitignored; `FEEDBACK_DB` overrides). A row holds only: the SHA256 of the file as received, verdict,
+score, confidence, **signal names**, agree/disagree, source format, whether trusted receivers were
+configured, timestamps and the note. It never holds email content: no subject, addresses, URLs, body or
+finding text. Signal names are finding titles with every variable part cut off (for example
+`auth_check.possible_display_name_spoofing_of`), and a test greps the database file for content from the
+analyzed mail. The note is the one free-text field (500 characters; the UI asks you not to paste content).
+
+`python -m app.feedback summary` (run from `backend/`) reports reviewed/agree/disagree, **suspected false
+positives among reviewed flagged verdicts**, suspected false negatives, and the signals present when a
+flagged verdict was disagreed with; `python -m app.feedback export` writes CSV. Reviewed analyses are
+self-selected by whoever reviews them, so this is a signal for finding noisy detections over time, not an
+unbiased error rate.
 
 ## Testing & real-world validation
 

@@ -11,7 +11,7 @@ import './app.css'
 type Stage =
   | { name: 'upload' }
   | { name: 'in_progress'; jobId: string }
-  | { name: 'results'; result: AnalysisResult }
+  | { name: 'results'; result: AnalysisResult; jobId: string }
   | { name: 'error'; message: string }
 
 function App() {
@@ -29,7 +29,7 @@ function App() {
       return
     }
     if (job?.status === 'done' && job.result) {
-      setStage({ name: 'results', result: job.result })
+      setStage({ name: 'results', result: job.result, jobId: job.job_id })
     } else if (job?.status === 'error') {
       setStage({ name: 'error', message: job.error ?? 'Analysis failed for an unknown reason.' })
     }
@@ -58,7 +58,7 @@ function App() {
       {stage.name === 'in_progress' && (
         <ProgressView currentStep={job?.current_step ?? null} timedOut={timedOut} onKeepWaiting={extendTimeout} />
       )}
-      {stage.name === 'results' && <ResultsView result={stage.result} onReset={reset} />}
+      {stage.name === 'results' && <ResultsView result={stage.result} jobId={stage.jobId} onReset={reset} />}
       {stage.name === 'error' && <ErrorView message={stage.message} onReset={reset} />}
     </main>
   )
