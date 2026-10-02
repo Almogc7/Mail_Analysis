@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Seeded tuning / hold-out split of a local phishing corpus (e.g. a phishing_pot clone).
 
-    python scripts/select_corpus.py --source PATH --seed 20261003 [--n 60]
+    python scripts/select_corpus.py --source PATH --seed INT [--n N]
+    python scripts/select_corpus.py --verify            # re-check an existing corpus against the manifest
 
 * Eligible files: every *.eml under --source (recursive), sorted by relative path so the same
   source tree and seed always give the same selection. Files over 5 MB are skipped.
+* Size: --n defaults to 100 (50/50), or 150 (75/75) when the source has at least 150 usable samples;
+  the chosen size is printed. An explicit --n always wins.
 * Selection is a seeded random sample, never hand-picked. The first half becomes the TUNING set
   (the only set whose verdicts may be looked at while building detections) and the second half the
   HOLD-OUT set (not evaluated until the tuning work is finished; tests/eval.py refuses to read it
@@ -15,6 +18,9 @@
 * Nothing is parsed, rendered or executed here and attachments are never opened or extracted.
 * Only backend/tests/fixtures/CORPUS_MANIFEST.md is tracked: seed, counts and SHA256 hashes of the
   files as received (both sets), no names, no content.
+* After copying, EVERY file is re-read and its SHA256 compared with the manifest; a missing, empty,
+  altered or unexpected file (e.g. removed by antivirus quarantine) fails loudly with a non-zero exit.
+  Hold-out problems are reported as COUNTS only, never names.
 * It refuses to run if the destination already holds a split (use --force only if you accept that
   the old hold-out is thereby discarded -- re-splitting after looking at results defeats its
   purpose).
@@ -87,12 +93,72 @@ def render_manifest(source_label: str, seed: int, n: int, total: int, tuning: li
     return "\n".join(lines)
 
 
-def run(source: Path, seed: int, n: int, dest: Path, manifest: Path, force: bool = False) -> dict:
+class CorpusVerificationError(Exception):
+    pass
+
+
+def read_manifest_hashes(manifest_text: str) -> dict[str, list[str]]:
+    """{'tuning': [sha256...], 'holdout': [sha256...]} from the '- `hash`' bullets under each heading."""
+    sets: dict[str, list[str]] = {"tuning": [], "holdout": []}
+    current = None
+    for line in manifest_text.splitlines():
+        if line.startswith("## Tuning"):
+            current = "tuning"
+        elif line.startswith("## Hold-out"):
+            current = "holdout"
+        elif line.startswith("## "):
+            current = None
+        elif current and line.startswith("- `") and line.rstrip().endswith("`"):
+            sets[current].append(line.strip()[3:-1])
+    return sets
+
+
+def verify(dest: Path, manifest: Path) -> dict[str, int]:
+    """Re-read every file and compare with the manifest. Raises CorpusVerificationError listing
+    every problem (tuning by name, hold-out as counts only)."""
+    if not manifest.exists():
+        raise CorpusVerificationError(f"manifest not found: {manifest}")
+    expected = read_manifest_hashes(manifest.read_text(encoding="utf-8"))
+    if not expected["tuning"] or not expected["holdout"] or len(expected["tuning"]) != len(expected["holdout"]):
+        raise CorpusVerificationError("manifest does not describe an even, non-empty tuning/hold-out split")
+    if set(expected["tuning"]) & set(expected["holdout"]):
+        raise CorpusVerificationError("manifest lists the same file in both tuning and hold-out")
+
+    problems: list[str] = []
+    for set_name in ("tuning", "holdout"):
+        folder = dest / set_name
+        bad = 0
+        want = {h[:16]: h for h in expected[set_name]}
+        for prefix, digest in sorted(want.items()):
+            path = folder / f"{prefix}.eml"
+            if not path.is_file():
+                bad += 1
+                if set_name == "tuning":
+                    problems.append(f"tuning/{prefix}.eml is MISSING (quarantined by antivirus, or deleted?)")
+            elif path.stat().st_size == 0 or sha256_of(path) != digest:
+                bad += 1
+                if set_name == "tuning":
+                    problems.append(f"tuning/{prefix}.eml is empty or does not match its manifest SHA256")
+        extra = [p for p in folder.glob("*.eml") if p.stem not in want] if folder.exists() else []
+        for p in extra:
+            bad += 1
+            if set_name == "tuning":
+                problems.append(f"tuning/{p.name} is not in the manifest")
+        if set_name == "holdout" and bad:
+            problems.append(f"{bad} hold-out file(s) missing, altered or unexpected (names not shown)")
+    if problems:
+        raise CorpusVerificationError("; ".join(problems))
+    return {"tuning": len(expected["tuning"]), "holdout": len(expected["holdout"])}
+
+
+def run(source: Path, seed: int, n: int | None, dest: Path, manifest: Path, force: bool = False) -> dict:
     if not source.is_dir():
         raise FileNotFoundError(f"--source is not a directory: {source}")
     if dest.exists() and any(dest.rglob("*.eml")) and not force:
         raise FileExistsError(f"{dest} already holds a split; refusing to re-split (see --force)")
     files = eligible(source)
+    if n is None:
+        n = 150 if len(files) >= 150 else 100
     tuning_src, holdout_src = split(files, seed, n)
 
     if dest.exists() and force:
@@ -113,25 +179,42 @@ def run(source: Path, seed: int, n: int, dest: Path, manifest: Path, force: bool
                         hashes["tuning"], hashes["holdout"]),
         encoding="utf-8",
     )
-    return {"eligible": len(files), "tuning": len(hashes["tuning"]), "holdout": len(hashes["holdout"])}
+    verified = verify(dest, manifest)  # fail loudly if anything is missing, quarantined or altered
+    return {"eligible": len(files), "n": n, "tuning": verified["tuning"], "holdout": verified["holdout"]}
 
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--source", required=True, type=Path, help="directory containing the .eml corpus")
-    ap.add_argument("--seed", required=True, type=int)
-    ap.add_argument("--n", type=int, default=60, help="total sample size, even (default 60 -> 30/30)")
+    ap.add_argument("--source", type=Path, help="directory containing the .eml corpus")
+    ap.add_argument("--seed", type=int)
+    ap.add_argument("--n", type=int, default=None, help="total sample size, even (default: 100, or 150 if >= 150 usable samples)")
+    ap.add_argument("--verify", action="store_true", help="only verify an existing corpus against the manifest")
     ap.add_argument("--dest", type=Path, default=DEFAULT_DEST)
     ap.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args(argv)
+    if args.verify:
+        try:
+            counts = verify(args.dest, args.manifest)
+        except CorpusVerificationError as exc:
+            print(f"select_corpus: VERIFICATION FAILED: {exc}", file=sys.stderr)
+            return 3
+        print(f"select_corpus: verified tuning={counts['tuning']} holdout={counts['holdout']} against the manifest")
+        return 0
+    if args.source is None or args.seed is None:
+        ap.error("--source and --seed are required (unless --verify)")
     try:
         result = run(args.source, args.seed, args.n, args.dest, args.manifest, args.force)
+    except CorpusVerificationError as exc:
+        print(f"select_corpus: VERIFICATION FAILED after copying: {exc}", file=sys.stderr)
+        return 3
     except (ValueError, FileNotFoundError, FileExistsError) as exc:
         print(f"select_corpus: {exc}", file=sys.stderr)
         return 1
-    print(f"select_corpus: eligible={result['eligible']} tuning={result['tuning']} holdout={result['holdout']} "
-          f"seed={args.seed}\nmanifest: {args.manifest}")
+    print(f"select_corpus: eligible={result['eligible']} n={result['n']} tuning={result['tuning']} holdout={result['holdout']} "
+          f"seed={args.seed} -- all files verified against the manifest\nmanifest: {args.manifest}")
+    if args.n is None and result['n'] == 150:
+        print("select_corpus: source has >= 150 usable samples, so n=150 (75/75) was used")
     return 0
 
 
