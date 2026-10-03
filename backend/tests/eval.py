@@ -116,6 +116,8 @@ class Row:
     name: str
     verdict: str = ""
     score: int = 0
+    priority: float = 0.0
+    reason: str | None = None  # inconclusive sub-reason
     confidence: float = 0.0
     coverage: dict[str, float] = field(default_factory=dict)
     overrides: list[str] = field(default_factory=list)
@@ -198,6 +200,7 @@ def _row_for(path: Path, label: str, source: str, enrichment_mode: str) -> Row:
         row.verdict, row.error = "ERROR", f"{type(exc).__name__}: {exc}"
         return row
     row.verdict, row.score, row.confidence = res.verdict, res.score, res.confidence
+    row.priority, row.reason = res.scoring.priority, res.scoring.inconclusive_reason
     row.coverage = {c.category: round(c.coverage, 2) for c in res.scoring.categories}
     row.overrides = [o.rule for o in res.scoring.applied_overrides]
     row.top_findings = [f"{f.severity}:{f.title[:60]}" for f in res.findings if f.severity != "info"][:3]
@@ -302,6 +305,31 @@ def _counts(verdicts: list[str]) -> dict[str, int]:
     return c
 
 
+def _reason_split(rows: list["Row"]) -> str:
+    """Inconclusive sub-reasons: 'signals' = something fired but was not enough; 'none' = nothing fired and nothing
+    positive was established."""
+    signals = sum(r.reason == "signals_present" for r in rows if r.verdict == "needs_review")
+    none = sum(r.reason == "no_signals_insufficient_evidence" for r in rows if r.verdict == "needs_review")
+    return f"[inconclusive: signals present {signals} / no signals {none}]" if signals + none else ""
+
+
+def auc(positives: list[float], negatives: list[float]) -> float | None:
+    """P(a random positive outranks a random negative), ties counting half. None when either side is empty."""
+    if not positives or not negatives:
+        return None
+    wins = sum((p > n) + 0.5 * (p == n) for p in positives for n in negatives)
+    return wins / (len(positives) * len(negatives))
+
+
+def frac_above_median(positives: list[float], negatives: list[float]) -> float | None:
+    if not positives or not negatives:
+        return None
+    ordered = sorted(negatives)
+    mid = len(ordered) // 2
+    median = ordered[mid] if len(ordered) % 2 else (ordered[mid - 1] + ordered[mid]) / 2
+    return sum(p > median for p in positives) / len(positives)
+
+
 def _fmt_malicious(c: dict[str, int]) -> str:
     """For an all-malicious set: 'missed' is a confident benign verdict on malicious mail; 'inconclusive' is a miss that
     at least reaches a human."""
@@ -387,10 +415,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{'':9} overrides: {', '.join(shown.overrides) or '-'} | {'; '.join(shown.top_findings) or 'no non-info findings'}")
 
     # ---- summaries -----------------------------------------------------------------------------------------
-    def by_source(mode: str) -> dict[tuple[str, str], list[str]]:
-        out: dict[tuple[str, str], list[str]] = {}
+    def by_source(mode: str) -> dict[tuple[str, str], list[Row]]:
+        out: dict[tuple[str, str], list[Row]] = {}
         for r in rows_by_mode[mode]:
-            out.setdefault((r.label, r.source), []).append(r.verdict)
+            out.setdefault((r.label, r.source), []).append(r)
         for src in ("synthetic", "_from_user"):  # always list both, so an empty real-user slot is visible
             out.setdefault(("benign", src), [])
         return out
@@ -403,9 +431,10 @@ def main(argv: list[str] | None = None) -> int:
     for key in sorted({k for t in tables.values() for k in t if k[0] == "malicious"}):
         print(f"  {key[1]:14} ({kinds.get(key[1], '')})")
         for mode in modes:
-            counts = _counts(tables[mode].get(key, []))
+            rows = tables[mode].get(key, [])
+            counts = _counts([r.verdict for r in rows])
             metrics[mode]["malicious"][key[1]] = counts
-            print(f"      {mode.upper():10} {_fmt_malicious(counts)}")
+            print(f"      {mode.upper():10} {_fmt_malicious(counts)}   {_reason_split(rows)}")
 
     print("\nBENIGN FIXTURES -- SYNTHETIC ONLY; each source alone; real-world precision NOT established")
     print("  (inconclusive = the triage-queue cost: benign mail a human would have to look at. In STRICT mode no receiver is\n"
@@ -414,10 +443,22 @@ def main(argv: list[str] | None = None) -> int:
         note = "hand-written regression guards, NOT an accuracy claim" if src == "synthetic" else "real mail; the owner is not supplying any"
         print(f"  {src:14} ({note})")
         for mode in modes:
-            counts = _counts(tables[mode][("benign", src)])
+            rows = tables[mode][("benign", src)]
+            counts = _counts([r.verdict for r in rows])
             metrics[mode]["benign"][src] = counts
-            rate = f"   inconclusive rate {counts['inconclusive']}/{counts['n']}" if counts["n"] else ""
+            rate = f"   inconclusive rate {counts['inconclusive']}/{counts['n']}   {_reason_split(rows)}" if counts["n"] else ""
             print(f"      {mode.upper():10} " + (_fmt_benign(counts) + rate if counts["n"] else "0/0 (none -- no real benign mail)"))
+
+    print()
+    print("RANKING SANITY CHECK -- queue priority of the tuning phish vs the SYNTHETIC benign set. A sanity check only:")
+    print("  the benign side is hand-written, so this says the ordering is not backwards, not how well it ranks real mail.")
+    for mode in modes:
+        phish = [r.priority for r in tables[mode].get(("malicious", "tuning_corpus"), [])]
+        benign = [r.priority for r in tables[mode].get(("benign", "synthetic"), [])]
+        a, f = auc(phish, benign), frac_above_median(phish, benign)
+        metrics[mode]["ranking"] = {"auc": a, "frac_phish_above_benign_median": f, "n_phish": len(phish), "n_benign": len(benign)}
+        text = "n/a (empty side)" if a is None else f"AUC {a:.3f}   fraction of tuning phish above the synthetic-benign median priority {f:.2f}"
+        print(f"      {mode.upper():10} {text}   (phish n={len(phish)}, benign n={len(benign)})")
 
     benign_mal = sorted({r.name for m in modes for r in rows_by_mode[m] if r.label == "benign" and r.verdict == "malicious"})
     print(f"\nbenign fixtures reaching MALICIOUS: {len(benign_mal)}" + (f" -> {benign_mal}" if benign_mal else ""))

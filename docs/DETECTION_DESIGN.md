@@ -26,10 +26,18 @@ floor. The authentication, enrichment and verdict model already exist (README, `
 
 ## Verdict model recap
 
-* flagged = `suspicious` or `malicious`; `needs_review` = inconclusive; `legit` = benign (the literal rename is last).
-* Benign requires POSITIVE evidence: a verified, aligned DKIM pass or a DMARC pass from a TRUSTED receiver, no finding
-  above info severity, and adequate coverage. With no trusted receiver benign is mostly unreachable by design.
+* flagged = `suspicious` or `malicious`; `needs_review` = inconclusive; `legit` = benign (the literal rename is last;
+  the user-visible label for that state becomes "no indicators found", never a guarantee).
+* **Benign requires positive evidence of legitimacy, not only authentication** (iteration 1, below): a verified aligned
+  DKIM pass or a DMARC pass from a TRUSTED receiver AND the sender's registrable domain on the KNOWN-SENDER list
+  (untracked config, empty by default) AND no finding above info severity AND adequate coverage (confidence at or above
+  the threshold and complete enrichment: an unknown or uninformative indicator counts as inadequate). Authentication
+  proves who sent a message, not that the sender is legitimate; attackers authenticate their own domains.
+* Everything else that is not flagged is inconclusive, with a sub-reason: `signals_present` (something fired, not enough
+  to call) or `no_signals_insufficient_evidence`, and a numeric queue `priority`.
 * A floor is never undone by low coverage.
+* **Priority** (a priori, not fitted): weighted score + 5 per DIFFERENT structural family + 2 per finding above info
+  (at most 10 counted), capped at 100. It orders a review queue; it is not a probability.
 
 ## Families
 
@@ -134,8 +142,38 @@ per-family signal counts on the tuning set and on the fixtures.
 
 ## Iteration log
 
-Tuning iterations used: **0 / 5**.
+Tuning iterations used: **1 / 5**.
 
 | # | Date | Change | Reason | Tuning effect (aggregate) |
 |---|---|---|---|---|
-| 0 | 2026-10-03 | Design registered; nothing implemented yet | pre-registration | n/a |
+| 0 | 2026-10-03 | Design registered; floor rule + C1 demotion + S1/S2/S3 implemented as written | pre-registration | STRICT flagged 9 -> 0; CONFIGURED 25 -> 18 (see deviation D2) |
+| 1 | 2026-10-03 | Benign rule: add known-sender list (untracked, empty by default) and complete-enrichment requirement; inconclusive sub-reason; queue priority; ranking sanity metric | benign rule treated authentication as legitimacy; 11/75 tuning phish reached benign in CONFIGURED | CONFIGURED missed 11 -> 0 (all 11 inconclusive); synthetic benign CONFIGURED benign 8 -> 6, inconclusive 9/15 |
+
+Iteration 1 is a verdict-model change, not a detection signal, but it is logged here because it was made after looking
+at tuning results.
+
+## Predictions vs results so far (2026-10-03)
+
+| # | Pre-registered prediction | Result so far | Status |
+|---|---|---|---|
+| 1 | Kvish with seeds ablated reaches >= SUSPICIOUS from structural signals alone, both modes | Not yet: ablated Kvish is inconclusive (only the sender family, S2, fires). The link and claim signals are not implemented yet | **PENDING** (decided when L1-L3 land; if it misses it is reported, weights are not adjusted) |
+| 2 | Every benign fixture stays below SUSPICIOUS in both modes | Holds: 0 of 15 flagged in STRICT and CONFIGURED | holds |
+| 3 | s01, s02, s04, s05 become inconclusive; s03 stays flagged | Holds exactly after S3 landed. Between the floor commit and the sender-family commit s03 was also inconclusive, because S3 did not exist yet | holds (see D1) |
+| 4 | "Tuning recall rises by an amount I will not predict" | **Wrong in direction.** Tuning flagged fell: STRICT 9 -> 0, CONFIGURED 25 -> 18 | **DEVIATION D2** |
+
+Deviations, each with its reason:
+
+* **D1 -- timing of s03.** The design describes s03 as claim + sender, but S3 (the sender-family half) was implemented one
+  commit after the floor. For that one commit s03 was inconclusive. Reason: the floor mechanism and the signals were
+  committed separately to stay within the 3-source-file limit. No behavior difference in the final state.
+* **D2 -- tuning recall fell instead of rising.** All nine STRICT detections and seven of the 25 CONFIGURED ones were
+  bare display-name claims (one family). Demoting C1 to MEDIUM with no floor was the design's own decision; the design
+  predicted the effect on the synthetic positives but wrongly implied a net recall gain overall. The drop is the price of
+  not flagging a business named like a brand; the link and claim signals are meant to win it back through corroboration.
+  Nothing was tuned to recover it.
+* **D3 -- the benign rule was not part of this design's scope and was wrong.** Iteration 1 above. Reason: authenticated
+  mail on an attacker's own domain reached benign (11/75 in CONFIGURED). The design's recap of the verdict model was
+  updated; the weights and the floor rule were not touched.
+* **D4 -- reporting additions.** The inconclusive sub-reason, the queue priority and a ranking sanity check (AUC and
+  fraction above the synthetic-benign median) are added to the eval tables. They were not in the original reporting
+  section. The ranking check is a sanity check only: the benign side is synthetic.

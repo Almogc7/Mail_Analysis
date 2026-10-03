@@ -4,7 +4,7 @@ from app.contracts.analysis import AnalysisResult
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding, ModuleResult
 from app.contracts.scoring import CategoryScore, ScoringBreakdown
-from app.scoring.aggregate import category_coverage, category_finding_count, category_subscore
+from app.scoring.aggregate import category_coverage, category_finding_count, category_subscore, inconclusive_reason, priority_score
 from app.scoring.config import CATEGORIES, ScoringConfig
 from app.scoring.overrides import apply_overrides
 
@@ -72,6 +72,8 @@ def run_scoring(
         categories=category_scores,
         weighted_score=weighted_score,
         applied_overrides=applied_overrides,
+        inconclusive_reason=inconclusive_reason(final_bucket, by_category),
+        priority=priority_score(weighted_score, by_category),
     )
 
     return ScoringOutcome(

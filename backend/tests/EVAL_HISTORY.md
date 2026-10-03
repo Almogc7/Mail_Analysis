@@ -63,3 +63,6 @@ e1 cost: tuning STRICT flagged 9 -> 0 (all nine were bare display-name claims: o
 | e2: sender family S2 (local submission) + S3 (brand on freemail) | susp / susp | inconclusive / inconclusive | 1 flagged (s03), 4 inconclusive / same | 0 / 0 / 75 / 0 | 0 / 18 / 46 / 11 | 0 / 15 / 0 | 8 / 7 / 0 |
 
 e2: iteration 0 (design unchanged). S2/S3 do not move the tuning counts: on their own they are one family. Ablated Kvish still needs a second family (link/claim) to flag. Tuning iterations used: 0 / 5.
+| iteration 1: benign needs a known sender + complete enrichment | susp / susp | inconclusive / inconclusive | 1 flagged, 4 inconclusive (signals present) / same | 0 flagged / 75 inconclusive (60 signals, 15 none) / 0 missed | 18 flagged / 57 inconclusive (41 signals, 16 none) / **0 missed** | 0 / 15 / 0 | 6 / 9 / 0 |
+
+Iteration 1 ranking sanity check (tuning phish vs SYNTHETIC benign priority; a sanity check only): STRICT AUC 0.845, 0.80 of phish above the benign median; CONFIGURED AUC 0.852, 0.79. Tuning iterations used: 1 / 5.

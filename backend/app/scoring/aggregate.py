@@ -48,6 +48,30 @@ def category_coverage(category: str, result: ModuleResult | None) -> float:
     return 1.0
 
 
+def _active_findings(by_category: dict[str, ModuleResult | None]):
+    return [f for r in by_category.values() if r is not None and r.status not in _INACTIVE_STATUSES for f in r.findings]
+
+
+def priority_score(weighted_score: float, by_category: dict[str, ModuleResult | None]) -> float:
+    """Queue-ordering number, higher = look at it sooner. Set a priori, not fitted:
+        weighted score (0-100)  +  5 per DIFFERENT structural family  +  2 per finding above info (at most 10 counted)
+    capped at 100. The family term rewards corroboration, which is what separates a coincidence from a pattern; the
+    finding term breaks ties among messages with the same score. It orders; it is not a probability and not a verdict."""
+    findings = _active_findings(by_category)
+    families = {f.evidence["family"] for f in findings if f.evidence.get("structural") is True and f.evidence.get("family")}
+    above_info = sum(1 for f in findings if f.severity != "info")
+    return round(min(100.0, weighted_score + 5.0 * len(families) + 2.0 * min(above_info, 10)), 1)
+
+
+def inconclusive_reason(verdict: str, by_category: dict[str, ModuleResult | None]) -> str | None:
+    """Why a message is inconclusive: something fired but was not enough, or nothing did and nothing positive exists."""
+    if verdict != "needs_review":
+        return None
+    if any(f.severity != "info" for f in _active_findings(by_category)):
+        return "signals_present"
+    return "no_signals_insufficient_evidence"
+
+
 def category_finding_count(result: ModuleResult | None) -> int:
     if result is None or result.status in _INACTIVE_STATUSES:
         return 0

@@ -73,9 +73,16 @@ that could just as easily describe an aggressive-but-legitimate marketing email.
 of the weighted score, `scoring/overrides.py` applies explicit **floor and ceiling rules**:
 
 - **Floor**: a single `severity="critical"` enrichment finding, or a single
-  `severity="high"` auth_check finding (a confirmed SPF/DMARC failure or display-name
-  spoofing), forces the verdict to at least *Suspicious* — regardless of what the weighted
-  score alone would produce. One hard indicator outranks a pile of soft ones.
+  `severity="high"` auth_check finding (a confirmed SPF/DKIM/DMARC failure reported by a
+  *trusted* receiver), forces the verdict to at least *Suspicious* — regardless of what the
+  weighted score alone would produce. One hard indicator outranks a pile of soft ones. A
+  display-name brand claim is **not** a hard indicator on its own (a dental clinic can be
+  named like a brand): it is a MEDIUM finding.
+- **Structural corroboration floor**: structural signals fall into three families —
+  *sender* (hosting-style identity, local-submission first hop, brand name on a free
+  mailbox), *link* and *claim* (see `docs/DETECTION_DESIGN.md`). Signals from **two different
+  families** force *Suspicious*; any number of signals in one family count once, because they
+  usually share a cause. The rule was fixed before the signals were tuned.
 - **Content-only floor**: content_analysis's weight (0.25) means it can never mathematically
   cross the *Suspicious* score threshold (35) through weighted scoring alone — so 2+
   independently-firing high-severity content findings (e.g. urgency language *and* brand
@@ -90,6 +97,38 @@ of the weighted score, `scoring/overrides.py` applies explicit **floor and ceili
   is low and the score is non-trivial, the verdict becomes *Needs Manual Review* rather than
   guessing — this distinguishes "checked and clean" from "couldn't check," which a raw score
   can't express on its own.
+
+### The inconclusive and "no indicators found" states: not a safety verdict
+
+The verdict model is deliberately lopsided: **flagging needs evidence, and so does being cleared.**
+
+- *Suspicious / Malicious*: findings, or findings corroborated across families, crossed a threshold.
+- *Needs review* (shown as **inconclusive**; the literal rename lands last): nothing flagged, but "no findings" is not
+  evidence of safety. Each one carries a sub-reason — `signals_present` (something fired but was not enough) or
+  `no_signals_insufficient_evidence` (nothing fired and nothing positive was established) — and a numeric
+  `priority` (a-priori formula in `docs/DETECTION_DESIGN.md`) so a queue can be ordered. The priority orders; it is not
+  a probability.
+- *Benign* (to be shown as **no indicators found**) requires **all** of: a verified, aligned DKIM pass or a DMARC pass
+  from a **trusted receiver**; the sender's registrable domain on a **known-sender list**; no finding above info
+  severity; and adequate coverage, including complete enrichment (an unknown or uninformative indicator counts as
+  inadequate). Authentication alone is not enough: it proves who sent a message, not that the sender is legitimate, and
+  attackers authenticate their own domains (11 of 75 tuning phish reached benign under the earlier
+  authentication-only rule).
+
+**"No indicators found" is not "safe".** It means this tool saw nothing and positively recognised the sender. **Do not
+use it to auto-close, auto-release or auto-delete anything.** A human decides.
+
+**Two configurations make the tool useful; without them it is not:**
+
+| Setting | Where | Effect when missing |
+|---|---|---|
+| Trusted receivers (`TRUSTED_RECEIVER_PATTERNS`) | untracked `backend/.env` | SPF/DKIM/DMARC are `not_evaluated`; nothing can be benign |
+| Known senders | untracked `backend/known_senders.local.json` (or `KNOWN_SENDERS_FILE`), `{"domains": ["example.com", ...]}` | no sender is ever recognised; nothing can be benign |
+
+**An unconfigured deployment (no trusted receivers, no known-sender list) yields *inconclusive* for everything that is
+not flagged, and that is not useful as a filter.** It still flags what it can see, but every other message lands in the
+queue, ordered by priority. Configure both before relying on the benign state, and keep the known-sender list short
+and deliberate: a domain on it is a domain whose mail can be cleared.
 
 ### Authentication trust: who may vouch for SPF/DKIM/DMARC
 
