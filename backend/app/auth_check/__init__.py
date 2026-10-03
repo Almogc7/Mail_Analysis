@@ -185,14 +185,17 @@ def _identity_findings(identity: dict) -> list[Finding]:
         findings.append(
             Finding(
                 module=MODULE_NAME,
-                severity="high",
+                severity="medium",
                 title=f"Possible display-name spoofing of '{spoof['claimed_brand']}'",
                 description=(
                     f"From display name contains the brand '{spoof['claimed_brand']}' as a whole word{evasion} "
-                    f"but the sending domain '{spoof['actual_domain']}' is not one of that brand's known domains."
+                    f"but the sending domain '{spoof['actual_domain']}' is not one of that brand's known domains. "
+                    "A brand claim alone is common in benign mail (a business named like a brand), so it does not "
+                    "raise the verdict by itself; it does together with evidence from another family."
                 ),
-                evidence=spoof,
-                weight=25.0,
+                # C1 (docs/DETECTION_DESIGN.md): MEDIUM, family 'claim'; floors only via corroboration.
+                evidence={**spoof, "structural": True, "family": "claim", "signal": "C1"},
+                weight=12.0,
             )
         )
     elif spoof["fuzzy_suspected"]:
@@ -223,7 +226,8 @@ def _identity_findings(identity: dict) -> list[Finding]:
                     f"looks machine-provisioned: {'; '.join(hosting['indicators'])}. Mail sent from a hosting "
                     "provider's server identity rather than the brand's own infrastructure is a common phishing pattern."
                 ),
-                evidence=hosting,
+                # S1 (docs/DETECTION_DESIGN.md): family 'sender'
+                evidence={**hosting, "structural": True, "family": "sender", "signal": "S1"},
                 weight=15.0,
             )
         )

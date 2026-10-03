@@ -163,12 +163,25 @@ def _spoof_email(**kw):
 
 
 @pytest.mark.parametrize("patterns", [[], [MX]])
-def test_display_name_floor_survives_with_and_without_trusted_receivers(monkeypatch, patterns):
+def test_a_brand_claim_alone_does_not_floor_with_or_without_trusted_receivers(monkeypatch, patterns):
     monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", patterns)
     result = run_auth_check(_spoof_email(authentication_results_raw=[PASS_AR], received_chain=[_hop("mx.example.org")]))
-    outcome = _score(result)  # a "pass" in the headers must not talk the floor away
+    outcome = _score(result)
+    # one family (claim): MEDIUM finding, no floor; a 'pass' in the headers changes nothing about that
+    assert outcome.verdict != "suspicious"
+    assert not any(o.rule.endswith("_floor") for o in outcome.breakdown.applied_overrides)
+
+
+@pytest.mark.parametrize("patterns", [[], [MX]])
+def test_corroborated_claim_floors_and_a_header_pass_cannot_talk_it_away(monkeypatch, patterns):
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", patterns)
+    parsed = _email(
+        from_=EmailAddress(display_name="PayPal Support", address="vnz73mailr@vh319.hosting.example.net", domain="vh319.hosting.example.net"),
+        authentication_results_raw=[PASS_AR], received_chain=[_hop("mx.example.org")],
+    )
+    outcome = _score(run_auth_check(parsed))  # claim + machine-provisioned sender: two families
     assert outcome.verdict == "suspicious"
-    assert any(o.rule == "auth_check_floor" for o in outcome.breakdown.applied_overrides)
+    assert any(o.rule == "structural_corroboration_floor" for o in outcome.breakdown.applied_overrides)
 
 
 def test_trusted_spf_fail_still_floors_but_an_untrusted_fail_does_not(monkeypatch):

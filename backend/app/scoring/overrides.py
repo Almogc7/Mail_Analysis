@@ -103,6 +103,33 @@ def apply_overrides(
                 )
             )
 
+    # 1c. Structural corroboration floor (docs/DETECTION_DESIGN.md): signals from >= N DIFFERENT families. A single
+    # family never floors -- several signals in one family usually share one cause (one hosting box, one cloned
+    # template) -- and weak signals only add to the score through their weights.
+    structural = [
+        f
+        for result in module_results.values()
+        if result is not None and result.status not in {"error", "skipped"}
+        for f in result.findings
+        if f.evidence.get("structural") is True and f.evidence.get("family")
+    ]
+    families = sorted({f.evidence["family"] for f in structural})
+    if len(families) >= config.structural_floor_min_families:
+        floor_triggered = True
+        if _BUCKET_RANK[bucket] < _BUCKET_RANK["suspicious"]:
+            bucket = "suspicious"
+            signals = ", ".join(sorted({str(f.evidence.get("signal", f.title)) for f in structural}))
+            applied.append(
+                AppliedOverride(
+                    rule="structural_corroboration_floor",
+                    effect="floor=suspicious",
+                    reason=(
+                        f"signals from {len(families)} different families ({', '.join(families)}) corroborate each other: "
+                        f"{signals}. No single family would have been enough."
+                    ),
+                )
+            )
+
     # 2. Ceiling override: content_analysis alone can't reach "malicious".
     hard_categories_quiet = all(
         category_subscores.get(c, 0.0) <= config.ceiling_hard_category_threshold

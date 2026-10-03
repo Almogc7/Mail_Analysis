@@ -37,6 +37,11 @@ class ScoringConfig:
     # suspicious score threshold through weighted scoring alone.
     content_floor_min_high_severity_count: int = 2
 
+    # Structural corroboration floor (docs/DETECTION_DESIGN.md): findings tagged evidence.structural + evidence.family
+    # from at least this many DIFFERENT families (sender / link / claim) force the verdict to at least 'suspicious'.
+    # Several signals in one family count once. Not to be loosened to raise tuning recall.
+    structural_floor_min_families: int = 2
+
     # Ceiling override: content_analysis alone (auth_check and enrichment both at/below
     # this) can't push the verdict past "suspicious".
     ceiling_hard_category_threshold: float = 10.0

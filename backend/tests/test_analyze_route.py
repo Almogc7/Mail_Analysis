@@ -66,7 +66,9 @@ def test_happy_path_completes_with_full_analysis_result(monkeypatch):
 
     assert body["status"] == "done"
     result = body["result"]
-    assert result["verdict"] in ("suspicious", "malicious")
+    # a display-name brand claim alone is ONE family: inconclusive, with the claim finding visible
+    assert result["verdict"] == "needs_review"
+    assert any(f["title"].startswith("Possible display-name spoofing") for f in result["findings"])
     assert len(result["findings"]) > 0
     assert result["scoring"] is not None
     assert result["llm_opinion"]["status"] == "ok"

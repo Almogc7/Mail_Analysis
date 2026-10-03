@@ -121,11 +121,16 @@ def test_the_malformed_from_that_blinded_22_percent_of_the_corpus_now_has_a_doma
 
 
 def test_recovering_the_domain_unlocks_the_sender_checks_that_were_blind():
-    # the whole point: an exact brand in the display name on a non-brand domain now raises the floor
-    result = analyze_bytes(_eml("PayPal, Inc. <support@evil.example.net>"))
-    assert result.verdict == "suspicious"
-    titles = [f.title for f in result.findings]
+    # the whole point: the brand claim in the display name is now visible against the real sender domain. On its own it is
+    # one family (claim), so it is inconclusive, not flagged...
+    alone = analyze_bytes(_eml("PayPal, Inc. <support@evil.example.net>"))
+    titles = [f.title for f in alone.findings]
     assert "Possible display-name spoofing of 'paypal'" in titles and "From header parse ambiguity" in titles
+    assert alone.verdict == "needs_review"
+    # ...and with corroboration from another family (a machine-provisioned sender) it floors
+    corroborated = analyze_bytes(_eml("PayPal, Inc. <vnz73mailr@vh319.hosting.example.net>"))
+    assert corroborated.verdict == "suspicious"
+    assert any(o.rule == "structural_corroboration_floor" for o in corroborated.scoring.applied_overrides)
 
 
 def analyze_bytes(raw: bytes):

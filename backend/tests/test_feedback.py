@@ -29,8 +29,14 @@ def benign():
 
 
 @pytest.fixture(scope="module")
-def spoof():
-    return analyze(FIXTURES / "malicious" / "synthetic" / "s01_exact_brand_nonbrand_domain.eml", "clean")
+def spoof(tmp_path_factory):
+    # a corroborated claim (claim + machine-provisioned sender) so it is FLAGGED; a bare claim is only inconclusive now
+    raw = (b"From: PayPal Support <vnz73mailr@vh319.hosting.example.net>\r\nTo: t@example.com\r\nSubject: Notice\r\n"
+           b"Date: Mon, 21 Sep 2026 10:00:00 +0000\r\nMessage-ID: <fb1@x.example.com>\r\nMIME-Version: 1.0\r\n"
+           b"Content-Type: text/plain\r\n\r\nhello\r\n")
+    path = tmp_path_factory.mktemp("fb") / "spoof.eml"
+    path.write_bytes(raw)
+    return analyze(path, "clean")
 
 
 # ---- signal names carry no email content --------------------------------------------------------

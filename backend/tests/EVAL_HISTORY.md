@@ -52,3 +52,11 @@ malicious fixture, so read verdicts, not percentages. Strict = `needs_review` is
 | benign-needs-positive-evidence | susp / susp | **inconclusive / inconclusive** | 0 / 9 / 66 / 0 | 0 / 25 / 39 / **11** | 0 / **15** / 0 / 0 (rate 15/15) | 8 / **7** / 0 / 0 (rate 7/15) |
 
 The 11 CONFIGURED "missed" are phishing samples whose OWN domain passes aligned DKIM/DMARC with nothing else flagged: authentication proves who controls a domain, not that the message is safe.
+
+**Structural work (docs/DETECTION_DESIGN.md), iteration 0 = the pre-registered design unchanged.** Verdict counts per set as mal/susp/inconclusive/missed.
+
+| After commit | Kvish S / C | Kvish ablated S / C | Synthetic spoofs S / C | Tuning STRICT | Tuning CONFIGURED | Synthetic benign STRICT (benign/inc/susp) | Synthetic benign CONFIGURED |
+|---|---|---|---|---|---|---|---|
+| e1: family floor + C1 demoted to MEDIUM | susp / susp | inconclusive / inconclusive | 0 flagged, 5 inconclusive / same | 0 / 0 / **75** / 0 | 0 / 18 / 46 / 11 | 0 / 15 / 0 | 8 / 7 / 0 |
+
+e1 cost: tuning STRICT flagged 9 -> 0 (all nine were bare display-name claims: one family, now inconclusive and still visible to the analyst). Predicted in the design doc.
