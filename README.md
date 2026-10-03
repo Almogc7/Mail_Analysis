@@ -269,6 +269,33 @@ from the structural families. These numbers say little about mail that reaches a
 **How real-world false positives will be measured**: the local analyst feedback log (next section) records
 agree/disagree per analysis, keyed by file hash, with verdict and signal names only.
 
+### How to read the numbers (read before quoting any of them)
+
+- **"0 missed" is true by construction, not a miss rate.** "Missed" means a confident *no indicators found* on a phishing
+  sample. That verdict needs a sender on the known-sender list, and the list is empty in every phishing set the eval runs
+  (the eval's CONFIGURED mode lists only the reserved example domains of the synthetic benign fixtures). So 0 missed says the
+  rule cannot clear an unknown sender, which is its purpose. It says nothing about how often a real phish from a
+  *known* sender (a compromised partner account) would be cleared; that is not measured.
+- **Recall here means flagged (Suspicious or Malicious) only. Inconclusive is not a catch.** An inconclusive message is
+  in the review queue, ordered by priority, but nothing in it was identified as phishing; counting it as detected would
+  turn "needs a human" into "caught". Of the hold-out in STRICT mode, 8.0% was flagged and 92.0% was inconclusive.
+- **What the Kvish mutation analysis shows, in plain words.** The local-submission hop (the message was injected by a
+  process on the hosting box, not by an authenticated mail client) is the load-bearing signal: with it in place almost any
+  one link or claim signal is enough to flag, and who the sender *appears* to be does not matter. **A phish sent through an
+  authenticated mailbox, with a clean display name, a direct link and its own images, is invisible to the current signal
+  families.** The structural detection targets one narrow class (an authenticated lure from hosting-provider
+  infrastructure with a swapped call to action) and nothing here should be read as coverage of commodity phishing.
+  Details: `backend/tests/KVISH_MUTATIONS.md`.
+- **Still unproven:** real-world precision (the false-positive rate on real mail; the benign evidence is 26 hand-written
+  fixtures and one of them is a known false positive); Hebrew and Israeli-brand phishing beyond the single Kvish sample (the
+  Hebrew phrase lists are unreviewed by a native speaker); text-only business-email-compromise, advance-fee and sextortion
+  mail; image-only mail (no OCR); attachment content (files are hashed and classified, never opened); lures sent through
+  authenticated or compromised mailboxes; the branded-ESP carve-out D5 against real ESP headers (validated only on
+  hand-written fixtures); and mail from a compromised vendor or partner account (it is not exempted, but the behaviour is
+  unmeasured).
+- **The hold-out is spent** (2026-10-03, once, results published as run in `backend/tests/HOLDOUT_LOG.md`). Any later change
+  to a detector, weight, rule or threshold makes later hold-out runs "tuned after viewing hold-out".
+
 ### Analyst feedback log
 
 Every finished analysis shows an *Agree / Disagree* control (plus an optional note) in the UI, backed by

@@ -76,3 +76,13 @@ e4: first run before iteration 2 was STRICT 9 / CONFIGURED 25 tuning flagged and
 **Comparability note.** The ranking AUC and 'fraction above the benign median' are NOT comparable across rows where the synthetic benign set changed size: n=15 (to e1/e2), n=21 (e3, after the six link-family guards), n=26 (e4, after the five claim-family guards). Each added fixture changes the benign side of the comparison itself, so a falling AUC across those rows (0.852 -> 0.842 -> 0.831 -> 0.820 in CONFIGURED) mostly reflects a harder, larger benign set, not a worse ranking. Compare AUCs only within one benign-set size.
 
 **Verdict rename (2026-10-03).** From this point the literals are `benign` (was `legit`; label "No indicators found") and `inconclusive` (was `needs_review`). Rows above keep the old words as they were written. Eval tables now also print Wilson 95% intervals for every rate; a rate is `k/n = p% [95% CI lo-hi%]`.
+
+**Reading this table (added 2026-10-03, after the hold-out).**
+(a) A "missed" count of 0 is by construction while the known-sender list is empty for the phishing sets: the benign rule needs a
+known sender, so it cannot fire. It is not a miss rate.
+(b) Recall means **flagged** only (suspicious or malicious). Inconclusive is not a catch.
+(c) The Kvish mutation finding: the local-submission origin hop is load-bearing, and an authenticated-mailbox phish with a clean display
+name, a direct link and its own images is invisible to the current families (`KVISH_MUTATIONS.md`).
+(d) Still unproven: real-world precision; Hebrew and Israeli-brand phishing beyond one sample; text-only BEC; image-only mail; attachment
+content; authenticated or compromised-mailbox lures; the D5 carve-out on real ESP headers; compromised vendor/partner accounts.
+The hold-out (n=75, once, 2026-10-03): STRICT flagged 6/75 [3.7-16.4%], CONFIGURED flagged 20/75 [18.0-37.6%], missed 0/75 in both; see HOLDOUT_LOG.md.
