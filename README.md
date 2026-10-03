@@ -1,10 +1,27 @@
 # Mail Analysis
 
 A suspicious-email analysis and triage tool for SOC analysts. Upload a `.eml` or `.msg`
-file and get back a scored verdict (Malicious / Suspicious / Needs Manual Review / Legit)
+file and get back a scored verdict (Malicious / Suspicious / Inconclusive / No indicators found)
 backed by a full evidence trail — every signal that contributed to the verdict is visible
 and traceable, not folded into an opaque number. Built as a single-email deep-dive view for
 Tier 1 analysts doing hands-on triage, not a batch-processing dashboard.
+
+## Scope and limits in one place
+
+* **It is an analyst-assist tool, not a filter.** The most common output is *Inconclusive*, usually with
+  signals present; that means "a person should look", ordered by a priority score. **Never use any verdict to
+  auto-close, auto-release, quarantine or delete mail.** *No indicators found* is not "safe": it means nothing fired
+  **and** the sender is on your known-sender list with verified authentication.
+* **It needs two local configurations to be useful** (both untracked, both empty by default): trusted receivers
+  (`TRUSTED_RECEIVER_PATTERNS`) and a known-sender list (`known_senders.local.json`). Without them everything that is
+  not flagged is inconclusive. Organisation-specific brands, aliases and gateway banners also live only in untracked
+  local config.
+* **What is measured, honestly:** one real phishing sample (a hosting-provider lure, Kvish 6), a seeded split of a
+  public phishing corpus (recall only, a poor proxy for this class), and 26 hand-written benign fixtures
+  (regression guards, not an accuracy claim). **Real-world precision is not established.** See "Evaluation scope".
+* **Known to be unproven or undetectable:** real-world false-positive rate; Hebrew and Israeli-brand phishing beyond the
+  one sample; text-only business-email-compromise; image-only mail; attachment content (files are hashed and
+  classified, never opened).
 
 ## Architecture
 
@@ -91,10 +108,10 @@ of the weighted score, `scoring/overrides.py` applies explicit **floor and ceili
 - **Ceiling**: content_analysis alone — with `auth_check` and `enrichment` both quiet — can
   never push the verdict to *Malicious*. Heuristic-only evidence isn't allowed to be the
   sole basis for the most severe verdict.
-- **Needs-review**: a confidence score (separate from the risk score) tracks how much
+- **Inconclusive** (formerly `needs_review`): a confidence score (separate from the risk score) tracks how much
   reliable data actually went into the analysis — was an `Authentication-Results` header
   even present, did enrichment providers respond or come back rate-limited. When confidence
-  is low and the score is non-trivial, the verdict becomes *Needs Manual Review* rather than
+  is low and the score is non-trivial, the verdict becomes *Inconclusive* rather than
   guessing — this distinguishes "checked and clean" from "couldn't check," which a raw score
   can't express on its own.
 
@@ -206,7 +223,18 @@ as a flagged note for human review, not an overriding verdict.
 
 ## Evaluation scope: what is and is not established
 
-Read this before trusting any number from this project. Status as of 2026-10-02.
+Read this before trusting any number from this project. Status as of 2026-10-03.
+
+**Tuning-split results** (75 public phishing samples, offline stub enrichment; every rate with its Wilson 95% interval;
+the hold-out is reported separately in `backend/tests/HOLDOUT_LOG.md` and was evaluated once):
+
+| Mode | flagged | inconclusive | confidently "no indicators found" |
+|---|---|---|---|
+| STRICT (nothing trusted) | 6/75 = 8.0% [3.7-16.4%] | 69/75 = 92.0% [83.6-96.3%] | 0/75 = 0.0% [0.0-4.9%] |
+| CONFIGURED (corpus gateway headers trusted) | 22/75 = 29.3% [20.2-40.4%] | 53/75 = 70.7% [59.6-79.8%] | 0/75 = 0.0% [0.0-4.9%] |
+
+Most CONFIGURED flags come from trusted-gateway authentication failures, a feature of how the corpus was collected, not
+from the structural families. These numbers say little about mail that reaches an inbox.
 
 **What the evidence is**
 
@@ -322,7 +350,7 @@ was genuinely Microsoft/Office365-generated, and it violated RFC 8601 in two way
 result token, and a trailing `;` after the last one. The parse failure meant SPF/DKIM/DMARC
 results were silently discarded entirely, degrading to "no data available" — which, for this
 specific sample, meant a real `dmarc=fail` was being hidden. The verdict flipped from a
-correct **Suspicious** to a false-negative **Legit** purely because the header didn't match
+correct **Suspicious** to a false-negative "legit" (the verdict's old name) purely because the header didn't match
 the textbook shape every prior test fixture happened to use. Fixed with a normalize-and-retry
 step (strip the trailing `;`, synthesize a placeholder authserv-id) plus a regex-based
 fallback extraction so a method result can never be silently lost to an unanticipated

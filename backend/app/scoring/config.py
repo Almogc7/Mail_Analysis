@@ -56,4 +56,4 @@ class ScoringConfig:
 
     # Needs-review trigger (confidence-based).
     confidence_threshold: float = 0.6
-    needs_review_score_floor: float = 10.0
+    inconclusive_score_floor: float = 10.0

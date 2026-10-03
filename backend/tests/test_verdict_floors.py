@@ -1,8 +1,8 @@
-"""Low coverage / needs_review must NEVER downgrade a floor-based SUSPICIOUS or MALICIOUS verdict.
+"""Low coverage / inconclusive must NEVER downgrade a floor-based SUSPICIOUS or MALICIOUS verdict.
 
 A floor means "a hard indicator fired"; uncertainty about OTHER evidence cannot erase it. This was a known
-defect (the low_confidence_needs_review override ran after the floors) pinned by strict xfails; it is fixed
-and these are now ordinary tests. needs_review still applies when NO floor trigger exists.
+defect (the low_confidence_inconclusive override ran after the floors) pinned by strict xfails; it is fixed
+and these are now ordinary tests. inconclusive still applies when NO floor trigger exists.
 """
 import pytest
 
@@ -91,38 +91,38 @@ def test_low_coverage_never_downgrades_a_floor_based_verdict(build, expected):
 def test_the_protection_is_recorded_so_the_analyst_can_see_why(build):
     outcome = run_scoring(build())
     rules = [o.rule for o in outcome.breakdown.applied_overrides]
-    assert "floor_protects_verdict" in rules and "low_confidence_needs_review" not in rules
+    assert "floor_protects_verdict" in rules and "low_confidence_inconclusive" not in rules
     protect = next(o for o in outcome.breakdown.applied_overrides if o.rule == "floor_protects_verdict")
     assert "hard indicator" in protect.reason and "not downgraded" in protect.reason and protect.effect == "verdict stays suspicious"
 
 
-def test_needs_review_still_applies_when_no_floor_trigger_exists():
+def test_inconclusive_still_applies_when_no_floor_trigger_exists():
     # medium findings only: weighted score 14 (>= 10), no high/critical anywhere, low coverage
     auth = _auth([_f("auth_check", "medium", 20, "a"), _f("auth_check", "medium", 20, "b")])
     outcome = run_scoring([auth, _errored_enrichment(), _content(script_coverage=0.5)])
     rules = [o.rule for o in outcome.breakdown.applied_overrides]
-    assert outcome.verdict == "needs_review" and rules == ["low_confidence_needs_review"]
+    assert outcome.verdict == "inconclusive" and rules == ["low_confidence_inconclusive"]
     assert "floor_protects_verdict" not in rules
 
 
-def test_a_score_only_suspicious_with_low_coverage_and_no_floor_is_still_needs_review():
+def test_a_score_only_suspicious_with_low_coverage_and_no_floor_is_still_inconclusive():
     # weighted score >= 35 from MEDIUM findings alone: suspicious by score, no floor trigger, low confidence
     auth = _auth([_f("auth_check", "medium", 100, "a")])
     enr = _enrichment([_f("enrichment", "medium", 30, "Suspicious URL: u"), _f("enrichment", "info", 0, "Enrichment incomplete for v", ioc_value="v")], iocs=("u", "v"))
     outcome = run_scoring([auth, enr, _content(script_coverage=0.5)])
     assert outcome.breakdown.weighted_score >= 35  # the base bucket really was 'suspicious' by score alone
-    assert outcome.verdict == "needs_review" and outcome.breakdown.applied_overrides[-1].rule == "low_confidence_needs_review"
+    assert outcome.verdict == "inconclusive" and outcome.breakdown.applied_overrides[-1].rule == "low_confidence_inconclusive"
 
 
 def test_high_confidence_is_untouched_by_the_protection():
     outcome = run_scoring([_auth([_f("auth_check", "high", 25, "spoof")], header_present=True),
                            _enrichment(), _content()])
     rules = [o.rule for o in outcome.breakdown.applied_overrides]
-    assert outcome.verdict == "suspicious" and "floor_protects_verdict" not in rules and "low_confidence_needs_review" not in rules
+    assert outcome.verdict == "suspicious" and "floor_protects_verdict" not in rules and "low_confidence_inconclusive" not in rules
 
 
 def test_a_clean_low_coverage_email_is_inconclusive_not_flagged_and_not_benign():
     outcome = run_scoring([_auth([], header_present=False), _errored_enrichment(), _content(script_coverage=0.5)])
     rules = [o.rule for o in outcome.breakdown.applied_overrides]
-    # score < 10: no needs_review-by-score and no floor; but benign needs positive evidence, so: inconclusive
-    assert outcome.verdict == "needs_review" and rules == ["no_positive_evidence_for_benign"]
+    # score < 10: no inconclusive-by-score and no floor; but benign needs positive evidence, so: inconclusive
+    assert outcome.verdict == "inconclusive" and rules == ["no_positive_evidence_for_benign"]

@@ -5,13 +5,13 @@ from app.scoring.aggregate import category_coverage
 from app.scoring.config import ScoringConfig, severity_at_least
 from app.shared.matching import registrable_domain
 
-_BUCKET_RANK = {"legit": 0, "suspicious": 1, "malicious": 2}
+_BUCKET_RANK = {"benign": 0, "suspicious": 1, "malicious": 2}
 
 
 def benign_evidence_gaps(
     module_results: dict[str, ModuleResult | None], confidence: float, config: ScoringConfig
 ) -> list[str]:
-    """What is missing for a verdict of 'benign' (the literal 'legit' until the rename). An EMPTY list means the
+    """What is missing for a verdict of 'benign' (shown to users as 'no indicators found'). An EMPTY list means the
     message has POSITIVE evidence. 'No findings' is never evidence of safety, and neither is authentication: an
     attacker authenticates their own domain. Benign needs all of:
 
@@ -77,7 +77,7 @@ def apply_overrides(
     applied: list[AppliedOverride] = []
     # True once ANY floor trigger exists -- even when the score alone already put the bucket at "suspicious", so
     # no floor override gets recorded. A floor means "a hard indicator fired": uncertainty about OTHER evidence
-    # (low coverage) must never erase it, so the needs_review rule below must not touch such a verdict.
+    # (low coverage) must never erase it, so the inconclusive rule below must not touch such a verdict.
     floor_triggered = False
 
     # 1. Floor overrides: a single hard indicator forces at least "suspicious".
@@ -172,11 +172,11 @@ def apply_overrides(
             )
         )
 
-    # 3. Needs-review: evidence too incomplete to trust a legit/suspicious call -- but never over a floor.
+    # 3. Inconclusive: evidence too incomplete to trust a benign/suspicious call -- but never over a floor.
     would_need_review = (
-        bucket in {"legit", "suspicious"}
+        bucket in {"benign", "suspicious"}
         and confidence < config.confidence_threshold
-        and weighted_score >= config.needs_review_score_floor
+        and weighted_score >= config.inconclusive_score_floor
     )
     if would_need_review and floor_triggered:
         applied.append(
@@ -185,7 +185,7 @@ def apply_overrides(
                 effect=f"verdict stays {bucket}",
                 reason=(
                     f"Overall confidence {confidence:.2f} is below {config.confidence_threshold}, which would normally "
-                    "mean needs_review, but a hard indicator (a floor trigger) fired. Low coverage of OTHER evidence "
+                    "mean inconclusive, but a hard indicator (a floor trigger) fired. Low coverage of OTHER evidence "
                     "cannot cancel it, so the verdict is not downgraded."
                 ),
             )
@@ -193,8 +193,8 @@ def apply_overrides(
     elif would_need_review:
         applied.append(
             AppliedOverride(
-                rule="low_confidence_needs_review",
-                effect="verdict=needs_review",
+                rule="low_confidence_inconclusive",
+                effect="verdict=inconclusive",
                 reason=(
                     f"Overall confidence {confidence:.2f} is below threshold "
                     f"{config.confidence_threshold} with a non-trivial score "
@@ -203,19 +203,19 @@ def apply_overrides(
                 ),
             )
         )
-        bucket = "needs_review"
+        bucket = "inconclusive"
 
     # 4. Benign needs POSITIVE evidence. Everything not flagged and not proven benign is inconclusive.
-    if bucket == "legit":
+    if bucket == "benign":
         gaps = benign_evidence_gaps(module_results, confidence, config)
         if gaps:
             applied.append(
                 AppliedOverride(
                     rule="no_positive_evidence_for_benign",
-                    effect="verdict=needs_review (inconclusive)",
+                    effect="verdict=inconclusive (inconclusive)",
                     reason="Nothing was flagged, but 'no findings' is not evidence of safety. Missing: " + "; ".join(gaps) + ".",
                 )
             )
-            bucket = "needs_review"
+            bucket = "inconclusive"
 
     return bucket, applied

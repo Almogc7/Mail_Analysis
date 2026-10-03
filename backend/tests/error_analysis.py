@@ -7,7 +7,7 @@ host, file name, or any content. Only the tuning split is read (a path containin
 Static analysis only: the parser's existing extraction is used; attachments are classified by file
 extension / declared type and are never unpacked, opened, rendered or executed.
 
-A "miss" is a sample whose verdict is not malicious/suspicious (strict: needs_review counts as a miss).
+A "miss" is a sample whose verdict is not malicious/suspicious (strict: inconclusive counts as a miss).
 Each bucket is multi-label (a sample can sit in several), so percentages do not add up to 100. The final
 "profile" table is mutually exclusive. Counts are shown for the misses and for all samples, so a bucket's
 share among misses can be compared with its share overall.

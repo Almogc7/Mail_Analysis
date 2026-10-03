@@ -6,7 +6,7 @@ import { makeAnalysisResult, makeModuleResult } from '../test/fixtures'
 describe('ResultsView', () => {
   it('renders a fully clean result with no crashes', () => {
     render(<ResultsView result={makeAnalysisResult()} onReset={vi.fn()} />)
-    expect(screen.getByText(/legit/i)).toBeInTheDocument()
+    expect(screen.getByText(/no indicators found/i)).toBeInTheDocument()
   })
 
   it('renders an unavailable llm_opinion distinctly, not silently', () => {

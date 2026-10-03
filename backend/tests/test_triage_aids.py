@@ -24,12 +24,12 @@ def _run(mods):
 
 def test_nothing_fired_is_inconclusive_for_lack_of_evidence():
     out = _run(_mods())
-    assert out.verdict == "needs_review" and out.breakdown.inconclusive_reason == "no_signals_insufficient_evidence"
+    assert out.verdict == "inconclusive" and out.breakdown.inconclusive_reason == "no_signals_insufficient_evidence"
 
 
 def test_a_signal_that_was_not_enough_is_inconclusive_with_signals_present():
     out = _run(_mods(auth=[_f("auth_check", weight=6, family="sender", signal="S2")]))
-    assert out.verdict == "needs_review" and out.breakdown.inconclusive_reason == "signals_present"
+    assert out.verdict == "inconclusive" and out.breakdown.inconclusive_reason == "signals_present"
 
 
 def test_info_findings_are_not_signals():
@@ -40,12 +40,12 @@ def test_info_findings_are_not_signals():
 def test_the_reason_exists_only_for_inconclusive_verdicts():
     flagged = _run(_mods(auth=[_f("auth_check", weight=6, family="sender"), _f("content_analysis", weight=8, family="link")]))
     assert flagged.verdict == "suspicious" and flagged.breakdown.inconclusive_reason is None
-    assert inconclusive_reason("legit", _mods()) is None and inconclusive_reason("malicious", _mods()) is None
+    assert inconclusive_reason("benign", _mods()) is None and inconclusive_reason("malicious", _mods()) is None
 
 
 def test_findings_of_an_errored_module_do_not_count_as_signals():
     mods = _mods(enr=[_f("enrichment", severity="critical", weight=99)], enr_status="error")
-    assert inconclusive_reason("needs_review", mods) == "no_signals_insufficient_evidence"
+    assert inconclusive_reason("inconclusive", mods) == "no_signals_insufficient_evidence"
     assert priority_score(0.0, mods) == 0.0
 
 

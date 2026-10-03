@@ -21,7 +21,7 @@ def test_display_name_only_spoofs_are_one_family_and_do_not_floor_alone(path: Pa
     """docs/DETECTION_DESIGN.md: a brand/display-name claim is MEDIUM and floors only with a second family. These
     positives carry the claim and nothing else, so they are inconclusive."""
     result = analyze(path, "clean")
-    assert result.verdict == "needs_review"
+    assert result.verdict == "inconclusive"
     assert any(f.title.startswith("Possible display-name spoofing") and f.severity == "medium" for f in result.findings)
     assert not any(o.rule.endswith("_floor") for o in result.scoring.applied_overrides)
 

@@ -41,7 +41,7 @@ def category_coverage(category: str, result: ModuleResult | None) -> float:
         # (see content_analysis.text_utils.estimate_script_coverage). A non-English email
         # with weak/no findings elsewhere previously looked "fully checked" here even
         # though the heuristics couldn't meaningfully read it -- this is what lets
-        # needs_review actually trigger for that case instead of silently reading as clean.
+        # inconclusive actually trigger for that case instead of silently reading as clean.
         return (result.raw_data or {}).get("script_coverage", 1.0)
 
     # Any future category with no external dependency: always fully computable.
@@ -65,7 +65,7 @@ def priority_score(weighted_score: float, by_category: dict[str, ModuleResult | 
 
 def inconclusive_reason(verdict: str, by_category: dict[str, ModuleResult | None]) -> str | None:
     """Why a message is inconclusive: something fired but was not enough, or nothing did and nothing positive exists."""
-    if verdict != "needs_review":
+    if verdict != "inconclusive":
         return None
     if any(f.severity != "info" for f in _active_findings(by_category)):
         return "signals_present"

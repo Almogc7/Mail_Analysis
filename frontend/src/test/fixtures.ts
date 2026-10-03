@@ -56,7 +56,7 @@ export function makeAnalysisResult(overrides: Partial<AnalysisResult> = {}): Ana
     ],
     findings: [],
     score: 0,
-    verdict: 'legit',
+    verdict: 'benign',
     confidence: 1.0,
     scoring: {
       categories: [

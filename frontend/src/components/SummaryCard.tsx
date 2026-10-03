@@ -3,12 +3,12 @@ import type { AnalysisResult } from '../types'
 const VERDICT_LABELS: Record<string, string> = {
   malicious: 'Malicious',
   suspicious: 'Suspicious',
-  needs_review: 'Needs Manual Review',
-  legit: 'Legit',
+  inconclusive: 'Inconclusive: analyst review',
+  benign: 'No indicators found',
 }
 
 export function SummaryCard({ result }: { result: AnalysisResult }) {
-  const verdict = result.verdict ?? 'needs_review'
+  const verdict = result.verdict ?? 'inconclusive'
   const topDrivers = [...(result.scoring?.categories ?? [])]
     .sort((a, b) => b.contribution - a.contribution)
     .filter((c) => c.contribution > 0)
@@ -19,6 +19,12 @@ export function SummaryCard({ result }: { result: AnalysisResult }) {
         <span className="verdict-label">{VERDICT_LABELS[verdict] ?? verdict}</span>
         <span className="score-label">{result.score ?? '—'}/100</span>
       </div>
+      {verdict === 'benign' && (
+        <p className="benign-note">
+          Not a guarantee of safety. This tool saw no indicators and recognised the sender; a person decides. Never use it to
+          auto-close, release or delete mail.
+        </p>
+      )}
       <p className="confidence-line">
         Confidence: {result.confidence !== null ? `${Math.round(result.confidence * 100)}%` : 'n/a'}
       </p>

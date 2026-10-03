@@ -33,7 +33,7 @@ def _kvish():
 
 def _score(auth_result):
     """Score like the real pipeline: all three categories present (scoring the auth module alone
-    makes overall confidence artificially low and trips the needs_review rule)."""
+    makes overall confidence artificially low and trips the inconclusive rule)."""
     quiet = [ModuleResult(module=m, status="ok", findings=[], raw_data={}) for m in ("enrichment", "content_analysis")]
     return run_scoring([auth_result, *quiet])
 
@@ -208,7 +208,7 @@ def test_all_passed_finding_requires_all_three_methods_from_a_trusted_receiver(m
 
 
 def test_spf_only_gateway_does_not_claim_full_auth_coverage(monkeypatch):
-    # Regression found by the eval: SPF-only evaluation set header_present, so a 'legit' verdict
+    # Regression found by the eval: SPF-only evaluation set header_present, so a 'benign' verdict
     # carried confidence 1.0 on one third of the evidence.
     from app.scoring.aggregate import category_coverage
 
@@ -238,7 +238,7 @@ def test_untrusted_fail_alone_cannot_reach_suspicious(monkeypatch):
     result = run_auth_check(_email(authentication_results_raw=[FAIL_AR], received_chain=[_hop("mx.example.org")]))
     outcome = _score(result)
     # not flagged (no floor, nowhere near the score bands); inconclusive because nothing positive supports benign
-    assert outcome.verdict == "needs_review" and not any(o.rule.endswith("_floor") for o in outcome.breakdown.applied_overrides)
+    assert outcome.verdict == "inconclusive" and not any(o.rule.endswith("_floor") for o in outcome.breakdown.applied_overrides)
 
 
 def test_a_trusted_fail_replaces_the_weak_untrusted_one(monkeypatch):

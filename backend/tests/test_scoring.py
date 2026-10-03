@@ -119,7 +119,7 @@ def test_single_content_finding_alone_does_not_trigger_floor():
     outcome = run_scoring([auth, enrichment, content])
 
     # no floor, no flag; the high content finding is above info, so benign is impossible: inconclusive
-    assert outcome.verdict == "needs_review"
+    assert outcome.verdict == "inconclusive"
     assert [o.rule for o in outcome.breakdown.applied_overrides] == ["no_positive_evidence_for_benign"]
 
 
@@ -148,17 +148,17 @@ def test_ceiling_override_caps_content_only_malicious_bucket():
 def test_all_modules_clean_with_positive_evidence_is_benign_with_high_confidence():
     outcome = run_scoring([_auth_result(positive_evidence=True), _enrichment_result(), _content_result()], KNOWN)
 
-    assert outcome.verdict == "legit"
+    assert outcome.verdict == "benign"
     assert outcome.confidence == 1.0
     assert outcome.breakdown.weighted_score == 0
     assert outcome.breakdown.applied_overrides == []
 
 
-def test_conflicting_signals_trigger_needs_review():
+def test_conflicting_signals_trigger_inconclusive():
     # Auth headers missing entirely (coverage 0.4, not 1.0 -- we genuinely can't assess
     # auth), enrichment attempted but every IOC came back incomplete (subscore 0, coverage
     # 0.0 -- "couldn't check" is distinct from "checked, clean"), content has a moderate
-    # signal. A pure score-band design would just call this a low-scoring "legit" email;
+    # signal. A pure score-band design would just call this a low-scoring "benign" email;
     # the confidence-based trigger correctly flags it as needing a human instead.
     auth = _auth_result(findings=[], header_present=False)
     enrichment = _enrichment_result(
@@ -185,17 +185,17 @@ def test_conflicting_signals_trigger_needs_review():
 
     assert outcome.breakdown.weighted_score == 10.0
     assert outcome.confidence < 0.6
-    assert outcome.verdict == "needs_review"
-    assert any(o.rule == "low_confidence_needs_review" for o in outcome.breakdown.applied_overrides)
+    assert outcome.verdict == "inconclusive"
+    assert any(o.rule == "low_confidence_inconclusive" for o in outcome.breakdown.applied_overrides)
 
 
-def test_reduced_content_script_coverage_can_trigger_needs_review():
-    # Regression test for a real false negative: a Hebrew phishing email scored "legit"
+def test_reduced_content_script_coverage_can_trigger_inconclusive():
+    # Regression test for a real false negative: a Hebrew phishing email scored "benign"
     # because content_analysis's coverage was unconditionally 1.0 regardless of whether its
     # (English-only, at the time) phrase lists could actually read the content. This proves
     # the fix's other half -- with enrichment ALSO incomplete (a plausible combination for
     # an email whose links a provider couldn't evaluate) and content flagged as
-    # low-script-coverage, confidence correctly drops enough for needs_review, even though
+    # low-script-coverage, confidence correctly drops enough for inconclusive, even though
     # auth_check itself is clean/fully covered.
     auth = _auth_result(findings=[], header_present=True)
     enrichment = _enrichment_result(
@@ -223,8 +223,8 @@ def test_reduced_content_script_coverage_can_trigger_needs_review():
 
     assert outcome.breakdown.weighted_score == 10.0
     assert outcome.confidence < 0.6
-    assert outcome.verdict == "needs_review"
-    assert any(o.rule == "low_confidence_needs_review" for o in outcome.breakdown.applied_overrides)
+    assert outcome.verdict == "inconclusive"
+    assert any(o.rule == "low_confidence_inconclusive" for o in outcome.breakdown.applied_overrides)
 
 
 def test_missing_module_treated_as_zero_subscore_and_coverage():
@@ -233,7 +233,7 @@ def test_missing_module_treated_as_zero_subscore_and_coverage():
     content_score = next(c for c in outcome.breakdown.categories if c.category == "content_analysis")
     assert content_score.subscore == 0
     assert content_score.coverage == 0.0
-    assert outcome.verdict == "legit"
+    assert outcome.verdict == "benign"
 
 
 def test_errored_module_ignores_stray_findings_and_has_zero_coverage():

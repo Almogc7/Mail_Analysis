@@ -124,13 +124,13 @@ def test_empty_summary_is_well_formed(db):
 def test_summary_counts_suspected_false_positives_and_negatives(kvish, spoof, benign, db):
     feedback.record_feedback(kvish, agree=True, db_path=db)  # flagged, analyst agrees
     feedback.record_feedback(spoof, agree=False, note="newsletter I subscribed to", db_path=db)  # flagged, disagrees => FP
-    feedback.record_feedback(benign, agree=False, db_path=db)  # inconclusive (needs_review), disagrees
+    feedback.record_feedback(benign, agree=False, db_path=db)  # inconclusive (inconclusive), disagrees
     s = feedback.summary(db)
     assert (s["total"], s["agree"], s["disagree"]) == (3, 1, 2)
     assert s["reviewed_flagged"] == 2 and s["suspected_false_positives"] == 1 and s["fp_rate_among_reviewed_flagged"] == 0.5
     # disagreeing with an INCONCLUSIVE verdict is not a false negative on a benign call: it is counted on its own
     assert s["suspected_false_negatives"] == 0 and s["disagreed_inconclusive"] == 1
-    assert s["by_verdict"]["suspicious"] == {"agree": 1, "disagree": 1} and s["by_verdict"]["needs_review"] == {"agree": 0, "disagree": 1}
+    assert s["by_verdict"]["suspicious"] == {"agree": 1, "disagree": 1} and s["by_verdict"]["inconclusive"] == {"agree": 0, "disagree": 1}
     assert "auth_check.possible_display_name_spoofing_of" in s["signals_in_disagreed_flagged"]
     assert "auth_check.possible_display_name_spoofing_of" in s["signals_in_agreed_flagged"]
 

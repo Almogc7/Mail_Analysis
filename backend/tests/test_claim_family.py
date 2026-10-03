@@ -226,7 +226,7 @@ def test_a_brand_link_next_to_a_brand_token_claim_is_still_only_the_claim_family
     apply_mode("strict")
     result = analyze(FIXTURES / "benign" / "synthetic" / "26_small_business_brand_token_esp_tracker_and_app_store.eml", "clean")
     structural = {f.evidence["signal"]: f.evidence["family"] for f in result.findings if f.evidence.get("structural")}
-    assert structural == {"C1": "claim", "C3": "claim"} and result.verdict == "needs_review"
+    assert structural == {"C1": "claim", "C3": "claim"} and result.verdict == "inconclusive"
 
 
 @pytest.mark.xfail(strict=True, reason=(

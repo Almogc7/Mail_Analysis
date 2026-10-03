@@ -132,7 +132,7 @@ def test_report_shows_both_modes_side_by_side_with_counts_per_set(corpus, capsys
         assert f"  {source}" in out
     # every set is shown once per mode; malicious sets with flagged / inconclusive / MISSED, benign sets with all four verdicts
     assert out.count("      STRICT") >= 4 and out.count("      CONFIGURED") >= 4
-    assert "missed" in out and "benign(legit)" not in out  # the 'legit' column on malicious sets is called 'missed'
+    assert "missed" in out and "benign(legit)" not in out  # the 'benign' column on malicious sets is called 'missed'
     for word in ("flagged", "inconclusive", "suspicious", "malicious", "benign"):
         assert word in out
     assert "triage-queue cost" in out and "inconclusive rate" in out
@@ -181,3 +181,24 @@ def test_apply_mode_sets_exactly_what_each_mode_means(monkeypatch):
     assert cfg.TRUSTED_RECEIVER_PATTERNS == ev.DEFAULT_CONFIGURED_PATTERNS
     ev.apply_mode("strict")
     assert cfg.TRUSTED_RECEIVER_PATTERNS == []  # modes do not leak into each other
+
+
+def test_final_holdout_reports_wilson_intervals_for_every_rate_and_the_signal_counts(corpus, analyzed, tmp_path, capsys):
+    log = tmp_path / "log.md"
+    assert _run("--final-holdout", "--corpus-dir", str(corpus), "--holdout-log", str(log)) == 0
+    out = capsys.readouterr().out
+    for label in ("flagged", "inconclusive", "missed"):
+        assert out.count(f"      {label}") == 2  # once per mode
+    assert out.count("95% CI") == 6 and "STRICT" in out and "CONFIGURED" in out
+    assert "structural signals (samples)" in out
+    assert "signals present" in out and "no signals" in out
+
+
+def test_wilson_interval_matches_known_values():
+    lo, hi = ev.wilson(6, 75)
+    assert round(100 * lo, 1) == 3.7 and round(100 * hi, 1) == 16.4
+    lo, hi = ev.wilson(22, 75)
+    assert round(100 * lo, 1) == 20.2 and round(100 * hi, 1) == 40.4
+    assert ev.wilson(0, 75)[0] == 0.0 and round(100 * ev.wilson(0, 75)[1], 1) == 4.9
+    assert ev.wilson(75, 75)[1] == 1.0 and ev.wilson(0, 0) is None
+    assert ev.fmt_rate(0, 0) == "n/a" and ev.fmt_rate(6, 75).startswith("6/75 = 8.0% [95% CI 3.7-16.4%]")

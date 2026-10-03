@@ -60,13 +60,13 @@ def test_with_the_local_submission_origin_any_single_link_or_claim_signal_is_eno
 
 def test_remove_every_content_feature_and_only_the_local_submission_remains(parsed, ablated):
     verdict, signals, families = km.run_case(parsed, km.CONTENT_MUTATIONS, "as_is", "strict")
-    assert (verdict, signals, families) == ("needs_review", ["S2"], ["sender"])
+    assert (verdict, signals, families) == ("inconclusive", ["S2"], ["sender"])
 
 
 def test_the_local_submission_hop_is_the_load_bearing_signal(parsed, ablated):
     """Replace only the origin hop with authenticated SMTP and the verdict now needs the link or claim signals to carry it."""
     nothing_left = km.run_case(parsed, km.CONTENT_MUTATIONS, "as_is", "strict", "authenticated_smtp")
-    assert nothing_left == ("needs_review", [], [])  # no structural signal at all
+    assert nothing_left == ("inconclusive", [], [])  # no structural signal at all
     flagged = [c for c in ALL if c[3] == "authenticated_smtp" and km.run_case(parsed, c[1], c[2], "strict", c[3])[0] in FLAGGED]
     assert len(flagged) == 8 and len(flagged) < sum(1 for c in ALL if c[3] == "local_submission")
 

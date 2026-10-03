@@ -80,9 +80,9 @@ def test_report_handles_no_misses():
 
 def test_report_counts_misses_and_profile_exclusively():
     rows = [
-        ("legit", {"url: any URL present", "url kind: shortener"}, "URL(s), no attachment", []),
-        ("legit", {"url: any URL present"}, "URL(s), no attachment", ["auth_check.x"]),
-        ("legit", set(), "no URL, no attachment: text only", []),
+        ("benign", {"url: any URL present", "url kind: shortener"}, "URL(s), no attachment", []),
+        ("benign", {"url: any URL present"}, "URL(s), no attachment", ["auth_check.x"]),
+        ("benign", set(), "no URL, no attachment: text only", []),
         ("suspicious", {"url: any URL present"}, "URL(s), no attachment", ["auth_check.x"]),
     ]
     out = io.StringIO()
@@ -169,10 +169,10 @@ def test_link_text_does_not_turn_a_hebrew_message_into_latin():
 
 def test_candidate_groups_and_residual_are_reported():
     rows = [
-        ("legit", {"sender: no usable From address"}, "URL(s), no attachment", []),
-        ("legit", {"url kind: shortener", "form: password input"}, "URL(s), no attachment", []),
-        ("legit", {"auth: no Authentication-Results header"}, "no URL, no attachment: text only", []),
-        ("legit", {"attachment: any attachment present"}, "attachment, no URL", []),
+        ("benign", {"sender: no usable From address"}, "URL(s), no attachment", []),
+        ("benign", {"url kind: shortener", "form: password input"}, "URL(s), no attachment", []),
+        ("benign", {"auth: no Authentication-Results header"}, "no URL, no attachment: text only", []),
+        ("benign", {"attachment: any attachment present"}, "attachment, no URL", []),
     ]
     out = io.StringIO()
     ea.report(rows, out)

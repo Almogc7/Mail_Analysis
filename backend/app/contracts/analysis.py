@@ -7,7 +7,7 @@ from app.contracts.findings import Finding, ModuleResult
 from app.contracts.llm_opinion import LLMOpinion
 from app.contracts.scoring import ScoringBreakdown
 
-Verdict = Literal["malicious", "suspicious", "legit", "needs_review"]
+Verdict = Literal["malicious", "suspicious", "benign", "inconclusive"]
 
 
 class AnalysisResult(BaseModel):

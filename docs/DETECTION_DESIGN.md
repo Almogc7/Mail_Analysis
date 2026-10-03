@@ -26,8 +26,8 @@ floor. The authentication, enrichment and verdict model already exist (README, `
 
 ## Verdict model recap
 
-* flagged = `suspicious` or `malicious`; `needs_review` = inconclusive; `legit` = benign (the literal rename is last;
-  the user-visible label for that state becomes "no indicators found", never a guarantee).
+* flagged = `suspicious` or `malicious`; `inconclusive` (formerly `needs_review`); `benign` (formerly `legit`; shown to users
+  as "no indicators found", never a guarantee). The literal rename is done.
 * **Benign requires positive evidence of legitimacy, not only authentication** (iteration 1, below): a verified aligned
   DKIM pass or a DMARC pass from a TRUSTED receiver AND the sender's registrable domain on the KNOWN-SENDER list
   (untracked config, empty by default) AND no finding above info severity AND adequate coverage (confidence at or above
@@ -274,3 +274,25 @@ trusted verified pass on the synthetic benign fixtures):
 
 What fires on benign fixtures (STRICT): C2 on 01 and 06; L1 on 04; S2 on 08, 19, 20, 21; C1 on 24, 25, 26; C3 on 22 and 26;
 L2 on 22. Only 22 carries two families.
+
+## Final state before the hold-out run (2026-10-03)
+
+Verdicts: `malicious`, `suspicious`, `inconclusive` (with sub-reason `signals_present` or
+`no_signals_insufficient_evidence` and a queue `priority`), `benign` (label "no indicators found").
+
+| Family | Signals (severity / weight) |
+|---|---|
+| sender | S1 machine-provisioned sender claiming a brand (medium / 15); S2 local-submission first hop (low / 6); S3 brand display name on a free mailbox (medium / 10) |
+| link | L1 click tracker of a platform that is absent from the sending path, with the branded-ESP carve-out D5 (medium / 8); L2 hot-linked third-party assets that also host the links (low / 5); L3 shortener or open redirect (low / 5) |
+| claim | C1 brand display-name claim (medium / 12); C2 claimed-entity mismatch on an unsigned message (low / 8); C3 decoy links to the claimed entity (medium / 10) |
+| additive only | C1b body brand mention (info / 3) |
+
+Floor: signals from >= 2 DIFFERENT families -> at least SUSPICIOUS (`structural_corroboration_floor`); one family counts
+once; never reaches MALICIOUS by itself. Benign: verified aligned DKIM/DMARC pass from a trusted receiver AND a known
+sender AND no finding above info AND adequate coverage including complete enrichment. Weights were set a priori and
+never changed; tuning iterations used: **2 of 5** (iteration 1 benign rule, iteration 2 C2 must reach a linked domain).
+
+Deviations D1-D8 above are the complete list. Known false positive (accepted, D7): a third party sending a brand's
+newsletter. No known-sender exemption from the structural floor (compromised vendor accounts pass identity checks).
+What the Kvish verdict depends on is in `backend/tests/KVISH_MUTATIONS.md`: the local-submission origin hop is the
+load-bearing signal; the sender's apparent identity is not.

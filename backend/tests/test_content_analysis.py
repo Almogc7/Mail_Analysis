@@ -68,7 +68,7 @@ def test_spoofed_display_name_fixture_has_no_extra_content_findings():
     assert brand_findings == []
 
 
-# --- script coverage (found via a real Hebrew phishing email that scored "legit") ---
+# --- script coverage (found via a real Hebrew phishing email that scored "benign") ---
 
 
 def test_estimate_script_coverage_supported_languages_return_full_coverage():
@@ -94,7 +94,7 @@ def test_estimate_script_coverage_tiny_or_empty_text_is_not_full_coverage():
 def test_hebrew_invoice_phishing_fixture_detects_urgency_and_reports_full_coverage():
     # Real-world-grounded fixture (see fixture file comment): Hebrew "valid for one month
     # only" expiry-pressure phrasing from an actual phishing email that previously scored
-    # 0/100 "legit". Since Hebrew is now a supported script, this should be picked up and
+    # 0/100 "benign". Since Hebrew is now a supported script, this should be picked up and
     # coverage should read as full (1.0) -- the reduced-coverage path is for scripts we
     # still don't have any phrase-list entries for (see the Russian test above).
     result = _analyze("hebrew_invoice_phishing.eml")

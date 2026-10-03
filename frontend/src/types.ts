@@ -4,7 +4,7 @@
 // the backend's IOC_Enricher import bridge).
 
 export type Severity = 'info' | 'low' | 'medium' | 'high' | 'critical'
-export type Verdict = 'malicious' | 'suspicious' | 'legit' | 'needs_review'
+export type Verdict = 'malicious' | 'suspicious' | 'benign' | 'inconclusive'
 export type ModuleStatus = 'ok' | 'error' | 'skipped'
 export type LlmStatus = 'ok' | 'unavailable' | 'error'
 export type JobStatus = 'pending' | 'running' | 'done' | 'error'

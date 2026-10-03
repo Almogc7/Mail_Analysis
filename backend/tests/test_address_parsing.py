@@ -126,7 +126,7 @@ def test_recovering_the_domain_unlocks_the_sender_checks_that_were_blind():
     alone = analyze_bytes(_eml("PayPal, Inc. <support@evil.example.net>"))
     titles = [f.title for f in alone.findings]
     assert "Possible display-name spoofing of 'paypal'" in titles and "From header parse ambiguity" in titles
-    assert alone.verdict == "needs_review"
+    assert alone.verdict == "inconclusive"
     # ...and with corroboration from another family (a machine-provisioned sender) it floors
     corroborated = analyze_bytes(_eml("PayPal, Inc. <vnz73mailr@vh319.hosting.example.net>"))
     assert corroborated.verdict == "suspicious"
@@ -150,7 +150,7 @@ def test_the_ambiguity_finding_is_informational_and_never_scores_on_its_own():
     assert "does not affect the score by itself" in finding.description
     # the finding changes neither score nor verdict; both are inconclusive (no positive evidence), never flagged
     assert messy.verdict == clean.verdict and messy.score == clean.score
-    assert messy.verdict == "needs_review" and messy.verdict not in ("suspicious", "malicious")
+    assert messy.verdict == "inconclusive" and messy.verdict not in ("suspicious", "malicious")
     assert not any(f.title == "From header parse ambiguity" for f in clean.findings)
 
 

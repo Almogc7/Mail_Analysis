@@ -24,7 +24,7 @@ def _verdict_from_score(score: float, config: ScoringConfig) -> str:
         return "malicious"
     if score >= config.verdict_score_suspicious:
         return "suspicious"
-    return "legit"
+    return "benign"
 
 
 def run_scoring(

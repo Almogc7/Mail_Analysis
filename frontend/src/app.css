@@ -87,11 +87,11 @@ button:hover:not(:disabled) {
   background: color-mix(in srgb, var(--verdict-suspicious) 15%, transparent);
   color: var(--verdict-suspicious);
 }
-.verdict-needs_review {
+.verdict-inconclusive {
   background: color-mix(in srgb, var(--verdict-needs-review) 15%, transparent);
   color: var(--verdict-needs-review);
 }
-.verdict-legit {
+.verdict-benign {
   background: color-mix(in srgb, var(--verdict-legit) 15%, transparent);
   color: var(--verdict-legit);
 }
@@ -329,4 +329,10 @@ button:hover:not(:disabled) {
   margin: 0;
   font-size: 0.8rem;
   color: var(--accent-green);
+}
+
+.benign-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.85;
 }

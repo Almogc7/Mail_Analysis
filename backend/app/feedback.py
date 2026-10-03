@@ -127,8 +127,12 @@ def _rows(db_path: Path | str | None) -> list[sqlite3.Row]:
         return conn.execute("SELECT * FROM feedback ORDER BY first_ts").fetchall()
 
 
+# Rows written before the verdict rename carry the old literals.
+_LEGACY_VERDICTS = {"legit": "benign", "needs_review": "inconclusive"}
+
+
 def summary(db_path: Path | str | None = None) -> dict:
-    rows = _rows(db_path)
+    rows = [{**dict(r), "verdict": _LEGACY_VERDICTS.get(r["verdict"], r["verdict"])} for r in _rows(db_path)]
     by_verdict: dict[str, dict[str, int]] = {}
     fp_signals: dict[str, int] = {}
     ok_signals: dict[str, int] = {}
@@ -141,8 +145,8 @@ def summary(db_path: Path | str | None = None) -> dict:
                 bucket[s] = bucket.get(s, 0) + 1
     flagged = [r for r in rows if r["verdict"] in FLAGGED]
     fp = sum(1 for r in flagged if not r["agree"])
-    fn = sum(1 for r in rows if r["verdict"] == "legit" and not r["agree"])
-    inconclusive_disagreed = sum(1 for r in rows if r["verdict"] == "needs_review" and not r["agree"])
+    fn = sum(1 for r in rows if r["verdict"] == "benign" and not r["agree"])
+    inconclusive_disagreed = sum(1 for r in rows if r["verdict"] == "inconclusive" and not r["agree"])
     return {
         "total": len(rows),
         "agree": sum(1 for r in rows if r["agree"]),
@@ -181,7 +185,7 @@ def main(argv: list[str]) -> int:
     rate = s["fp_rate_among_reviewed_flagged"]
     print(f"suspected false positives: {s['suspected_false_positives']} of {s['reviewed_flagged']} reviewed flagged"
           + (f" ({rate:.0%})" if rate is not None else ""))
-    print(f"suspected false negatives: {s['suspected_false_negatives']} (disagreed 'legit' verdicts)")
+    print(f"suspected false negatives: {s['suspected_false_negatives']} (disagreed 'benign' verdicts)")
     print(f"disagreed with an inconclusive verdict: {s['disagreed_inconclusive']} (direction unknown)")
     if s["signals_in_disagreed_flagged"]:
         print("signals present when a flagged verdict was disagreed with:")

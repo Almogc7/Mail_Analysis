@@ -83,12 +83,12 @@ def test_the_structural_floor_cannot_be_downgraded_by_low_coverage():
     out = _run(_sig("sender", "S2"), _sig("link", "L1", module="content_analysis"), content_cov=0.25, enrichment_status="error")
     assert out.confidence < 0.6 and out.verdict == "suspicious"
     assert "floor_protects_verdict" in _rules(out) or "structural_corroboration_floor" in _rules(out)
-    assert "low_confidence_needs_review" not in _rules(out)
+    assert "low_confidence_inconclusive" not in _rules(out)
 
 
 def test_structural_findings_above_info_block_a_benign_verdict():
     out = _run(_sig("sender", "S2"))  # one family: not flagged, but a finding above info exists
-    assert out.verdict == "needs_review"
+    assert out.verdict == "inconclusive"
 
 
 def test_a_floor_when_the_score_is_already_suspicious_still_protects_the_verdict():
@@ -113,7 +113,7 @@ def test_apple_valley_dental_is_a_medium_finding_only_and_never_flagged():
     claim = next(f for f in result.findings if f.title.startswith("Possible display-name spoofing of 'apple'"))
     assert claim.severity == "medium" and claim.weight == 12.0
     assert claim.evidence["family"] == "claim" and claim.evidence["signal"] == "C1" and claim.evidence["structural"] is True
-    assert result.verdict == "needs_review"
+    assert result.verdict == "inconclusive"
     assert not any(o.rule.endswith("_floor") for o in result.scoring.applied_overrides)
 
 
@@ -127,4 +127,4 @@ def test_a_claim_plus_a_machine_provisioned_sender_is_two_families_and_floors():
 def test_the_fuzzy_lookalike_finding_is_not_a_structural_signal():
     result = _analyze("Paypall Billing <b@mailer.example.org>")
     fuzzy = next(f for f in result.findings if f.title.startswith("Display name resembles brand"))
-    assert not fuzzy.evidence.get("structural") and result.verdict == "needs_review"
+    assert not fuzzy.evidence.get("structural") and result.verdict == "inconclusive"

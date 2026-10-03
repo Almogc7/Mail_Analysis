@@ -16,9 +16,9 @@ def test_fraction_above_the_median_uses_strictly_greater():
 
 
 def test_reason_split_counts_only_inconclusive_rows():
-    rows = [Row("m", "s", "a", verdict="needs_review", reason="signals_present"),
-            Row("m", "s", "b", verdict="needs_review", reason="no_signals_insufficient_evidence"),
-            Row("m", "s", "c", verdict="needs_review", reason="no_signals_insufficient_evidence"),
+    rows = [Row("m", "s", "a", verdict="inconclusive", reason="signals_present"),
+            Row("m", "s", "b", verdict="inconclusive", reason="no_signals_insufficient_evidence"),
+            Row("m", "s", "c", verdict="inconclusive", reason="no_signals_insufficient_evidence"),
             Row("m", "s", "d", verdict="suspicious")]
     assert _reason_split(rows) == "[inconclusive: signals present 1 / no signals 2]"
     assert _reason_split([rows[3]]) == ""

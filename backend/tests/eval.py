@@ -9,7 +9,7 @@ scoring. The LLM module is never called. Prints the per-fixture verdict, score a
 coverage, then recall per malicious set and flagged-count per benign source.
 
 Reading the numbers:
-  * "flagged" = verdict in {malicious, suspicious}. `needs_review` is an abstention: strict counts
+  * "flagged" = verdict in {malicious, suspicious}. `inconclusive` is an abstention: strict counts
     it as missed/not flagged, lenient as flagged.
   * NO combined precision/recall is printed. The malicious sets are all-malicious corpora (the
     phishing corpus contains no benign mail at all) and the benign sets are small, so pooling them
@@ -287,27 +287,37 @@ def final_holdout(args) -> int:
     print(f"  note: {HEADER_NOTE}")
     for mode in MODES:
         apply_mode(mode)
+        rows = [_row_for(path, "malicious", "holdout", args.enrichment) for path in files]
         verdicts: dict[str, int] = {}
-        for path in files:
-            verdict = _row_for(path, "malicious", "holdout", args.enrichment).verdict
-            verdicts[verdict] = verdicts.get(verdict, 0) + 1
+        for r in rows:
+            verdicts[r.verdict] = verdicts.get(r.verdict, 0) + 1
+        n = len(rows)
         flagged = sum(verdicts.get(v, 0) for v in FLAGGED)
-        inconclusive = verdicts.get("needs_review", 0)
+        inconclusive = verdicts.get("inconclusive", 0)
+        missed = verdicts.get("benign", 0)
+        errors = verdicts.get("ERROR", 0)
+        with_signals = sum(r.reason == "signals_present" for r in rows if r.verdict == "inconclusive")
         summary = ", ".join(f"{k}={v}" for k, v in sorted(verdicts.items()))
-        _log_holdout(log, f"- {_stamp()} UTC | result | mode={mode} | n={len(files)} | flagged={flagged} inconclusive={inconclusive} | {summary}")
-        print(f"  {mode.upper():10} flagged {flagged}/{len(files)}   inconclusive {inconclusive}   verdict counts: {summary}")
+        _log_holdout(log, f"- {_stamp()} UTC | result | mode={mode} | n={n} | flagged={flagged} inconclusive={inconclusive} missed={missed} | {summary}")
+        print(f"  {mode.upper()}")
+        print(f"      flagged      {fmt_rate(flagged, n)}   (malicious {verdicts.get('malicious', 0)}, suspicious {verdicts.get('suspicious', 0)})")
+        print(f"      inconclusive {fmt_rate(inconclusive, n)}   (signals present {with_signals}, no signals {inconclusive - with_signals})")
+        print(f"      missed       {fmt_rate(missed, n)}   (a confident 'no indicators found' on a phishing sample)")
+        if errors:
+            print(f"      errors       {errors}/{n}   (samples the pipeline crashed on; counted in none of the rows above)")
+        print("      " + _signal_counts(rows).replace("signals(samples)", "structural signals (samples)"))
     print("  (aggregate only: no file names or per-sample verdicts are printed)")
     return 0
 
 
 def _counts(verdicts: list[str]) -> dict[str, int]:
-    """Four verdicts, using the current literals: legit = benign, needs_review = inconclusive."""
+    """Four verdicts, using the current literals: legit = benign, inconclusive = inconclusive."""
     c = {
         "n": len(verdicts),
         "malicious": sum(v == "malicious" for v in verdicts),
         "suspicious": sum(v == "suspicious" for v in verdicts),
-        "inconclusive": sum(v == "needs_review" for v in verdicts),
-        "benign": sum(v == "legit" for v in verdicts),
+        "inconclusive": sum(v == "inconclusive" for v in verdicts),
+        "benign": sum(v == "benign" for v in verdicts),
     }
     c["flagged"] = c["malicious"] + c["suspicious"]
     return c
@@ -316,8 +326,8 @@ def _counts(verdicts: list[str]) -> dict[str, int]:
 def _reason_split(rows: list["Row"]) -> str:
     """Inconclusive sub-reasons: 'signals' = something fired but was not enough; 'none' = nothing fired and nothing
     positive was established."""
-    signals = sum(r.reason == "signals_present" for r in rows if r.verdict == "needs_review")
-    none = sum(r.reason == "no_signals_insufficient_evidence" for r in rows if r.verdict == "needs_review")
+    signals = sum(r.reason == "signals_present" for r in rows if r.verdict == "inconclusive")
+    none = sum(r.reason == "no_signals_insufficient_evidence" for r in rows if r.verdict == "inconclusive")
     return f"[inconclusive: signals present {signals} / no signals {none}]" if signals + none else ""
 
 
@@ -350,18 +360,40 @@ def frac_above_median(positives: list[float], negatives: list[float]) -> float |
     return sum(p > median for p in positives) / len(positives)
 
 
+def wilson(k: int, n: int, z: float = 1.959964) -> tuple[float, float] | None:
+    """Wilson score interval for a proportion k/n (95% by default). None for n == 0."""
+    if n <= 0:
+        return None
+    p = k / n
+    denom = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / denom
+    half = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / denom
+    return max(0.0, round(centre - half, 12)), min(1.0, round(centre + half, 12))
+
+
+def fmt_rate(k: int, n: int) -> str:
+    ci = wilson(k, n)
+    return "n/a" if ci is None else f"{k}/{n} = {100 * k / n:.1f}% [95% CI {100 * ci[0]:.1f}-{100 * ci[1]:.1f}%]"
+
+
+def _intervals(c: dict[str, int], names: tuple[str, ...]) -> str:
+    return "   | " + "; ".join(f"{name} {fmt_rate(c[name], c['n'])}" for name in names) if c["n"] else ""
+
+
 def _fmt_malicious(c: dict[str, int]) -> str:
     """For an all-malicious set: 'missed' is a confident benign verdict on malicious mail; 'inconclusive' is a miss that
     at least reaches a human."""
     if not c["n"]:
         return "0/0"
     return (f"flagged {c['flagged']:>3}/{c['n']:<3} (malicious {c['malicious']}, suspicious {c['suspicious']})   "
-            f"inconclusive {c['inconclusive']:>3}   missed {c['benign']:>3}")
+            f"inconclusive {c['inconclusive']:>3}   missed {c['benign']:>3}"
+            + _intervals({**c, "missed": c["benign"]}, ("flagged", "inconclusive", "missed")))
 
 
 def _fmt_benign(c: dict[str, int]) -> str:
     return (f"benign {c['benign']:>3}   inconclusive {c['inconclusive']:>3}   suspicious {c['suspicious']:>3}   "
-            f"malicious {c['malicious']:>3}   (flagged {c['flagged']}/{c['n']})")
+            f"malicious {c['malicious']:>3}   (flagged {c['flagged']}/{c['n']})"
+            + _intervals(c, ("benign", "inconclusive", "flagged")))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -436,7 +468,7 @@ def main(argv: list[str] | None = None) -> int:
         shown = rows_by_mode[modes[-1]][i]
         if shown.error:
             print(f"{'':9} !! {shown.error}")
-        elif shown.label == "malicious" or shown.verdict in FLAGGED | {"needs_review"}:
+        elif shown.label == "malicious" or shown.verdict in FLAGGED | {"inconclusive"}:
             print(f"{'':9} overrides: {', '.join(shown.overrides) or '-'} | {'; '.join(shown.top_findings) or 'no non-info findings'}")
 
     # ---- summaries -----------------------------------------------------------------------------------------
@@ -452,7 +484,7 @@ def main(argv: list[str] | None = None) -> int:
     metrics: dict[str, dict] = {m: {"malicious": {}, "benign": {}} for m in modes}
     kinds = {"kvish": "real, 1 sample", "synthetic": "hand-written spoof positives", "tuning_corpus": "real, tuning split"}
 
-    print(f"\n{tag} MALICIOUS SETS -- each reported alone (flagged = malicious|suspicious; inconclusive = needs_review; missed = a confident benign verdict)")
+    print(f"\n{tag} MALICIOUS SETS -- each reported alone (flagged = malicious|suspicious; inconclusive = inconclusive; missed = a confident benign verdict)")
     for key in sorted({k for t in tables.values() for k in t if k[0] == "malicious"}):
         print(f"  {key[1]:14} ({kinds.get(key[1], '')})")
         for mode in modes:

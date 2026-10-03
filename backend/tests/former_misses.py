@@ -106,7 +106,7 @@ def main() -> int:
             old = ev.analyze(path, "clean")
         finally:
             scoring.run_scoring = real_run
-        if old.verdict != "legit":
+        if old.verdict != "benign":
             continue
         new = ev.analyze(path, "clean")
         row = _describe(old)
