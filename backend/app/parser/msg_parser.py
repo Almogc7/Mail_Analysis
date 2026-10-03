@@ -8,6 +8,8 @@ from pathlib import Path
 import extract_msg
 from bs4 import UnicodeDammit
 
+from app.parser.addresses import AMBIGUITY_PREFIX, parse_address_header
+from app.parser.eml_parser import _raw_header_text
 from app.parser.raw import RawAddress, RawAttachment, RawParseResult
 
 _ADDR_RE = re.compile(r"^(?P<name>.*?)\s*<(?P<addr>[^<>]+)>\s*$")
@@ -27,12 +29,18 @@ def _split_address(raw: str | None) -> RawAddress | None:
 
 
 def _split_address_list(raw: str | None) -> list[RawAddress]:
+    """Outlook separates recipients with ';'. Without one, the tolerant extractor reads the list (splitting
+    on commas would tear 'Doe, John <a@b>' apart)."""
     if not raw:
         return []
-    parts = [p.strip() for p in raw.split(";") if p.strip()]
-    if len(parts) <= 1 and "," in raw:
-        parts = [p.strip() for p in raw.split(",") if p.strip()]
-    return [addr for p in parts if (addr := _split_address(p)) is not None]
+    if ";" in raw:
+        parts = [p.strip() for p in raw.split(";") if p.strip()]
+        return [addr for p in parts if (addr := _split_address(p)) is not None]
+    parsed = parse_address_header(raw)
+    if parsed.addresses:
+        return [RawAddress(display_name=name, address=addr) for name, addr in parsed.addresses]
+    single = _split_address(raw)
+    return [single] if single is not None else []
 
 
 def _decode_html_bytes(data: bytes | None) -> str | None:
@@ -67,6 +75,7 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
     auth_results_raw: list[str] = []
 
     return_path: RawAddress | None = None
+    header_from_raw: str | None = None
 
     raw_header_text = getattr(msg, "header", None)
     if raw_header_text:
@@ -80,6 +89,7 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
                 elif name.lower() == "authentication-results":
                     auth_results_raw.append(str_value)
             return_path = _split_address(parsed_headers.get("return-path"))
+            header_from_raw = _raw_header_text(parsed_headers, "from")
         except Exception as exc:
             warnings.append(f"Failed to parse embedded raw headers: {exc}")
     else:
@@ -107,6 +117,15 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
             )
         )
 
+    from_addr = _split_address(msg.sender)
+    header_from = parse_address_header(header_from_raw) if header_from_raw else None
+    if header_from is not None and header_from.reasons:
+        warnings.append(f"{AMBIGUITY_PREFIX}:from: " + "; ".join(dict.fromkeys(header_from.reasons)))
+    if (from_addr is None or not from_addr.address or "@" not in from_addr.address) and header_from and header_from.addresses:
+        # msg.sender can be an Exchange DN or a bare display name; the raw From header carries the real address
+        name, address = header_from.addresses[0]
+        from_addr = RawAddress(display_name=name, address=address)
+
     return RawParseResult(
         source_format="msg",
         raw_size_bytes=len(raw_bytes),
@@ -114,7 +133,7 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
         subject=msg.subject,
         date=msg.date if isinstance(msg.date, datetime) else None,
         headers=headers,
-        from_addr=_split_address(msg.sender),
+        from_addr=from_addr,
         to=_split_address_list(msg.to),
         cc=_split_address_list(msg.cc),
         reply_to=_split_address_list(getattr(msg, "replyTo", None)),
