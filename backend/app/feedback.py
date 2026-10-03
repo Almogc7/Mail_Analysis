@@ -142,6 +142,7 @@ def summary(db_path: Path | str | None = None) -> dict:
     flagged = [r for r in rows if r["verdict"] in FLAGGED]
     fp = sum(1 for r in flagged if not r["agree"])
     fn = sum(1 for r in rows if r["verdict"] == "legit" and not r["agree"])
+    inconclusive_disagreed = sum(1 for r in rows if r["verdict"] == "needs_review" and not r["agree"])
     return {
         "total": len(rows),
         "agree": sum(1 for r in rows if r["agree"]),
@@ -150,6 +151,7 @@ def summary(db_path: Path | str | None = None) -> dict:
         "reviewed_flagged": len(flagged),
         "suspected_false_positives": fp,
         "suspected_false_negatives": fn,
+        "disagreed_inconclusive": inconclusive_disagreed,
         "fp_rate_among_reviewed_flagged": (fp / len(flagged)) if flagged else None,
         "signals_in_disagreed_flagged": dict(sorted(fp_signals.items(), key=lambda kv: -kv[1])),
         "signals_in_agreed_flagged": dict(sorted(ok_signals.items(), key=lambda kv: -kv[1])),
@@ -180,6 +182,7 @@ def main(argv: list[str]) -> int:
     print(f"suspected false positives: {s['suspected_false_positives']} of {s['reviewed_flagged']} reviewed flagged"
           + (f" ({rate:.0%})" if rate is not None else ""))
     print(f"suspected false negatives: {s['suspected_false_negatives']} (disagreed 'legit' verdicts)")
+    print(f"disagreed with an inconclusive verdict: {s['disagreed_inconclusive']} (direction unknown)")
     if s["signals_in_disagreed_flagged"]:
         print("signals present when a flagged verdict was disagreed with:")
         for sig, n in list(s["signals_in_disagreed_flagged"].items())[:10]:

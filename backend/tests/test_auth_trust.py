@@ -180,7 +180,7 @@ def test_trusted_spf_fail_still_floors_but_an_untrusted_fail_does_not(monkeypatc
     monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [])
     untrusted = run_auth_check(parsed)
     assert "SPF check failed" not in _titles(untrusted)
-    assert not _score(untrusted).breakdown.applied_overrides
+    assert not any(o.rule.endswith("_floor") for o in _score(untrusted).breakdown.applied_overrides)
     # ...but the claim stays visible to the analyst
     ignored = next(f for f in untrusted.findings if f.title.startswith("Authentication claims from untrusted"))
     assert any(c["result"] == "fail" for c in ignored.evidence["claims"])
@@ -224,7 +224,8 @@ def test_untrusted_fail_alone_cannot_reach_suspicious(monkeypatch):
     monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [])
     result = run_auth_check(_email(authentication_results_raw=[FAIL_AR], received_chain=[_hop("mx.example.org")]))
     outcome = _score(result)
-    assert outcome.verdict == "legit" and not outcome.breakdown.applied_overrides
+    # not flagged (no floor, nowhere near the score bands); inconclusive because nothing positive supports benign
+    assert outcome.verdict == "needs_review" and not any(o.rule.endswith("_floor") for o in outcome.breakdown.applied_overrides)
 
 
 def test_a_trusted_fail_replaces_the_weak_untrusted_one(monkeypatch):

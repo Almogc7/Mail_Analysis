@@ -96,5 +96,5 @@ def test_fuzzy_only_match_is_medium_finding_without_floor():
     spoof_findings = [f for f in result.findings if "brand" in f.title.lower()]
     assert [f.severity for f in spoof_findings] == ["medium"]
     outcome = run_scoring([result])
-    assert outcome.verdict == "legit"
+    assert outcome.verdict == "needs_review"  # not flagged; inconclusive (no positive evidence)
     assert not any(o.rule == "auth_check_floor" for o in outcome.breakdown.applied_overrides)

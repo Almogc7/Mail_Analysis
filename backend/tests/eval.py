@@ -275,18 +275,30 @@ def final_holdout(args) -> int:
 
 
 def _counts(verdicts: list[str]) -> dict[str, int]:
-    return {
+    """Four verdicts, using the current literals: legit = benign, needs_review = inconclusive."""
+    c = {
         "n": len(verdicts),
-        "flagged": sum(v in FLAGGED for v in verdicts),
+        "malicious": sum(v == "malicious" for v in verdicts),
+        "suspicious": sum(v == "suspicious" for v in verdicts),
         "inconclusive": sum(v == "needs_review" for v in verdicts),
         "benign": sum(v == "legit" for v in verdicts),
     }
+    c["flagged"] = c["malicious"] + c["suspicious"]
+    return c
 
 
-def _fmt_counts(c: dict[str, int]) -> str:
+def _fmt_malicious(c: dict[str, int]) -> str:
+    """For an all-malicious set: 'missed' is a confident benign verdict on malicious mail; 'inconclusive' is a miss that
+    at least reaches a human."""
     if not c["n"]:
         return "0/0"
-    return f"flagged {c['flagged']:>3}/{c['n']:<3} inconclusive {c['inconclusive']:>3}  benign(legit) {c['benign']:>3}"
+    return (f"flagged {c['flagged']:>3}/{c['n']:<3} (malicious {c['malicious']}, suspicious {c['suspicious']})   "
+            f"inconclusive {c['inconclusive']:>3}   missed {c['benign']:>3}")
+
+
+def _fmt_benign(c: dict[str, int]) -> str:
+    return (f"benign {c['benign']:>3}   inconclusive {c['inconclusive']:>3}   suspicious {c['suspicious']:>3}   "
+            f"malicious {c['malicious']:>3}   (flagged {c['flagged']}/{c['n']})")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -372,24 +384,25 @@ def main(argv: list[str] | None = None) -> int:
     metrics: dict[str, dict] = {m: {"malicious": {}, "benign": {}} for m in modes}
     kinds = {"kvish": "real, 1 sample", "synthetic": "hand-written spoof positives", "tuning_corpus": "real, tuning split"}
 
-    print("\nMALICIOUS SETS -- each reported alone (flagged = malicious|suspicious; inconclusive = needs_review; benign = legit)")
+    print("\nMALICIOUS SETS -- each reported alone (flagged = malicious|suspicious; inconclusive = needs_review; missed = a confident benign verdict)")
     for key in sorted({k for t in tables.values() for k in t if k[0] == "malicious"}):
         print(f"  {key[1]:14} ({kinds.get(key[1], '')})")
         for mode in modes:
             counts = _counts(tables[mode].get(key, []))
             metrics[mode]["malicious"][key[1]] = counts
-            print(f"      {mode.upper():10} {_fmt_counts(counts)}")
+            print(f"      {mode.upper():10} {_fmt_malicious(counts)}")
 
     print("\nBENIGN FIXTURES -- SYNTHETIC ONLY; each source alone; real-world precision NOT established")
-    print("  (inconclusive = the triage-queue cost: benign mail a human would have to look at)")
+    print("  (inconclusive = the triage-queue cost: benign mail a human would have to look at. In STRICT mode no receiver is\n"
+          "   trusted, so 'benign' -- which requires a verified, aligned DKIM/DMARC pass -- is mostly UNREACHABLE by design.)")
     for src in ("synthetic", "_from_user"):
         note = "hand-written regression guards, NOT an accuracy claim" if src == "synthetic" else "real mail; the owner is not supplying any"
         print(f"  {src:14} ({note})")
         for mode in modes:
             counts = _counts(tables[mode][("benign", src)])
             metrics[mode]["benign"][src] = counts
-            rate = f"  inconclusive rate {counts['inconclusive']}/{counts['n']}" if counts["n"] else ""
-            print(f"      {mode.upper():10} " + (_fmt_counts(counts) + rate if counts["n"] else "0/0 (none -- no real benign mail)"))
+            rate = f"   inconclusive rate {counts['inconclusive']}/{counts['n']}" if counts["n"] else ""
+            print(f"      {mode.upper():10} " + (_fmt_benign(counts) + rate if counts["n"] else "0/0 (none -- no real benign mail)"))
 
     benign_mal = sorted({r.name for m in modes for r in rows_by_mode[m] if r.label == "benign" and r.verdict == "malicious"})
     print(f"\nbenign fixtures reaching MALICIOUS: {len(benign_mal)}" + (f" -> {benign_mal}" if benign_mal else ""))

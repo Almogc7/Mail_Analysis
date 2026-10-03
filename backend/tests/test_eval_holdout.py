@@ -130,10 +130,16 @@ def test_report_shows_both_modes_side_by_side_with_counts_per_set(corpus, capsys
     assert "MALICIOUS SETS -- each reported alone" in out
     for source in ("kvish", "synthetic", "tuning_corpus"):
         assert f"  {source}" in out
-    # every set is shown once per mode, with flagged / inconclusive / benign counts
+    # every set is shown once per mode; malicious sets with flagged / inconclusive / MISSED, benign sets with all four verdicts
     assert out.count("      STRICT") >= 4 and out.count("      CONFIGURED") >= 4
-    assert "flagged" in out and "inconclusive" in out and "benign(legit)" in out
-    assert "inconclusive rate 0/15" in out and "triage-queue cost" in out
+    assert "missed" in out and "benign(legit)" not in out  # the 'legit' column on malicious sets is called 'missed'
+    for word in ("flagged", "inconclusive", "suspicious", "malicious", "benign"):
+        assert word in out
+    assert "triage-queue cost" in out and "inconclusive rate" in out
+    # plain statement that benign is mostly unreachable when nothing is trusted
+    assert "UNREACHABLE by design" in out
+    strict_benign = next(l for l in out.splitlines() if l.strip().startswith("STRICT") and l.strip().split()[1] == "benign")
+    assert "benign   0" in strict_benign and "inconclusive  15" in strict_benign and "inconclusive rate 15/15" in strict_benign
 
 
 def test_a_single_mode_can_be_requested_for_quick_runs(corpus, capsys):

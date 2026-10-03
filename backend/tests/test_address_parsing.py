@@ -143,7 +143,9 @@ def test_the_ambiguity_finding_is_informational_and_never_scores_on_its_own():
     finding = next(f for f in messy.findings if f.title == "From header parse ambiguity")
     assert finding.severity == "low" and finding.weight == 0.0
     assert "does not affect the score by itself" in finding.description
-    assert messy.verdict == clean.verdict == "legit" and messy.score == clean.score
+    # the finding changes neither score nor verdict; both are inconclusive (no positive evidence), never flagged
+    assert messy.verdict == clean.verdict and messy.score == clean.score
+    assert messy.verdict == "needs_review" and messy.verdict not in ("suspicious", "malicious")
     assert not any(f.title == "From header parse ambiguity" for f in clean.findings)
 
 
@@ -152,7 +154,8 @@ def test_the_finding_alone_cannot_trigger_any_floor():
     auth = run_auth_check(parsed)
     quiet = [ModuleResult(module=m, status="ok", findings=[], raw_data={}) for m in ("enrichment", "content_analysis")]
     outcome = run_scoring([auth, *quiet])
-    assert not outcome.breakdown.applied_overrides
+    assert not any(o.rule.endswith("_floor") for o in outcome.breakdown.applied_overrides)
+    assert outcome.verdict not in ("suspicious", "malicious")
     assert sum(f.weight for f in auth.findings if f.title == "From header parse ambiguity") == 0.0
 
 

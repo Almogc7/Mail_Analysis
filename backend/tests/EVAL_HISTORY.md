@@ -44,3 +44,11 @@ malicious fixture, so read verdicts, not percentages. Strict = `needs_review` is
 | language-aware content coverage (en/he only; other languages and empty bodies reduce coverage) | 1/1 / 1/1 | **0/1 / 0/1** | 9/75 / 25/75 | 0 / 0 | 66 / 50 | 0/15, 0 inc. / 0/15, 0 inc. |
 
 (The eval-modes row above lists Kvish seeds-ablated as "see note": it is 0/1 in both modes. Language coverage changes confidence, not verdicts, until the verdict-model commit makes "benign" require sufficient coverage.)
+
+**Verdict model update: benign now REQUIRES positive evidence.** Columns below are counts of verdicts (malicious / suspicious / inconclusive / missed-or-benign) per mode. "missed" = a confident benign verdict on a malicious set. STRICT trusts nothing, so benign is mostly unreachable by design there.
+
+| After commit | Kvish (S / C) | Kvish seeds ablated (S / C) | Tuning mal/susp/inconc/missed STRICT | Tuning mal/susp/inconc/missed CONFIGURED | Synthetic benign: benign/inconc/susp/mal STRICT | Synthetic benign CONFIGURED |
+|---|---|---|---|---|---|---|
+| benign-needs-positive-evidence | susp / susp | **inconclusive / inconclusive** | 0 / 9 / 66 / 0 | 0 / 25 / 39 / **11** | 0 / **15** / 0 / 0 (rate 15/15) | 8 / **7** / 0 / 0 (rate 7/15) |
+
+The 11 CONFIGURED "missed" are phishing samples whose OWN domain passes aligned DKIM/DMARC with nothing else flagged: authentication proves who controls a domain, not that the message is safe.

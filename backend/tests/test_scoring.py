@@ -4,13 +4,13 @@ from app.scoring.overrides import apply_overrides
 from app.scoring.config import ScoringConfig
 
 
-def _auth_result(findings=None, header_present=True, status="ok") -> ModuleResult:
-    return ModuleResult(
-        module="auth_check",
-        status=status,
-        findings=findings or [],
-        raw_data={"auth_headers": {"header_present": header_present}, "identity": {}},
-    )
+def _auth_result(findings=None, header_present=True, status="ok", positive_evidence=False) -> ModuleResult:
+    headers = {"header_present": header_present}
+    raw = {"auth_headers": headers, "identity": {}}
+    if positive_evidence:  # a trusted receiver verified an ALIGNED DKIM pass: the evidence benign requires
+        headers.update(trusted_receivers_configured=True, dkim={"evaluated": True, "result": "pass"}, dmarc={"evaluated": False})
+        raw["alignment"] = {"dkim": {"aligned": True}}
+    return ModuleResult(module="auth_check", status=status, findings=findings or [], raw_data=raw)
 
 
 def _enrichment_result(findings=None, enriched_iocs=None, status="ok") -> ModuleResult:
@@ -115,8 +115,9 @@ def test_single_content_finding_alone_does_not_trigger_floor():
 
     outcome = run_scoring([auth, enrichment, content])
 
-    assert outcome.verdict == "legit"
-    assert outcome.breakdown.applied_overrides == []
+    # no floor, no flag; the high content finding is above info, so benign is impossible: inconclusive
+    assert outcome.verdict == "needs_review"
+    assert [o.rule for o in outcome.breakdown.applied_overrides] == ["no_positive_evidence_for_benign"]
 
 
 def test_ceiling_override_caps_content_only_malicious_bucket():
@@ -141,8 +142,8 @@ def test_ceiling_override_caps_content_only_malicious_bucket():
     assert any(o.rule == "content_only_ceiling" for o in applied)
 
 
-def test_all_modules_clean_verdicts_legit_with_high_confidence():
-    outcome = run_scoring([_auth_result(), _enrichment_result(), _content_result()])
+def test_all_modules_clean_with_positive_evidence_is_benign_with_high_confidence():
+    outcome = run_scoring([_auth_result(positive_evidence=True), _enrichment_result(), _content_result()])
 
     assert outcome.verdict == "legit"
     assert outcome.confidence == 1.0
@@ -224,7 +225,7 @@ def test_reduced_content_script_coverage_can_trigger_needs_review():
 
 
 def test_missing_module_treated_as_zero_subscore_and_coverage():
-    outcome = run_scoring([_auth_result(), _enrichment_result()])  # content_analysis absent
+    outcome = run_scoring([_auth_result(positive_evidence=True), _enrichment_result()])  # content_analysis absent
 
     content_score = next(c for c in outcome.breakdown.categories if c.category == "content_analysis")
     assert content_score.subscore == 0

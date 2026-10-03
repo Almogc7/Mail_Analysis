@@ -121,6 +121,8 @@ def test_high_confidence_is_untouched_by_the_protection():
     assert outcome.verdict == "suspicious" and "floor_protects_verdict" not in rules and "low_confidence_needs_review" not in rules
 
 
-def test_a_clean_low_coverage_email_is_not_pushed_to_needs_review_or_flagged():
+def test_a_clean_low_coverage_email_is_inconclusive_not_flagged_and_not_benign():
     outcome = run_scoring([_auth([], header_present=False), _errored_enrichment(), _content(script_coverage=0.5)])
-    assert outcome.verdict == "legit" and not outcome.breakdown.applied_overrides  # score < 10: nothing to review
+    rules = [o.rule for o in outcome.breakdown.applied_overrides]
+    # score < 10: no needs_review-by-score and no floor; but benign needs positive evidence, so: inconclusive
+    assert outcome.verdict == "needs_review" and rules == ["no_positive_evidence_for_benign"]

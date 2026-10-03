@@ -5,6 +5,46 @@ from app.scoring.config import ScoringConfig, severity_at_least
 _BUCKET_RANK = {"legit": 0, "suspicious": 1, "malicious": 2}
 
 
+def benign_evidence_gaps(
+    module_results: dict[str, ModuleResult | None], confidence: float, config: ScoringConfig
+) -> list[str]:
+    """What is missing for a verdict of 'benign' (the literal 'legit' until the rename). An EMPTY list means the
+    message has POSITIVE evidence. 'No findings' is never evidence of safety; benign needs all three of:
+
+      1. a verified, ALIGNED DKIM pass or a DMARC pass from a TRUSTED receiver (authentication that ties the
+         message to the From domain; a header is only a claim unless a trusted receiver wrote it);
+      2. no finding above info severity anywhere (info findings are visibility notes);
+      3. adequate coverage (overall confidence at or above the threshold), so the checks that found nothing
+         were actually able to look.
+
+    Anything else that is not flagged is inconclusive."""
+    gaps: list[str] = []
+
+    auth = module_results.get("auth_check")
+    raw = (auth.raw_data or {}) if auth is not None and auth.status == "ok" else {}
+    headers = raw.get("auth_headers", {})
+    alignment = raw.get("alignment", {})
+    dkim, dmarc = headers.get("dkim", {}), headers.get("dmarc", {})
+    dkim_ok = bool(dkim.get("evaluated")) and dkim.get("result") == "pass" and alignment.get("dkim", {}).get("aligned") is True
+    dmarc_ok = bool(dmarc.get("evaluated")) and dmarc.get("result") == "pass"
+    if not (dkim_ok or dmarc_ok):
+        if not headers.get("trusted_receivers_configured"):
+            gaps.append("no trusted receiver is configured, so no authentication result can be relied on")
+        else:
+            gaps.append("no verified, aligned DKIM pass or DMARC pass from a trusted receiver")
+
+    above_info = [
+        f for result in module_results.values() if result is not None and result.status not in {"error", "skipped"}
+        for f in result.findings if f.severity != "info"
+    ]
+    if above_info:
+        gaps.append(f"{len(above_info)} finding(s) above info severity (e.g. '{above_info[0].title}')")
+
+    if confidence < config.confidence_threshold:
+        gaps.append(f"coverage is too low (confidence {confidence:.2f} < {config.confidence_threshold})")
+    return gaps
+
+
 def apply_overrides(
     base_bucket: str,
     module_results: dict[str, ModuleResult | None],
@@ -117,5 +157,18 @@ def apply_overrides(
             )
         )
         bucket = "needs_review"
+
+    # 4. Benign needs POSITIVE evidence. Everything not flagged and not proven benign is inconclusive.
+    if bucket == "legit":
+        gaps = benign_evidence_gaps(module_results, confidence, config)
+        if gaps:
+            applied.append(
+                AppliedOverride(
+                    rule="no_positive_evidence_for_benign",
+                    effect="verdict=needs_review (inconclusive)",
+                    reason="Nothing was flagged, but 'no findings' is not evidence of safety. Missing: " + "; ".join(gaps) + ".",
+                )
+            )
+            bucket = "needs_review"
 
     return bucket, applied
