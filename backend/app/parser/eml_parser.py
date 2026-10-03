@@ -4,6 +4,7 @@ from email.headerregistry import Address
 from email.message import EmailMessage
 from email.utils import parseaddr
 
+from app.parser.addresses import AMBIGUITY_PREFIX, parse_address_header
 from app.parser.raw import RawAddress, RawAttachment, RawParseResult
 
 
@@ -23,8 +24,51 @@ def _to_raw_addresses(msg: EmailMessage, header_name: str) -> list[RawAddress]:
     return result
 
 
-def _to_single_raw_address(msg: EmailMessage, header_name: str) -> RawAddress | None:
-    addrs = _to_raw_addresses(msg, header_name)
+# Headers whose ambiguity is worth surfacing (they decide who the sender appears to be). For To/Cc a list
+# of several addresses is normal, so only an unusable strict parse matters there.
+_AMBIGUITY_HEADERS = {"from", "reply-to"}
+
+
+def _raw_header_text(msg: EmailMessage, header_name: str) -> str | None:
+    """The header exactly as received (unfolded by the caller), not the policy's interpretation of it."""
+    for name, value in msg.raw_items():
+        if name.lower() == header_name:
+            text = str(value)
+            try:  # 8-bit bytes arrive as surrogate escapes; recover them as UTF-8
+                text = text.encode("ascii", "surrogateescape").decode("utf-8", "replace")
+            except UnicodeError:
+                pass
+            return text
+    return None
+
+
+def _addresses(msg: EmailMessage, header_name: str, warnings: list[str] | None) -> list[RawAddress]:
+    """Strict parse when it is clean AND agrees with the tolerant one; otherwise the tolerant parse (the
+    address in the angle brackets), with the reasons recorded as a parse warning. Well-formed mail is
+    unchanged; a malformed From (unquoted comma in the display name, ...) no longer loses its domain."""
+    strict = _to_raw_addresses(msg, header_name)
+    raw = _raw_header_text(msg, header_name)
+    if raw is None:
+        return strict
+    robust = parse_address_header(raw)
+    robust_specs = [a.lower() for _, a in robust.addresses]
+    strict_ok = bool(strict) and all(a.address and "@" in a.address for a in strict) and [
+        (a.address or "").lower() for a in strict
+    ] == robust_specs
+    reasons = list(robust.reasons if header_name in _AMBIGUITY_HEADERS else [r for r in robust.reasons if not r.startswith("multiple")])
+    if strict_ok and not reasons:
+        return strict  # clean and unambiguous
+    chosen = strict
+    if not strict_ok and robust.addresses:
+        chosen = [RawAddress(display_name=name, address=addr) for name, addr in robust.addresses]
+        reasons.append("the standard parser's result was unusable; address recovered from the angle brackets")
+    if warnings is not None and header_name in _AMBIGUITY_HEADERS and reasons:
+        warnings.append(f"{AMBIGUITY_PREFIX}:{header_name}: " + "; ".join(dict.fromkeys(reasons)))
+    return chosen
+
+
+def _to_single_raw_address(msg: EmailMessage, header_name: str, warnings: list[str] | None = None) -> RawAddress | None:
+    addrs = _addresses(msg, header_name, warnings)
     if addrs:
         return addrs[0]
     # Some headers (e.g. Return-Path) aren't registered as structured address headers
@@ -105,10 +149,10 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
         subject=msg.get("subject"),
         date=date_value,
         headers=headers,
-        from_addr=_to_single_raw_address(msg, "from"),
-        to=_to_raw_addresses(msg, "to"),
-        cc=_to_raw_addresses(msg, "cc"),
-        reply_to=_to_raw_addresses(msg, "reply-to"),
+        from_addr=_to_single_raw_address(msg, "from", warnings),
+        to=_addresses(msg, "to", warnings),
+        cc=_addresses(msg, "cc", warnings),
+        reply_to=_addresses(msg, "reply-to", warnings),
         return_path=_to_single_raw_address(msg, "return-path"),
         received_raw=received_raw,
         authentication_results_raw=auth_results_raw,

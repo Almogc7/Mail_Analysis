@@ -143,10 +143,11 @@ def test_language_buckets():
     assert "language: non-Latin script (hebrew)" in _features(_eml(body=hebrew))[0]
 
 
-def test_unusable_from_is_reported_not_hidden():
-    # unquoted comma in the display name: Python's strict parser mis-splits it (a real, common phishing shape)
+def test_a_malformed_from_is_now_recovered_instead_of_reported_as_unusable():
+    # Unquoted comma in the display name: the standard parser used to hand back a fragment with no domain, which
+    # this analysis exposed on 22% of the tuning split. The tolerant extractor recovers the address.
     feats, _ = _features(_eml(frm="PayPal, Inc. <support@evil.example.net>"))
-    assert "sender: no usable From address" in feats  # documents the current parser gap this analysis exposed
+    assert "sender: no usable From address" not in feats
 
 
 def test_real_corpus_run_on_fixtures_does_not_crash():

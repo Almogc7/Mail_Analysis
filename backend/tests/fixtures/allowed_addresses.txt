@@ -45,3 +45,7 @@ svc1a2b3c@srv12.paypal.com
 
 # --- Synthetic freemail sender for the error-analysis bucket test (tests/test_error_analysis.py) ---
 someone@gmail.com
+
+# --- Synthetic display-name-contains-brand-address inputs (tests/test_address_parsing.py) ---
+support@paypal.com
+ceo@paypal.com

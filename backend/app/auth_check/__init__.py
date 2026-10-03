@@ -3,6 +3,7 @@ from app.auth_check.spf_dkim_dmarc import check_auth_headers, evaluate_authentic
 from app.auth_check.spoofing import check_identity_mismatch
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding, ModuleResult
+from app.parser.addresses import AMBIGUITY_PREFIX
 
 _FAIL_RESULTS = {"fail", "softfail", "permerror"}
 _UNTRUSTED_FAIL_WEIGHT = 4.0
@@ -230,6 +231,30 @@ def _identity_findings(identity: dict) -> list[Finding]:
     return findings
 
 
+def _from_ambiguity_findings(parsed: ParsedEmail) -> list[Finding]:
+    """Informational only (weight 0): the From header was not a clean 'Display <address>'. The extractor recovered
+    an address so sender checks still run, but the analyst should know the sender line is sloppy or tricky.
+    It must never score on its own -- plenty of benign senders have a sloppy header."""
+    prefix = f"{AMBIGUITY_PREFIX}:from: "
+    reasons = [w[len(prefix):] for w in parsed.parse_warnings if w.startswith(prefix)]
+    if not reasons:
+        return []
+    return [
+        Finding(
+            module=MODULE_NAME,
+            severity="low",
+            title="From header parse ambiguity",
+            description=(
+                "The From header is not a clean single 'Display <address>' (" + "; ".join(reasons) + "). "
+                f"The sender address used for checks is '{parsed.from_.address}'. Informational: this does not "
+                "affect the score by itself."
+            ),
+            evidence={"reasons": reasons, "address_used": parsed.from_.address, "domain_used": parsed.from_.domain},
+            weight=0.0,
+        )
+    ]
+
+
 def run_auth_check(parsed: ParsedEmail) -> ModuleResult:
     auth = evaluate_authentication(
         parsed.authentication_results_raw, parsed.received_spf, parsed.received_chain, headers=parsed.headers
@@ -237,7 +262,7 @@ def run_auth_check(parsed: ParsedEmail) -> ModuleResult:
     identity = check_identity_mismatch(parsed)
 
     alignment = compute_alignment(parsed, auth)
-    findings = _auth_findings(auth) + alignment_findings(alignment) + _identity_findings(identity)
+    findings = _auth_findings(auth) + alignment_findings(alignment) + _identity_findings(identity) + _from_ambiguity_findings(parsed)
 
     return ModuleResult(
         module=MODULE_NAME,
