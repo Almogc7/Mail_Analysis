@@ -177,21 +177,26 @@ def _stub_clients(mode: str) -> dict:
     }
 
 
-def analyze(path: Path, enrichment_mode: str):
+def analyze_parsed(parsed, enrichment_mode: str):
+    """The pipeline on an already-parsed message (used by the mutation tests, which edit the ParsedEmail)."""
     from app.auth_check import run_auth_check
     from app.content_analysis import run_content_analysis
     from app.contracts.findings import ModuleResult
     from app.enrichment import run_enrichment
     from app.enrichment.rate_limit import VTRateLimiter
-    from app.parser import parse_email_file
     from app.scoring import build_analysis_result
 
-    parsed = parse_email_file(path.read_bytes(), path.name)
     auth = run_auth_check(parsed)
     enr = run_enrichment(parsed, _stub_clients(enrichment_mode), VTRateLimiter(sleep_fn=lambda s: None))
     content = run_content_analysis(parsed)
     results: list[ModuleResult] = [auth, enr, content]
     return build_analysis_result(parsed, results)
+
+
+def analyze(path: Path, enrichment_mode: str):
+    from app.parser import parse_email_file
+
+    return analyze_parsed(parse_email_file(path.read_bytes(), path.name), enrichment_mode)
 
 
 def _row_for(path: Path, label: str, source: str, enrichment_mode: str) -> Row:
