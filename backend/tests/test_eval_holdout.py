@@ -140,7 +140,9 @@ def test_report_shows_both_modes_side_by_side_with_counts_per_set(corpus, capsys
     assert "UNREACHABLE by design" in out
     strict_benign = next(l for l in out.splitlines() if l.strip().startswith("STRICT") and l.strip().split()[1] == "benign")
     n = len(list((ev.FIXTURES / "benign" / "synthetic").glob("*.eml")))  # every synthetic benign fixture is inconclusive in STRICT
-    assert "benign   0" in strict_benign and f"inconclusive {n:>3}" in strict_benign and f"inconclusive rate {n}/{n}" in strict_benign
+    known_false_positives = 1  # fixture 22, documented in test_claim_family.py (strict xfail); nothing else may be flagged
+    assert "benign   0" in strict_benign and f"suspicious {known_false_positives:>3}" in strict_benign
+    assert f"inconclusive {n - known_false_positives:>3}" in strict_benign and f"(flagged {known_false_positives}/{n})" in strict_benign
 
 
 def test_a_single_mode_can_be_requested_for_quick_runs(corpus, capsys):

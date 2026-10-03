@@ -271,6 +271,28 @@ unbiased error rate.
   structural (business-email-compromise, advance-fee and sextortion-style lures); image-only mail (there is no
   OCR, and an empty-text body gets content coverage 0.25 with a finding that says it is absence of evidence);
   and attachment *content* (files are hashed and classified by extension, never opened).
+- **What the structural detection is aimed at, and what it is not.** The sender, link and claim signals
+  (`docs/DETECTION_DESIGN.md`) target one class: an **authenticated lure sent from hosting-provider
+  infrastructure with a swapped call to action** (a cloned template, a borrowed ESP tracker, assets hot-linked from
+  the impersonated entity, a sender that is a server name). The public phishing corpus measures this class
+  **poorly**: most of its samples are other things (credential forms, text-only lures, attachments, mail from
+  compromised accounts), so a low recall on it says little about this class, and a high one says little about
+  mail that reaches an inbox. The Kvish 6 sample is the only real instance of the class in the evidence.
+- **"Inconclusive, signals present" is the expected output for most messages, and it is for analyst review, not a
+  gateway filter.** A single family of weak signals is deliberately not enough to flag, and benign needs a known
+  sender, so nearly everything lands in the review queue ordered by priority. Do not use any verdict to block,
+  quarantine, release or delete mail automatically.
+- **The branded-ESP carve-out in link signal L1 (decision D5) is validated only on hand-written fixtures and needs
+  verification against real ESP headers.** The assumption (a branded return-path or DKIM `d=` on the sender's own
+  domain, mail arriving over the network, means the platform's name is legitimately absent from the path) comes from
+  vendors' documentation, not from real captured messages.
+- **Known false-positive class (reported, not tuned):** a third party sending a newsletter for a brand from its
+  own domain, linking and hot-linking the brand's site, looks like a cloned brand template from an unrelated origin
+  (claim signal C3 plus link signal L2, two families). It is fixture `22_...` in the benign set and is marked as an
+  expected failure in the tests.
+- **Brand aliases** (Hebrew names, transliterations, organisation names) are configured only in the untracked
+  `backend/brands.local.json` (`{"brand": {"domains": [...], "aliases": [...]}}`); the tracked code carries generic
+  brands only.
 - **Authentication results only count from trusted receivers** (see "Authentication trust"). Out of the box
   nothing is trusted, so SPF/DKIM/DMARC are `not_evaluated`.
 - **The eval reports two trust modes side by side.** *STRICT* trusts nothing (what a default deployment sees);

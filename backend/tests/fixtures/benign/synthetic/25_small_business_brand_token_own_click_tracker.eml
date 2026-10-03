@@ -1,0 +1,10 @@
+Received: from mail.applevalleydental.example.org (mail.applevalleydental.example.org [198.51.100.93]) by mx.example.org with ESMTPS; Tue, 15 Sep 2026 11:00:05 +0000
+From: "Apple Valley Dental" <office@applevalleydental.example.org>
+To: Test Recipient <recipient@example.com>
+Subject: Autumn check-up offer
+Date: Tue, 15 Sep 2026 11:00:00 +0000
+Message-ID: <promo.25@applevalleydental.example.org>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Book your autumn check-up.</p><p><a href="https://track.applevalleydental.example.org/c/9f2a?to=book">Book now</a></p><p><a href="https://track.applevalleydental.example.org/c/9f2b?to=prices">Prices</a></p></body></html>

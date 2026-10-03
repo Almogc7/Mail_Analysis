@@ -1,0 +1,10 @@
+Received: from mta1.list-manage.com (mta1.list-manage.com [198.51.100.94]) by mx.example.org with ESMTPS; Tue, 15 Sep 2026 12:00:05 +0000
+From: "Apple Valley Dental" <office@applevalleydental.example.org>
+To: Test Recipient <recipient@example.com>
+Subject: Download our appointment app
+Date: Tue, 15 Sep 2026 12:00:00 +0000
+Message-ID: <app.26@applevalleydental.example.org>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Manage appointments from your phone.</p><p><a href="https://applevalleydental.us1.list-manage.com/track/click?u=1&id=2">Read more</a></p><p><a href="https://apps.apple.com/us/app/applevalley-dental/id1">Get the app</a></p></body></html>

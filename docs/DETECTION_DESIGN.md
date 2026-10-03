@@ -142,12 +142,13 @@ per-family signal counts on the tuning set and on the fixtures.
 
 ## Iteration log
 
-Tuning iterations used: **1 / 5** (D5 below was made before L1 fired on any tuning sample and is not counted).
+Tuning iterations used: **2 / 5** (D5 below was made before L1 fired on any tuning sample and is not counted).
 
 | # | Date | Change | Reason | Tuning effect (aggregate) |
 |---|---|---|---|---|
 | 0 | 2026-10-03 | Design registered; floor rule + C1 demotion + S1/S2/S3 implemented as written | pre-registration | STRICT flagged 9 -> 0; CONFIGURED 25 -> 18 (see deviation D2) |
 | 1 | 2026-10-03 | Benign rule: add known-sender list (untracked, empty by default) and complete-enrichment requirement; inconclusive sub-reason; queue priority; ranking sanity metric | benign rule treated authentication as legitimacy; 11/75 tuning phish reached benign in CONFIGURED | CONFIGURED missed 11 -> 0 (all 11 inconclusive); synthetic benign CONFIGURED benign 8 -> 6, inconclusive 9/15 |
+| 2 | 2026-10-03 | C2: the dominant foreign domain must also host at least one clickable link (images alone do not make a claimed entity); the same condition L2 already had | First (e) run flagged benign fixture 20 (shared-hosting bakery, unrelated stock-image CDN, no DKIM-Signature): S2 + C2 = two families. Independent rationale: the entity a message claims to be is something the recipient can reach | STRICT tuning flagged 9 -> 6, CONFIGURED 25 -> 22; C2 fired in 33 -> 29 of 75; fixture 20 back below SUSPICIOUS |
 
 Iteration 1 is a verdict-model change, not a detection signal, but it is logged here because it was made after looking
 at tuning results.
@@ -227,3 +228,44 @@ Pre-registered predictions for (e):
 | e3 | On the tuning set the claim family adds a modest number of samples with >= 2 families. No target is set; if flagged does not rise, that is reported, not tuned. |
 | e4 | With enrichment UNKNOWN, CONFIGURED benign drops sharply: every fixture with an indicator becomes inconclusive (incomplete enrichment); only fixtures with no external links can stay benign. |
 | e5 | C2 fires on benign fixtures that lack a DKIM-Signature and link to a third-party domain; that is expected, one family, and never flagged. |
+
+## Claim-family results and deviations (2026-10-03, tuning set, aggregates)
+
+First run of (e), before iteration 2: tuning flagged STRICT 9/75, CONFIGURED 25/75; C2 fired in 33/75; benign fixture 20 was
+flagged (S2 + C2). After iteration 2: STRICT 6/75, CONFIGURED 22/75; C2 29/75; tuning samples with >= 2 families 6.
+
+| # | Prediction | Result | Status |
+|---|---|---|---|
+| e1 | Ablated Kvish stays `suspicious` in both modes | Holds (S2 + L1 + L2, now also C3 from the display name alone, no brand list) | holds |
+| e2 | Every benign fixture, old and new, stays below SUSPICIOUS in both trust modes and both enrichment modes | **Fails for one fixture**: 22 (newsletter sent by a third party for a brand, DKIM-Signature present) is `suspicious` in every mode: C3 (claim) + L2 (link). Fixture 20 failed on the first run and was fixed by iteration 2. The other 25 hold | **DEVIATION D7** |
+| e3 | Claim family adds a modest number of samples with >= 2 families | Samples with >= 2 families on tuning rose from 1 to 6 | holds (modest) |
+| e4 | With enrichment UNKNOWN, CONFIGURED benign drops sharply | CONFIGURED benign 6 -> **0 of 6**; verdicts of the phishing sets do not change (flags never depended on enrichment in the offline eval) | holds |
+| e5 | C2 fires on benign fixtures that lack a DKIM-Signature and link to a third-party domain, in one family | Holds: C2 fired on 01 and 06 (ESP newsletters whose fixtures carry no DKIM-Signature); alone, below SUSPICIOUS. It also fired on 20 before iteration 2, and there it combined with S2 | holds, with the exception D7 |
+
+* **D6 -- placement.** C1b, C2, C3 live in `auth_check`, not `content_analysis` (C2 needs the trusted-receiver result).
+* **D7 -- fixture 22 is a known false positive and is not fixed.** C3 (the display name equals the linked domain's name)
+  and L2 (images hot-linked from that same domain, which also hosts the links) are different families, and together they
+  floor. The message is structurally identical to a cloned brand template sent from an unrelated origin; a present
+  DKIM-Signature does not separate them (C2 is silent by design). No weight or rule was changed for it. The only lever
+  that would separate them is exempting senders on the known-sender list from the structural floor, which is the owner's
+  decision. The test is a strict expected failure, so it starts failing when this is fixed.
+* **D8 -- C3 form (b) requires the claim.** The registered text said "a link points at a known brand's real domain from a
+  non-brand sender". Read literally it fires on every newsletter that links Facebook, LinkedIn or an app store. Decided
+  before any run: form (b) requires that the display name or subject also claims that brand.
+* **C2 is easy to evade** (any DKIM-Signature header hides it, verified or not) and fires on 39% of the tuning phish, so it
+  is a weak, correlated-with-sloppiness signal, not a discriminator. Most of the real-world legitimate mail it would see
+  carries a DKIM-Signature; the synthetic benign set often does not, which flatters neither side.
+
+Per-family signal counts (STRICT, clean-stub enrichment; CONFIGURED is identical except C2, which is suppressed by a
+trusted verified pass on the synthetic benign fixtures):
+
+| Set | n | S1 | S2 | S3 | L1 | L2 | L3 | C1 | C2 | C3 | samples with >= 2 families |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| tuning corpus | 75 | 0 | 5 | 0 | 0 | 4 | 10 | 9 | 29 | 2 | 6 |
+| Kvish (as-is) | 1 | 1 | 1 | 0 | 1 | 1 | 0 | 1 | 0 | 1 | 1 |
+| Kvish (seeds ablated) | 1 | 0 | 1 | 0 | 1 | 1 | 0 | 0 | 0 | 1 | 1 |
+| synthetic spoofs | 5 | 0 | 0 | 1 | 0 | 0 | 0 | 5 | 0 | 0 | 1 |
+| synthetic benign | 26 | 0 | 4 | 0 | 1 | 1 | 0 | 3 | 2 | 2 | 1 (fixture 22) |
+
+What fires on benign fixtures (STRICT): C2 on 01 and 06; L1 on 04; S2 on 08, 19, 20, 21; C1 on 24, 25, 26; C3 on 22 and 26;
+L2 on 22. Only 22 carries two families.

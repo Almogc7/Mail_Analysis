@@ -58,6 +58,7 @@ SEED_URGENCY = ["תקף לחודש בלבד"]
 # mail that reaches an analyst mostly passed it, so do not read CONFIGURED recall as a deployment estimate.
 # ---------------------------------------------------------------------------------------------------------------
 MODES = ("strict", "configured")
+ENRICHMENT_TAGS = {"clean": "[enrichment: offline clean stub]", "disabled": "[enrichment: UNKNOWN (providers unavailable)]"}
 MODE_LABELS = {
     "strict": "nothing trusted (what a default deployment sees)",
     "configured": "the corpus collector's gateway headers trusted (a deployment with its gateway configured)",
@@ -361,7 +362,9 @@ def _fmt_benign(c: dict[str, int]) -> str:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ablate-seeds", action="store_true", help="remove the single-sample brand/Hebrew seeds")
-    ap.add_argument("--enrichment", choices=("clean", "disabled"), default="clean")
+    ap.add_argument("--enrichment", choices=("clean", "unknown", "disabled"), default="clean",
+                    help="clean = offline stub answering no-detections for everything; unknown (alias: disabled) = every provider "
+                         "answers UNKNOWN, so no indicator is ever covered")
     ap.add_argument("--mode", choices=("both", "strict", "configured"), default="both",
                     help="which trust mode(s) to report (default both, side by side)")
     ap.add_argument("--json", metavar="OUT", help="also write rows + metrics as JSON")
@@ -384,12 +387,15 @@ def main(argv: list[str] | None = None) -> int:
         print("eval: --final-holdout always reports both modes (pre-registered); --mode is not accepted with it", file=sys.stderr)
         return 2
 
+    if args.enrichment == "unknown":
+        args.enrichment = "disabled"  # the stub that answers UNKNOWN is called "disabled" internally
     if args.ablate_seeds:
         _ablate_seeds()
     if args.final_holdout:
         return final_holdout(args)
 
     modes = MODES if args.mode == "both" else (args.mode,)
+    tag = ENRICHMENT_TAGS[args.enrichment]
     corpus = args.corpus_dir or FIXTURES / "_local_corpus"
     items = collect(args.corpus_dir)
     rows_by_mode: dict[str, list[Row]] = {}
@@ -441,7 +447,7 @@ def main(argv: list[str] | None = None) -> int:
     metrics: dict[str, dict] = {m: {"malicious": {}, "benign": {}} for m in modes}
     kinds = {"kvish": "real, 1 sample", "synthetic": "hand-written spoof positives", "tuning_corpus": "real, tuning split"}
 
-    print("\nMALICIOUS SETS -- each reported alone (flagged = malicious|suspicious; inconclusive = needs_review; missed = a confident benign verdict)")
+    print(f"\n{tag} MALICIOUS SETS -- each reported alone (flagged = malicious|suspicious; inconclusive = needs_review; missed = a confident benign verdict)")
     for key in sorted({k for t in tables.values() for k in t if k[0] == "malicious"}):
         print(f"  {key[1]:14} ({kinds.get(key[1], '')})")
         for mode in modes:
@@ -450,7 +456,7 @@ def main(argv: list[str] | None = None) -> int:
             metrics[mode]["malicious"][key[1]] = counts
             print(f"      {mode.upper():10} {_fmt_malicious(counts)}   {_reason_split(rows)}")
 
-    print("\nBENIGN FIXTURES -- SYNTHETIC ONLY; each source alone; real-world precision NOT established")
+    print(f"\n{tag} BENIGN FIXTURES -- SYNTHETIC ONLY; each source alone; real-world precision NOT established")
     print("  (inconclusive = the triage-queue cost: benign mail a human would have to look at. In STRICT mode no receiver is\n"
           "   trusted, so 'benign' -- which requires a verified, aligned DKIM/DMARC pass -- is mostly UNREACHABLE by design.)")
     for src in ("synthetic", "_from_user"):
@@ -464,7 +470,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"      {mode.upper():10} " + (_fmt_benign(counts) + rate if counts["n"] else "0/0 (none -- no real benign mail)"))
 
     print()
-    print("STRUCTURAL SIGNALS -- how many samples each fired in (per-family counts; a sample counts once per signal)")
+    print(f"{tag} STRUCTURAL SIGNALS -- how many samples each fired in (per-family counts; a sample counts once per signal)")
     for key in sorted({k for t in tables.values() for k in t}):
         if not tables[modes[0]].get(key):
             continue
@@ -473,7 +479,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"      {mode.upper():10} {_signal_counts(tables[mode][key])}")
 
     print()
-    print("RANKING SANITY CHECK -- queue priority of the tuning phish vs the SYNTHETIC benign set. A sanity check only:")
+    print(f"{tag} RANKING SANITY CHECK -- queue priority of the tuning phish vs the SYNTHETIC benign set. A sanity check only:")
     print("  the benign side is hand-written, so this says the ordering is not backwards, not how well it ranks real mail.")
     for mode in modes:
         phish = [r.priority for r in tables[mode].get(("malicious", "tuning_corpus"), [])]

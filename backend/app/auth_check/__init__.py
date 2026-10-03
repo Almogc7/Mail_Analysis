@@ -1,3 +1,4 @@
+from app.auth_check.claims import claim_findings
 from app.auth_check.alignment import alignment_findings, compute_alignment
 from app.auth_check.spf_dkim_dmarc import check_auth_headers, evaluate_authentication
 from app.auth_check.spoofing import check_identity_mismatch
@@ -301,7 +302,8 @@ def run_auth_check(parsed: ParsedEmail) -> ModuleResult:
     identity = check_identity_mismatch(parsed)
 
     alignment = compute_alignment(parsed, auth)
-    findings = _auth_findings(auth) + alignment_findings(alignment) + _identity_findings(identity) + _from_ambiguity_findings(parsed)
+    findings = (_auth_findings(auth) + alignment_findings(alignment) + _identity_findings(identity)
+                + _from_ambiguity_findings(parsed) + claim_findings(parsed, auth, alignment))
 
     return ModuleResult(
         module=MODULE_NAME,

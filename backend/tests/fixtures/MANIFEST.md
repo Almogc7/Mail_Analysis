@@ -35,6 +35,11 @@ pre-commit hook) must pass before committing.
 | `benign/synthetic/19_small_business_own_tracking_domain.eml` | benign (synthetic, link-family guard) | Hand-written for this repo. Not real mail. | `e0335bb4cd7d2c3778c48b7012e5c49dcc8f537143dced0867bf42315a4dfe88` | n/a (hand-written) |
 | `benign/synthetic/20_small_business_newsletter_unrelated_cdn_images.eml` | benign (synthetic, link-family guard) | Hand-written for this repo. Not real mail. | `4b1b088fd73b0e91dae8bfdef9880c77890441e56c8e09dbb19991527b0f8a53` | n/a (hand-written) |
 | `benign/synthetic/21_small_business_own_redirector_domain.eml` | benign (synthetic, link-family guard) | Hand-written for this repo. Not real mail. | `e487da7277b610ca111213652c864ffb9cf36e35a3db8b220b1abd72b2f8b5b8` | n/a (hand-written) |
+| `benign/synthetic/22_newsletter_sender_differs_from_brand_link_domain_dkim.eml` | benign (synthetic, claim-family guard) | Hand-written for this repo. Not real mail. | `618a750d97abe75d74a3c2d5f746043a8455ffc7dd5c376531cc95da73962ae5` | n/a (hand-written) |
+| `benign/synthetic/23_brand_own_aligned_domain_own_cdn.eml` | benign (synthetic, claim-family guard) | Hand-written for this repo. Not real mail. | `30933f795114b14b3083f2367c372a731c85edb023891f71485403012c05be22` | n/a (hand-written) |
+| `benign/synthetic/24_small_business_name_matches_brand_token.eml` | benign (synthetic, claim-family guard) | Hand-written for this repo. Not real mail. | `cbec4ff027d48f5f70dc7ddf7232f744d1bec0df0a548424b80d177a4746bf64` | n/a (hand-written) |
+| `benign/synthetic/25_small_business_brand_token_own_click_tracker.eml` | benign (synthetic, claim-family guard) | Hand-written for this repo. Not real mail. | `a9a9d5f88fdb11485d2a469e7c542f295c27d2b8b5b6728bee9c43e6baf508a5` | n/a (hand-written) |
+| `benign/synthetic/26_small_business_brand_token_esp_tracker_and_app_store.eml` | benign (synthetic, claim-family guard) | Hand-written for this repo. Not real mail. | `616e969cc046ba8879be0585a90a2547f80bdfb9e4d53902260d9efe4e7e0cb3` | n/a (hand-written) |
 
 ### Sanitization of `kvish6_invoice_phish.eml`
 

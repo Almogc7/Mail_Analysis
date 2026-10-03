@@ -69,3 +69,6 @@ Iteration 1 ranking sanity check (tuning phish vs SYNTHETIC benign priority; a s
 | e3: link family L1-L3 (+6 benign link guards, n=21) | susp / susp | **susp / susp (S2+L1+L2: sender+link)** | 1 flagged, 4 inconclusive / same | 1 flagged / 74 inconclusive / 0 missed | 18 flagged / 57 inconclusive / 0 missed | 0 / 21 / 0 | 6 / 15 / 0 |
 
 e3 per-family signal counts (tuning, n=75): S2 5, L2 4, L3 10, C1 9, L1 0; >= 2 families: 1. Synthetic benign (n=21): S2 4, L1 1, no sample with 2 families. Ranking sanity (synthetic benign n=21): STRICT AUC 0.799, CONFIGURED 0.831. Iterations used: 1 / 5 (D5 not counted).
+| e4: claim family C1b/C2/C3 + aliases (benign n=26) | susp / susp | susp / susp (S2+L1+L2+C3) | 1 flagged, 4 inconclusive / same | 6 flagged / 69 inconclusive / 0 missed | 22 flagged / 53 inconclusive / 0 missed | 0 / 25 / **1 (fixture 22, known FP)** | 6 / 19 / **1** |
+
+e4: first run before iteration 2 was STRICT 9 / CONFIGURED 25 tuning flagged and fixture 20 flagged. Enrichment-UNKNOWN variant: synthetic benign CONFIGURED 6 -> 0; phishing sets unchanged. Per-family counts (tuning n=75): S2 5, L2 4, L3 10, C1 9, C2 29, C3 2, L1 0; >= 2 families: 6. Ranking sanity (benign n=26): STRICT AUC 0.771, CONFIGURED 0.820. Iterations used: 2 / 5.

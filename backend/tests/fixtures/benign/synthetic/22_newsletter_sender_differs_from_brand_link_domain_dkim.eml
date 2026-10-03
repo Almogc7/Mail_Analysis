@@ -1,0 +1,12 @@
+Received: from mta3.mailer.example.com (mta3.mailer.example.com [198.51.100.91]) by mx.example.org with ESMTPS; Tue, 15 Sep 2026 08:00:05 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=mailer.example.com; dkim=pass header.d=mailer.example.com; dmarc=pass header.from=mailer.example.com
+DKIM-Signature: v=1; a=rsa-sha256; d=mailer.example.com; s=s1; h=from:to:subject; bh=EEEEEEEEEEEE; b=FFFFFFFFFFFF
+From: "Brandly Weekly" <news@mailer.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: Brandly: what is new this week
+Date: Tue, 15 Sep 2026 08:00:00 +0000
+Message-ID: <weekly.22@mailer.example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>New this week at Brandly.</p><p><a href="https://www.brandly.co.uk/new">See what is new</a></p><p><a href="https://www.brandly.co.uk/offers">Offers</a></p><img src="https://www.brandly.co.uk/img/a.png"><img src="https://www.brandly.co.uk/img/b.png"></body></html>

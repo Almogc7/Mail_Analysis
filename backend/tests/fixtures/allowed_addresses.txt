@@ -49,3 +49,6 @@ someone@gmail.com
 # --- Synthetic display-name-contains-brand-address inputs (tests/test_address_parsing.py) ---
 support@paypal.com
 ceo@paypal.com
+# invented brand "Brandly" used by the claim-family fixtures (23) and tests; not a real mailbox
+hello@brandly.co.uk
+receipt.23@brandly.co.uk

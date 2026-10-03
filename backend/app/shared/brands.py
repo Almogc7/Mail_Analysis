@@ -12,7 +12,8 @@ Three layers, merged into KNOWN_BRANDS (later layers win):
   3. LOCAL brands     -- an UNTRACKED JSON file (default backend/brands.local.json, override with
                          LOCAL_BRANDS_FILE) for organisation-specific entries such as your own
                          employer. They never belong in the public repo.
-                         Format: {"brand name": ["legit-domain.example", ...], ...}
+                         Format: {"brand name": ["legit-domain.example", ...], ...}, or per brand
+                         {"domains": [...], "aliases": ["other name", "שם בעברית", ...]}
 
 Extend generically; a missing brand just means "not flagged", never "safe".
 """
@@ -53,9 +54,17 @@ SEED_BRAND_NAMES = frozenset(SEED_BRANDS)
 DEFAULT_LOCAL_BRANDS_FILE = Path(__file__).resolve().parents[2] / "brands.local.json"
 
 
+def _domains(value: object) -> list[str] | None:
+    return [d.lower() for d in value] if isinstance(value, list) and all(isinstance(d, str) for d in value) else None
+
+
 def load_local_brands(path: Path | str | None = None) -> dict[str, list[str]]:
     """Read the untracked local brands file; {} if it does not exist. Raises ValueError on a
-    malformed file rather than silently ignoring configuration."""
+    malformed file rather than silently ignoring configuration.
+
+    An entry is either a list of domains, or {"domains": [...], "aliases": [...]}. Every alias (a Hebrew name, a
+    transliteration, a product name) becomes one more key of the map with the same domains, so the matcher treats an
+    alias exactly like the brand name. Aliases belong here, in the untracked file, never in tracked code."""
     file = Path(path or os.getenv("LOCAL_BRANDS_FILE") or DEFAULT_LOCAL_BRANDS_FILE)
     if not file.exists():
         return {}
@@ -63,11 +72,24 @@ def load_local_brands(path: Path | str | None = None) -> dict[str, list[str]]:
         data = json.loads(file.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"{file.name} is not valid JSON: {exc}") from exc
-    if not isinstance(data, dict) or not all(
-        isinstance(k, str) and isinstance(v, list) and all(isinstance(d, str) for d in v) for k, v in data.items()
-    ):
-        raise ValueError(f'{file.name} must be {{"brand": ["domain", ...], ...}}')
-    return {k.lower(): [d.lower() for d in v] for k, v in data.items()}
+    shape = f'{file.name} must be {{"brand": ["domain", ...] | {{"domains": [...], "aliases": [...]}}, ...}}'
+    if not isinstance(data, dict):
+        raise ValueError(shape)
+    out: dict[str, list[str]] = {}
+    for name, value in data.items():
+        if not isinstance(name, str):
+            raise ValueError(shape)
+        if isinstance(value, dict):
+            domains, aliases = _domains(value.get("domains")), value.get("aliases", [])
+            if domains is None or not isinstance(aliases, list) or not all(isinstance(a, str) and a.strip() for a in aliases):
+                raise ValueError(shape)
+        else:
+            domains, aliases = _domains(value), []
+            if domains is None:
+                raise ValueError(shape)
+        for key in [name, *aliases]:
+            out[key.strip().lower()] = domains
+    return out
 
 
 def build_known_brands(local_path: Path | str | None = None) -> dict[str, list[str]]:

@@ -1,0 +1,10 @@
+Received: from mail.applevalleydental.example.org (mail.applevalleydental.example.org [198.51.100.93]) by mx.example.org with ESMTPS; Tue, 15 Sep 2026 10:00:05 +0000
+From: "Apple Valley Dental" <office@applevalleydental.example.org>
+To: Test Recipient <recipient@example.com>
+Subject: Your appointment reminder
+Date: Tue, 15 Sep 2026 10:00:00 +0000
+Message-ID: <remind.24@applevalleydental.example.org>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>This is a reminder of your appointment on Friday.</p><p><a href="https://www.applevalleydental.example.org/appointments">Manage your appointment</a></p></body></html>

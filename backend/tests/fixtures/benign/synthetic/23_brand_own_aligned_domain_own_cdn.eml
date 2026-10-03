@@ -1,0 +1,11 @@
+Received: from mta1.brandly.co.uk (mta1.brandly.co.uk [198.51.100.92]) by mx.example.org with ESMTPS; Tue, 15 Sep 2026 09:00:05 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=brandly.co.uk; dkim=pass header.d=brandly.co.uk; dmarc=pass header.from=brandly.co.uk
+From: "Brandly" <hello@brandly.co.uk>
+To: Test Recipient <recipient@example.com>
+Subject: Your Brandly receipt
+Date: Tue, 15 Sep 2026 09:00:00 +0000
+Message-ID: <receipt.23@brandly.co.uk>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Thanks for your order.</p><p><a href="https://www.brandly.co.uk/orders/23">View your order</a></p><img src="https://cdn.brandly-assets.co.uk/img/logo.png"><img src="https://cdn.brandly-assets.co.uk/img/hero.png"><img src="https://cdn.brandly-assets.co.uk/img/footer.png"></body></html>
