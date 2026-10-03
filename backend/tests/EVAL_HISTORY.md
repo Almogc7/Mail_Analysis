@@ -60,3 +60,6 @@ The 11 CONFIGURED "missed" are phishing samples whose OWN domain passes aligned 
 | e1: family floor + C1 demoted to MEDIUM | susp / susp | inconclusive / inconclusive | 0 flagged, 5 inconclusive / same | 0 / 0 / **75** / 0 | 0 / 18 / 46 / 11 | 0 / 15 / 0 | 8 / 7 / 0 |
 
 e1 cost: tuning STRICT flagged 9 -> 0 (all nine were bare display-name claims: one family, now inconclusive and still visible to the analyst). Predicted in the design doc.
+| e2: sender family S2 (local submission) + S3 (brand on freemail) | susp / susp | inconclusive / inconclusive | 1 flagged (s03), 4 inconclusive / same | 0 / 0 / 75 / 0 | 0 / 18 / 46 / 11 | 0 / 15 / 0 | 8 / 7 / 0 |
+
+e2: iteration 0 (design unchanged). S2/S3 do not move the tuning counts: on their own they are one family. Ablated Kvish still needs a second family (link/claim) to flag. Tuning iterations used: 0 / 5.

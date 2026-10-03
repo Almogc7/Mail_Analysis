@@ -232,6 +232,41 @@ def _identity_findings(identity: dict) -> list[Finding]:
             )
         )
 
+    local = identity["local_submission"]
+    if local["suspected"]:
+        findings.append(
+            Finding(
+                module=MODULE_NAME,
+                severity="low",
+                title="Message entered by local submission",
+                description=(
+                    "The first hop is a local submission (not authenticated SMTP): the message was injected by a process on "
+                    f"'{local['hop']['by_host']}' rather than submitted by an authenticated mail client. Common for a website's "
+                    "own contact-form mail, so it is a weak signal that only matters together with evidence from another family."
+                ),
+                # S2 (docs/DETECTION_DESIGN.md): family 'sender', weak
+                evidence={**local, "structural": True, "family": "sender", "signal": "S2"},
+                weight=6.0,
+            )
+        )
+
+    freemail = identity["freemail_brand"]
+    if freemail["suspected"]:
+        findings.append(
+            Finding(
+                module=MODULE_NAME,
+                severity="medium",
+                title="Brand display name on a free mailbox",
+                description=(
+                    f"The display name claims '{freemail['claimed_brand']}' but the sender is a free consumer mailbox "
+                    f"('{freemail['actual_domain']}'), where anyone can choose any display name."
+                ),
+                # S3 (docs/DETECTION_DESIGN.md): family 'sender'
+                evidence={**freemail, "structural": True, "family": "sender", "signal": "S3"},
+                weight=10.0,
+            )
+        )
+
     return findings
 
 

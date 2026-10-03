@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "note": "Free consumer mailbox providers: anyone can open an account and choose the display name. Used by the sender-family signal S3 (a brand display name on a freemail address). Matching is by host suffix: an entry matches the domain itself and every subdomain. Generic public providers only.",
+  "domains": [
+    "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "hotmail.co.uk", "hotmail.fr", "hotmail.de", "live.com", "msn.com",
+    "yahoo.com", "yahoo.co.uk", "yahoo.fr", "yahoo.de", "yahoo.co.jp", "ymail.com", "rocketmail.com", "aol.com", "icloud.com", "me.com",
+    "mac.com", "proton.me", "protonmail.com", "pm.me", "tutanota.com", "tuta.io", "mail.ru", "inbox.ru", "list.ru", "bk.ru", "yandex.ru",
+    "yandex.com", "ya.ru", "gmx.com", "gmx.de", "gmx.net", "web.de", "t-online.de", "freenet.de", "qq.com", "163.com", "126.com",
+    "sina.com", "zoho.com", "mail.com", "email.com", "inbox.com", "rediffmail.com", "libero.it", "orange.fr", "free.fr", "wanadoo.fr",
+    "laposte.net", "walla.co.il", "walla.com", "012.net.il", "netvision.net.il", "bezeqint.net", "gmail.co.il"
+  ]
+}

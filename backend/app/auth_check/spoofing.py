@@ -1,9 +1,32 @@
+import json
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from app.contracts.email import EmailAddress, ParsedEmail
 from app.shared.brands import KNOWN_BRANDS
 from app.parser.preprocess import clean_subject
 from app.shared.matching import domain_matches_any, find_brand_matches, registrable_domain
+
+
+FREEMAIL_FILE = Path(__file__).resolve().parents[1] / "shared" / "freemail_domains.json"
+
+
+@lru_cache(maxsize=1)
+def load_freemail_domains() -> frozenset[str]:
+    """Free consumer mailbox providers, from a config file (not hardcoded)."""
+    data = json.loads(FREEMAIL_FILE.read_text(encoding="utf-8"))
+    domains = data.get("domains") if isinstance(data, dict) else None
+    if not isinstance(domains, list) or not all(isinstance(d, str) and d.strip() for d in domains):
+        raise ValueError(f'{FREEMAIL_FILE.name} must be {{"domains": ["example.com", ...]}}')
+    return frozenset(d.strip().strip(".").lower() for d in domains)
+
+
+def is_freemail(domain: str | None) -> bool:
+    if not domain:
+        return False
+    domain = domain.strip(".").lower()
+    return any(domain == d or domain.endswith("." + d) for d in load_freemail_domains())
 
 
 def _domain_mismatch(a: EmailAddress | None, b: EmailAddress | None) -> dict[str, Any]:
@@ -121,6 +144,30 @@ def _check_hosting_fqdn_sender(parsed: ParsedEmail) -> dict[str, Any]:
     return result
 
 
+def _check_local_submission(parsed: ParsedEmail) -> dict[str, Any]:
+    """S2: the message ENTERED the mail system by local submission (Exim 'with local', Postfix 'from userid') and not by
+    authenticated SMTP. The first hop is the LAST Received header. Common for a site's own contact-form mail, so it is
+    a weak, one-family signal that only matters with corroboration."""
+    result: dict[str, Any] = {"suspected": False, "hop": None}
+    if not parsed.received_chain:
+        return result
+    first = parsed.received_chain[-1]
+    if first.is_local_submission and not first.authenticated:
+        result.update(suspected=True, hop={"protocol": first.protocol, "by_host": first.by_host, "envelope_from": first.envelope_from})
+    return result
+
+
+def _check_freemail_brand(parsed: ParsedEmail, display_name_spoofing: dict[str, Any]) -> dict[str, Any]:
+    """S3: a free consumer mailbox whose display name carries a brand it does not belong to."""
+    freemail = is_freemail(parsed.from_.domain)
+    return {
+        "suspected": bool(freemail and display_name_spoofing.get("suspected")),
+        "freemail": freemail,
+        "claimed_brand": display_name_spoofing.get("claimed_brand") if freemail else None,
+        "actual_domain": parsed.from_.domain,
+    }
+
+
 def check_identity_mismatch(parsed: ParsedEmail) -> dict[str, Any]:
     from_return_path = _domain_mismatch(parsed.from_, parsed.return_path)
     from_reply_to = _domain_mismatch(
@@ -141,4 +188,6 @@ def check_identity_mismatch(parsed: ParsedEmail) -> dict[str, Any]:
         },
         "display_name_spoofing": display_name_spoofing,
         "hosting_fqdn_sender": _check_hosting_fqdn_sender(parsed),
+        "local_submission": _check_local_submission(parsed),
+        "freemail_brand": _check_freemail_brand(parsed, display_name_spoofing),
     }
