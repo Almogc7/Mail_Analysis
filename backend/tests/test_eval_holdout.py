@@ -59,16 +59,34 @@ def test_final_holdout_logs_before_and_after_and_prints_aggregates_only(corpus, 
     log = tmp_path / "HOLDOUT_LOG.md"
     assert _run("--final-holdout", "--corpus-dir", str(corpus), "--holdout-log", str(log)) == 0
     out = capsys.readouterr().out
-    lines = [l for l in log.read_text(encoding="utf-8").splitlines() if l.startswith("- ")]
-    assert len(lines) == 2
+    text = log.read_text(encoding="utf-8")
+    lines = [l for l in text.splitlines() if l.startswith("- ")]
+    assert len(lines) == 3  # one start line, then one aggregate result line per mode
     assert "FINAL HOLD-OUT run started" in lines[0] and "n=2" in lines[0] and "UTC" in lines[0] and "HEAD" in lines[0]
-    assert "result" in lines[1] and "flagged(strict)=" in lines[1]
+    assert "modes=strict,configured" in lines[0]
+    assert "mode=strict" in lines[1] and "mode=configured" in lines[2] and all("flagged=" in l and "inconclusive=" in l for l in lines[1:])
     # only the hold-out set was evaluated, and nothing identifying leaks anywhere
     assert analyzed and all("holdout" in p.parts for p in analyzed)
     for secret in (*HOLDOUT_NAMES, "05_spf_only"):
-        assert secret not in out and secret not in log.read_text(encoding="utf-8")
-    assert "recall strict" in out and "aggregate only" in out
+        assert secret not in out and secret not in text
+    assert "STRICT" in out and "CONFIGURED" in out and "aggregate only" in out and "both modes, as pre-registered" in out
+    assert "NOT representative of mail that passed a gateway" in out
     assert "fixture" not in out.lower().split("aggregate")[0]  # no per-sample table
+
+
+def test_the_final_run_refuses_to_report_only_one_mode(corpus, tmp_path, capsys):
+    log = tmp_path / "HOLDOUT_LOG.md"
+    assert _run("--final-holdout", "--mode", "configured", "--corpus-dir", str(corpus), "--holdout-log", str(log)) == 2
+    assert "both modes" in capsys.readouterr().err and not log.exists()
+
+
+def test_the_two_mode_report_is_pre_registered_in_the_tracked_log_and_in_the_generated_header():
+    tracked = ev.HOLDOUT_LOG.read_text(encoding="utf-8")
+    for text in (tracked, ev._HOLDOUT_LOG_HEADER):
+        assert "PRE-REGISTRATION" in text and "BOTH modes" in text and "STRICT" in text and "CONFIGURED" in text
+        assert "never reported in only the" in text
+    assert "written 2026-10-03, before any hold-out evaluation" in tracked
+    assert "FINAL HOLD-OUT run started" not in tracked  # the hold-out has not been evaluated
 
 
 def test_the_start_line_is_written_even_if_evaluation_crashes(corpus, tmp_path, monkeypatch):
@@ -104,15 +122,53 @@ def test_final_holdout_without_a_holdout_set_is_an_error_and_logs_nothing(tmp_pa
     assert not log.exists()
 
 
-def test_report_lists_recall_per_set_and_benign_per_source_with_no_pooled_precision(corpus, capsys):
+def test_report_shows_both_modes_side_by_side_with_counts_per_set(corpus, capsys):
     _run("--corpus-dir", str(corpus), "--no-gate")
     out = capsys.readouterr().out
-    assert "Recall -- each malicious set reported on its own" in out
+    assert "modes=strict,configured" in out and "STRICT" in out and "CONFIGURED" in out
+    assert "NOT representative of mail that passed a gateway" in out
+    assert "MALICIOUS SETS -- each reported alone" in out
     for source in ("kvish", "synthetic", "tuning_corpus"):
         assert f"  {source}" in out
-    assert "synthetic      0/15 flagged" in out and "NOT an accuracy claim" in out
-    assert "_from_user     0/0 (none -- no real benign mail)" in out
+    # every set is shown once per mode, with flagged / inconclusive / benign counts
+    assert out.count("      STRICT") >= 4 and out.count("      CONFIGURED") >= 4
+    assert "flagged" in out and "inconclusive" in out and "benign(legit)" in out
+    assert "inconclusive rate 0/15" in out and "triage-queue cost" in out
+
+
+def test_a_single_mode_can_be_requested_for_quick_runs(corpus, capsys):
+    _run("--mode", "strict", "--corpus-dir", str(corpus), "--no-gate")
+    out = capsys.readouterr().out
+    assert "modes=strict" in out and "      STRICT" in out and "      CONFIGURED" not in out
+
+
+def test_benign_sources_are_labelled_synthetic_and_the_real_slot_is_visibly_empty(corpus, capsys):
+    _run("--corpus-dir", str(corpus), "--no-gate")
+    out = capsys.readouterr().out
+    assert "SYNTHETIC ONLY" in out and "NOT an accuracy claim" in out
+    assert "0/0 (none -- no real benign mail)" in out
     assert out.count("REAL-WORLD PRECISION IS NOT ESTABLISHED") == 1
-    assert "SYNTHETIC ONLY" in out and "real-world precision is not established" in out
-    assert "No combined precision/recall is printed" in out
-    assert "precision=" not in out and "TP=" not in out
+    assert "No combined precision/recall is printed" in out and "precision=" not in out and "TP=" not in out
+
+
+def test_configured_patterns_come_from_untracked_config_and_are_validated(monkeypatch):
+    monkeypatch.delenv("EVAL_CONFIGURED_TRUSTED_RECEIVERS", raising=False)
+    assert ev.configured_patterns() == ev.DEFAULT_CONFIGURED_PATTERNS and "default" in ev.configured_source()
+    # the env var holds JSON, so each regex backslash is doubled in the string (as in .env.example)
+    monkeypatch.setenv("EVAL_CONFIGURED_TRUSTED_RECEIVERS", r'["^gw\\.example\\.org$"]')
+    assert ev.configured_patterns() == [r"^gw\.example\.org$"] and "untracked config" in ev.configured_source()
+    monkeypatch.setenv("EVAL_CONFIGURED_TRUSTED_RECEIVERS", '"not a list"')
+    with pytest.raises(ValueError):
+        ev.configured_patterns()
+
+
+def test_apply_mode_sets_exactly_what_each_mode_means(monkeypatch):
+    import app.config as cfg
+
+    monkeypatch.delenv("EVAL_CONFIGURED_TRUSTED_RECEIVERS", raising=False)
+    ev.apply_mode("strict")
+    assert cfg.TRUSTED_RECEIVER_PATTERNS == []
+    ev.apply_mode("configured")
+    assert cfg.TRUSTED_RECEIVER_PATTERNS == ev.DEFAULT_CONFIGURED_PATTERNS
+    ev.apply_mode("strict")
+    assert cfg.TRUSTED_RECEIVER_PATTERNS == []  # modes do not leak into each other

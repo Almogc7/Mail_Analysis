@@ -1,6 +1,6 @@
 """Error analysis over the TUNING split: what evidence exists in the samples the pipeline misses?
 
-    cd backend && python -m tests.error_analysis [--ablate-seeds] [--trusted-receivers fixtures|none]
+    cd backend && python -m tests.error_analysis [--ablate-seeds] [--mode strict|configured]
 
 AGGREGATES ONLY. The output is counts and percentages per evidence bucket: never a subject, address, URL,
 host, file name, or any content. Only the tuning split is read (a path containing 'holdout' is refused).
@@ -363,7 +363,8 @@ def report(rows: list[tuple[str, set[str], str, list[str]]], out) -> None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ablate-seeds", action="store_true")
-    ap.add_argument("--trusted-receivers", choices=("fixtures", "none"), default="fixtures")
+    ap.add_argument("--mode", choices=("strict", "configured"), default="strict",
+                    help="trust mode, as in tests.eval: strict = nothing trusted; configured = the corpus collector's headers trusted")
     ap.add_argument("--corpus-dir", type=Path, help=argparse.SUPPRESS)  # tests only
     args = ap.parse_args(argv)
     if hasattr(sys.stdout, "reconfigure"):
@@ -380,11 +381,10 @@ def main(argv: list[str] | None = None) -> int:
         print("error_analysis: no tuning corpus found (run scripts/select_corpus.py)", file=sys.stderr)
         return 1
 
-    import app.config as app_config
-    from tests.eval import FIXTURE_TRUSTED_RECEIVERS, _ablate_seeds
+    from tests.eval import HEADER_NOTE, _ablate_seeds, apply_mode
     from app.feedback import signal_names
 
-    app_config.TRUSTED_RECEIVER_PATTERNS = list(FIXTURE_TRUSTED_RECEIVERS) if args.trusted_receivers == "fixtures" else []
+    apply_mode(args.mode)
     if args.ablate_seeds:
         _ablate_seeds()
 
@@ -393,8 +393,8 @@ def main(argv: list[str] | None = None) -> int:
         result, parsed = analyze_sample(path)
         feats, profile = features(parsed, result)
         rows.append((result.verdict, feats, profile, signal_names(result)))
-    print(f"error analysis -- TUNING split only, aggregates only (ablate_seeds={args.ablate_seeds}, "
-          f"trusted_receivers={args.trusted_receivers})")
+    print(f"error analysis -- TUNING split only, aggregates only (ablate_seeds={args.ablate_seeds}, mode={args.mode.upper()})")
+    print(f"note: {HEADER_NOTE}")
     report(rows, sys.stdout)
     return 0
 
