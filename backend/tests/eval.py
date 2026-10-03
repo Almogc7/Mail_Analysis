@@ -118,6 +118,7 @@ class Row:
     score: int = 0
     priority: float = 0.0
     reason: str | None = None  # inconclusive sub-reason
+    signals: list[str] = field(default_factory=list)  # structural signal ids that fired, e.g. S2, L1
     confidence: float = 0.0
     coverage: dict[str, float] = field(default_factory=dict)
     overrides: list[str] = field(default_factory=list)
@@ -201,6 +202,7 @@ def _row_for(path: Path, label: str, source: str, enrichment_mode: str) -> Row:
         return row
     row.verdict, row.score, row.confidence = res.verdict, res.score, res.confidence
     row.priority, row.reason = res.scoring.priority, res.scoring.inconclusive_reason
+    row.signals = sorted({f.evidence["signal"] for f in res.findings if f.evidence.get("structural") and f.evidence.get("signal")})
     row.coverage = {c.category: round(c.coverage, 2) for c in res.scoring.categories}
     row.overrides = [o.rule for o in res.scoring.applied_overrides]
     row.top_findings = [f"{f.severity}:{f.title[:60]}" for f in res.findings if f.severity != "info"][:3]
@@ -311,6 +313,18 @@ def _reason_split(rows: list["Row"]) -> str:
     signals = sum(r.reason == "signals_present" for r in rows if r.verdict == "needs_review")
     none = sum(r.reason == "no_signals_insufficient_evidence" for r in rows if r.verdict == "needs_review")
     return f"[inconclusive: signals present {signals} / no signals {none}]" if signals + none else ""
+
+
+SIGNAL_FAMILY = {"S1": "sender", "S2": "sender", "S3": "sender", "L1": "link", "L2": "link", "L3": "link",
+                 "C1": "claim", "C1b": "claim", "C2": "claim", "C3": "claim"}
+
+
+def _signal_counts(rows: list["Row"]) -> str:
+    """Samples in which each structural signal fired, plus samples carrying >= 1 / >= 2 different families."""
+    per_signal = {sig: sum(sig in r.signals for r in rows) for sig in SIGNAL_FAMILY}
+    fired = "  ".join(f"{sig} {n}" for sig, n in per_signal.items() if n) or "none"
+    fams = [len({SIGNAL_FAMILY[s] for s in r.signals}) for r in rows]
+    return f"signals(samples): {fired}   | families: >=1 {sum(f >= 1 for f in fams)}, >=2 {sum(f >= 2 for f in fams)}"
 
 
 def auc(positives: list[float], negatives: list[float]) -> float | None:
@@ -448,6 +462,15 @@ def main(argv: list[str] | None = None) -> int:
             metrics[mode]["benign"][src] = counts
             rate = f"   inconclusive rate {counts['inconclusive']}/{counts['n']}   {_reason_split(rows)}" if counts["n"] else ""
             print(f"      {mode.upper():10} " + (_fmt_benign(counts) + rate if counts["n"] else "0/0 (none -- no real benign mail)"))
+
+    print()
+    print("STRUCTURAL SIGNALS -- how many samples each fired in (per-family counts; a sample counts once per signal)")
+    for key in sorted({k for t in tables.values() for k in t}):
+        if not tables[modes[0]].get(key):
+            continue
+        print(f"  {key[0]}/{key[1]}")
+        for mode in modes:
+            print(f"      {mode.upper():10} {_signal_counts(tables[mode][key])}")
 
     print()
     print("RANKING SANITY CHECK -- queue priority of the tuning phish vs the SYNTHETIC benign set. A sanity check only:")

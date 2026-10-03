@@ -66,3 +66,6 @@ e2: iteration 0 (design unchanged). S2/S3 do not move the tuning counts: on thei
 | iteration 1: benign needs a known sender + complete enrichment | susp / susp | inconclusive / inconclusive | 1 flagged, 4 inconclusive (signals present) / same | 0 flagged / 75 inconclusive (60 signals, 15 none) / 0 missed | 18 flagged / 57 inconclusive (41 signals, 16 none) / **0 missed** | 0 / 15 / 0 | 6 / 9 / 0 |
 
 Iteration 1 ranking sanity check (tuning phish vs SYNTHETIC benign priority; a sanity check only): STRICT AUC 0.845, 0.80 of phish above the benign median; CONFIGURED AUC 0.852, 0.79. Tuning iterations used: 1 / 5.
+| e3: link family L1-L3 (+6 benign link guards, n=21) | susp / susp | **susp / susp (S2+L1+L2: sender+link)** | 1 flagged, 4 inconclusive / same | 1 flagged / 74 inconclusive / 0 missed | 18 flagged / 57 inconclusive / 0 missed | 0 / 21 / 0 | 6 / 15 / 0 |
+
+e3 per-family signal counts (tuning, n=75): S2 5, L2 4, L3 10, C1 9, L1 0; >= 2 families: 1. Synthetic benign (n=21): S2 4, L1 1, no sample with 2 families. Ranking sanity (synthetic benign n=21): STRICT AUC 0.799, CONFIGURED 0.831. Iterations used: 1 / 5 (D5 not counted).

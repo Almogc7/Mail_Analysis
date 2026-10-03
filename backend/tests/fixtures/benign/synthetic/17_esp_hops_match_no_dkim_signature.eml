@@ -1,0 +1,12 @@
+Received: from o7.ct.sendgrid.net (o7.ct.sendgrid.net [198.51.100.82]) by mx.example.org with ESMTPS; Mon, 14 Sep 2026 11:00:05 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=bounce.shop.example.com
+From: "Example Shop" <hello@shop.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: Your order has shipped
+Date: Mon, 14 Sep 2026 11:00:00 +0000
+Message-ID: <ship.17@shop.example.com>
+Return-Path: <bounce-17@bounce.shop.example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Your order has shipped.</p><p><a href="https://u9988776.ct.sendgrid.net/ls/click?upn=def">Track your parcel</a></p></body></html>

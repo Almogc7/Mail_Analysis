@@ -1,0 +1,13 @@
+Received: from o3.ct.sendgrid.net (o3.ct.sendgrid.net [198.51.100.81]) by mx.example.org with ESMTPS; Mon, 14 Sep 2026 10:00:05 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=bounce.mail.example.com; dkim=pass header.d=mail.example.com; dmarc=pass header.from=mail.example.com
+DKIM-Signature: v=1; a=rsa-sha256; d=mail.example.com; s=s1; h=from:to:subject; bh=AAAAAAAAAAAA; b=BBBBBBBBBBBB
+From: "Example Weekly" <news@mail.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: Your September digest
+Date: Mon, 14 Sep 2026 10:00:00 +0000
+Message-ID: <digest.16@mail.example.com>
+Return-Path: <bounce-16@bounce.mail.example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Here is your September digest.</p><p><a href="https://u4412345.ct.sendgrid.net/ls/click?upn=abc">Read the digest</a></p><img src="https://img.mail.example.com/logo.png"><img src="https://img.mail.example.com/banner.png"></body></html>

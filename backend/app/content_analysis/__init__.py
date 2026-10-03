@@ -1,3 +1,4 @@
+from app.content_analysis.links import link_findings
 from app.content_analysis.brand_impersonation import check_brand_url_mismatch, detect_brand_in_body
 from app.content_analysis.text_utils import LanguageInfo, detect_language, get_searchable_text
 from app.content_analysis.urgency import detect_urgency
@@ -132,6 +133,8 @@ def run_content_analysis(parsed: ParsedEmail) -> ModuleResult:
     greeting = _find_generic_greeting(text)
     if greeting and urgency_matches:
         findings.append(_greeting_mismatch_finding(greeting, urgency_matches))
+
+    findings.extend(link_findings(parsed))  # family 'link' (L1-L3), see content_analysis/links.py
 
     language = detect_language(text)
     if (language_finding := _language_finding(language)) is not None:

@@ -79,7 +79,7 @@ legitimate patterns the rule is written NOT to fire on; each has a benign fixtur
 
 | ID | Rule | Sev / weight | Documented technique | Near-miss exemptions |
 |---|---|---|---|---|
-| `L1` platform-mismatched click tracker | A clickable link targets an ESP click tracker (shared-platforms kind `esp_tracker`) AND nothing in the headers shows the message used that platform: no platform host in Received/Return-Path/List-Unsubscribe/Message-ID/DKIM `d=`, no known ESP header marker, and no branded bounce subdomain (a Return-Path that is a `bounce*` mailbox on a subdomain of the From domain, the normal way ESPs are CNAME-branded) | medium / 8 | A tracked link borrows a reputable platform's domain while the mail was not sent through it, to launder reputation | mail really sent through the ESP (any of the evidence above) never fires; Safe Links/Proofpoint wrappers are `link_wrapper`, not `esp_tracker` |
+| `L1` platform-mismatched click tracker | A clickable link targets an ESP click tracker (shared-platforms kind `esp_tracker`, which only says what IS a tracker) AND the OBSERVED SENDING PATH shows no trace of that platform: its name or registrable domain appears in none of the Received hop hosts, DKIM `d=`, envelope domains (Return-Path, Received-SPF, hop envelope-from), List-Unsubscribe hosts or the Message-ID domain. **Carve-out (D5):** not judged when the path is aligned with the From domain (DKIM d= or envelope on it) AND the message came in over the network, which is the standard branded-ESP setup. A local-submission origin is never carved out. No sending path at all = no judgement | medium / 8 | A tracked link borrows a reputable platform's domain while the mail was not sent through it | mail really sent through the ESP (any trace) never fires; branded-ESP sends over the network never fire; Safe Links/Proofpoint wrappers are `link_wrapper`, not `esp_tracker`; own-domain tracking hosts are not platform hosts |
 | `L2` hot-linked third-party assets | >= 2 images and >= 50% of image hosts are one non-platform registrable domain X that is not the sender's AND X ALSO hosts some of the message's links (or its label is a token of the display name/subject) | low / 5 | Cloned newsletters keep the original vendor's assets and tracking links while only the visible sender changes | images from an unrelated CDN or stock site that the links do not use never fire; images on the sender's own domain or a shared platform never fire |
 | `L3` redirector chain | A link is a known URL shortener, or carries another full URL in its query that points at a different registrable domain, excluding `link_wrapper`/`esp_tracker` hosts | low / 5 | Open redirects and shorteners hide the real destination and borrow reputation | gateway wrappers (Safe Links, Proofpoint, Mimecast) and ESP trackers are excluded; links back to the sender's own domain are excluded |
 
@@ -142,7 +142,7 @@ per-family signal counts on the tuning set and on the fixtures.
 
 ## Iteration log
 
-Tuning iterations used: **1 / 5**.
+Tuning iterations used: **1 / 5** (D5 below was made before L1 fired on any tuning sample and is not counted).
 
 | # | Date | Change | Reason | Tuning effect (aggregate) |
 |---|---|---|---|---|
@@ -156,8 +156,8 @@ at tuning results.
 
 | # | Pre-registered prediction | Result so far | Status |
 |---|---|---|---|
-| 1 | Kvish with seeds ablated reaches >= SUSPICIOUS from structural signals alone, both modes | Not yet: ablated Kvish is inconclusive (only the sender family, S2, fires). The link and claim signals are not implemented yet | **PENDING** (decided when L1-L3 land; if it misses it is reported, weights are not adjusted) |
-| 2 | Every benign fixture stays below SUSPICIOUS in both modes | Holds: 0 of 15 flagged in STRICT and CONFIGURED | holds |
+| 1 | Kvish with seeds ablated reaches >= SUSPICIOUS from structural signals alone, both modes | **Met** after the link family: ablated Kvish is `suspicious` in STRICT and CONFIGURED via `structural_corroboration_floor` from S2 (sender) + L1 + L2 (link); no claim-family signal and no brand list contributed. No weight was changed to get there | **MET** |
+| 2 | Every benign fixture stays below SUSPICIOUS in both modes | Holds: 0 of 21 flagged in STRICT and CONFIGURED (15 original + 6 link-family guards) | holds |
 | 3 | s01, s02, s04, s05 become inconclusive; s03 stays flagged | Holds exactly after S3 landed. Between the floor commit and the sender-family commit s03 was also inconclusive, because S3 did not exist yet | holds (see D1) |
 | 4 | "Tuning recall rises by an amount I will not predict" | **Wrong in direction.** Tuning flagged fell: STRICT 9 -> 0, CONFIGURED 25 -> 18 | **DEVIATION D2** |
 
@@ -177,3 +177,20 @@ Deviations, each with its reason:
 * **D4 -- reporting additions.** The inconclusive sub-reason, the queue priority and a ranking sanity check (AUC and
   fraction above the synthetic-benign median) are added to the eval tables. They were not in the original reporting
   section. The ranking check is a sanity check only: the benign side is synthetic.
+* **D5 -- L1 carve-out for branded ESP sending.** The registered L1 rule exempted a "branded bounce subdomain"; the first
+  implementation (following the instruction to judge against the observed sending path) dropped it and fired on the
+  hand-written ESP fixtures `03` and `04`, whose path is on the sender's own domain (CNAME'd return-path, branded relay).
+  Vendors document that setup as the default, so the platform's name being absent from the path is expected, not
+  evidence. The carve-out is: path aligned with the From domain AND network origin. A local-submission origin is never
+  carved out. Made before L1 fired on any tuning sample (it fires on 0 of 75), so it is not a tuning iteration.
+  Known leftover: fixture `04` (no DKIM, no return-path, relay not on the sender's domain) still fires L1 alone: one
+  family, inconclusive, never flagged. Known blind spot: an attacker on their own VPS with a branded-looking path who
+  copied a template's ESP links is not caught by L1.
+
+## Link-family results (2026-10-03, tuning set, aggregates)
+
+* Samples in which each signal fired (tuning, n=75): S2 5, L1 0, L2 4, L3 10, C1 9. Samples with signals from >= 2 families: **1**.
+* So the sender and link families add almost nothing to recall on the public corpus: STRICT flagged is 1/75, CONFIGURED
+  18/75 (the 18 come from trusted gateway authentication failures, not from structure). The structural families
+  separate the Kvish-type lure (shared-hosting origin + borrowed tracker + cloned assets) and little else in this sample.
+* Synthetic benign (n=21): S2 fires in 4, L1 in 1; none carries two families.

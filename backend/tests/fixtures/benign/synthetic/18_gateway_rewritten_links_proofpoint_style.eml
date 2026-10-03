@@ -1,0 +1,12 @@
+Received: from mail.partner.example.net (mail.partner.example.net [198.51.100.83]) by mx.example.org with ESMTPS; Mon, 14 Sep 2026 12:00:05 +0000
+Authentication-Results: mx.example.org; spf=pass smtp.mailfrom=partner.example.net; dkim=pass header.d=partner.example.net; dmarc=pass header.from=partner.example.net
+DKIM-Signature: v=1; a=rsa-sha256; d=partner.example.net; s=sel; h=from:to:subject; bh=CCCCCCCCCCCC; b=DDDDDDDDDDDD
+From: "A. Partner" <a.partner@partner.example.net>
+To: Test Recipient <recipient@example.com>
+Subject: Shared document for review
+Date: Mon, 14 Sep 2026 12:00:00 +0000
+Message-ID: <doc.18@partner.example.net>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Please review the document.</p><p><a href="https://urldefense.com/v3/__https://docs.partner.example.net/review/42__;!!abc$">Open the document</a></p><p><a href="https://urldefense.proofpoint.com/v2/url?u=https-3A__www.partner.example.net_terms&d=DwMF">Terms</a></p><p><a href="https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.partner.example.net%2Fagenda&data=05">Agenda</a></p></body></html>

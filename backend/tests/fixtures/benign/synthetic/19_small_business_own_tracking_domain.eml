@@ -1,0 +1,13 @@
+Received: from host12.hosting.example.net (host12.hosting.example.net [198.51.100.84]) by mx.example.org with ESMTP; Mon, 14 Sep 2026 13:00:05 +0000
+Received: from shopowner by host12.hosting.example.net with local (Exim 4.96)
+	(envelope-from <shopowner@host12.hosting.example.net>)
+	id 1xAAAA-000000-1A; Mon, 14 Sep 2026 13:00:00 +0000
+From: "Corner Bakery" <hello@cornerbakery.example.com>
+To: Test Recipient <recipient@example.com>
+Subject: This week at the bakery
+Date: Mon, 14 Sep 2026 13:00:00 +0000
+Message-ID: <news.19@host12.hosting.example.net>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>New sourdough on Thursday.</p><p><a href="https://track.cornerbakery.example.com/c/abc123?to=menu">See the menu</a></p><img src="https://www.cornerbakery.example.com/img/loaf.jpg"><img src="https://www.cornerbakery.example.com/img/shop.jpg"></body></html>

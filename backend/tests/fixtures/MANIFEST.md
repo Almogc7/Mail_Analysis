@@ -29,6 +29,12 @@ pre-commit hook) must pass before committing.
 | `benign/synthetic/13_nearmiss_fibonacci_books.eml` | benign (synthetic, near-miss name) | Hand-written for this repo. Not real mail. | `0516852bda4d705f35922a7148f157e51cbd77148c0a53e409a21a7e2a63eed8` | n/a (hand-written) |
 | `benign/synthetic/14_nearmiss_grapple_fitness.eml` | benign (synthetic, near-miss name) | Hand-written for this repo. Not real mail. | `de36f630ecf2de9fc04a76552136869f50b78d9d9c746babbf824d3a990d98a2` | n/a (hand-written) |
 | `benign/synthetic/15_nearmiss_discount_tires.eml` | benign (synthetic, near-miss name) | Hand-written for this repo. Not real mail. | `6249f6b340bcc8bc00c10cd8207d33874335c19696d9b7152a594b44e4737f10` | n/a (hand-written) |
+| `benign/synthetic/16_esp_hops_and_tracker_match.eml` | benign (synthetic, link-family guard) | Hand-written for this repo. Not real mail. | `2a2ebec33d198be7c3f3842dc9ee25679118e9740ec265f6aa615d74ad1443c1` | n/a (hand-written) |
+| `benign/synthetic/17_esp_hops_match_no_dkim_signature.eml` | benign (synthetic, link-family guard) | Hand-written for this repo. Not real mail. | `d0c8065b65d325322d71a1279d8c82b6aa254d7a758740ab62a08b0c80a77ce9` | n/a (hand-written) |
+| `benign/synthetic/18_gateway_rewritten_links_proofpoint_style.eml` | benign (synthetic, link-family guard) | Hand-written for this repo. Not real mail. | `853d12f21ea60f13c113254367fdeb5dfd2ab4ec91f158ff634c76036eaf1915` | n/a (hand-written) |
+| `benign/synthetic/19_small_business_own_tracking_domain.eml` | benign (synthetic, link-family guard) | Hand-written for this repo. Not real mail. | `e0335bb4cd7d2c3778c48b7012e5c49dcc8f537143dced0867bf42315a4dfe88` | n/a (hand-written) |
+| `benign/synthetic/20_small_business_newsletter_unrelated_cdn_images.eml` | benign (synthetic, link-family guard) | Hand-written for this repo. Not real mail. | `4b1b088fd73b0e91dae8bfdef9880c77890441e56c8e09dbb19991527b0f8a53` | n/a (hand-written) |
+| `benign/synthetic/21_small_business_own_redirector_domain.eml` | benign (synthetic, link-family guard) | Hand-written for this repo. Not real mail. | `e487da7277b610ca111213652c864ffb9cf36e35a3db8b220b1abd72b2f8b5b8` | n/a (hand-written) |
 
 ### Sanitization of `kvish6_invoice_phish.eml`
 
