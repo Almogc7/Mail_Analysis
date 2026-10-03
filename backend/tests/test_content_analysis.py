@@ -43,10 +43,11 @@ def test_brand_impersonation_in_body_detected():
     assert finding.evidence["mismatches"][0]["domain"] == "totally-fake.ru"
 
 
-def test_clean_email_produces_no_content_findings():
+def test_clean_email_produces_no_scoring_content_findings():
     result = _analyze("clean_legit.eml")
 
-    assert result.findings == []
+    # Nothing that scores. A short message may carry an informational language note (weight 0), nothing else.
+    assert [f for f in result.findings if f.severity != "info" or f.weight > 0] == []
 
 
 def test_brand_mention_with_plain_esp_link_does_not_trigger_impersonation_finding():
@@ -70,9 +71,10 @@ def test_spoofed_display_name_fixture_has_no_extra_content_findings():
 # --- script coverage (found via a real Hebrew phishing email that scored "legit") ---
 
 
-def test_estimate_script_coverage_supported_scripts_return_full_coverage():
-    # Both English and Hebrew have real phrase-list entries now, so both get full coverage.
-    assert estimate_script_coverage("Please verify your account immediately") == 1.0
+def test_estimate_script_coverage_supported_languages_return_full_coverage():
+    # English and Hebrew have real phrase-list entries, so both get full coverage -- given enough text to tell.
+    english = "Please verify your account immediately because we have noticed that you are not able to sign in to this service."
+    assert estimate_script_coverage(english) == 1.0
     assert estimate_script_coverage("אנא אשר את פרטי החשבון שלך בהקדם האפשרי לפני שהחשבון ייחסם") == 1.0
 
 
@@ -80,12 +82,13 @@ def test_estimate_script_coverage_unsupported_script_returns_reduced_coverage():
     # Russian/Cyrillic has no phrase-list entries -- coverage should reflect that the
     # heuristics genuinely can't check this content, not silently claim full confidence.
     russian = "Пожалуйста, подтвердите свою учетную запись немедленно, иначе она будет заблокирована"
-    assert estimate_script_coverage(russian) == 0.5
+    assert estimate_script_coverage(russian) == 0.25
 
 
-def test_estimate_script_coverage_short_text_not_penalized():
-    assert estimate_script_coverage("hi") == 1.0
-    assert estimate_script_coverage("") == 1.0
+def test_estimate_script_coverage_tiny_or_empty_text_is_not_full_coverage():
+    # Little or no text means content analysis had (almost) nothing to read: that is not "checked and clean".
+    assert estimate_script_coverage("hi") == 0.5
+    assert estimate_script_coverage("") == 0.25
 
 
 def test_hebrew_invoice_phishing_fixture_detects_urgency_and_reports_full_coverage():

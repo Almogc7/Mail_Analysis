@@ -1,5 +1,5 @@
 from app.content_analysis.brand_impersonation import check_brand_url_mismatch, detect_brand_in_body
-from app.content_analysis.text_utils import estimate_script_coverage, get_searchable_text
+from app.content_analysis.text_utils import LanguageInfo, detect_language, get_searchable_text
 from app.content_analysis.urgency import detect_urgency
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding, ModuleResult
@@ -80,6 +80,41 @@ def _greeting_mismatch_finding(greeting: str, urgency_matches: list[str]) -> Fin
     )
 
 
+_LANGUAGE_FINDINGS = {
+    "unsupported": (
+        "Content analysis does not cover this language",
+        "Content analysis has lexicons for English and Hebrew only. This text looks like {language} ({reason}), so the "
+        "phrase and brand heuristics were NOT applied to it. Language-agnostic signals (links, sender, headers) still "
+        "apply. Content coverage is reduced so content analysis alone can never support a benign verdict.",
+    ),
+    "none": (
+        "No readable text for content analysis",
+        "There is no readable text ({reason}). Image-only or empty messages give content analysis nothing to read, so "
+        "content coverage is reduced: a quiet content result here is absence of evidence, not evidence of safety.",
+    ),
+    "undetermined": (
+        "Content language could not be confirmed",
+        "The language of the text could not be confirmed ({reason}), so it is not known whether the English/Hebrew "
+        "heuristics apply. Content coverage is reduced accordingly.",
+    ),
+}
+
+
+def _language_finding(language: LanguageInfo) -> Finding | None:
+    template = _LANGUAGE_FINDINGS.get(language.status)
+    if template is None:
+        return None
+    title, description = template
+    return Finding(
+        module=MODULE_NAME,
+        severity="info",
+        title=title,
+        description=description.format(language=language.language, reason=language.reason),
+        evidence=language.as_dict(),
+        weight=0.0,
+    )
+
+
 def run_content_analysis(parsed: ParsedEmail) -> ModuleResult:
     text = get_searchable_text(parsed)
     findings: list[Finding] = []
@@ -98,7 +133,11 @@ def run_content_analysis(parsed: ParsedEmail) -> ModuleResult:
     if greeting and urgency_matches:
         findings.append(_greeting_mismatch_finding(greeting, urgency_matches))
 
-    raw_data = {"script_coverage": estimate_script_coverage(text)}
+    language = detect_language(text)
+    if (language_finding := _language_finding(language)) is not None:
+        findings.append(language_finding)
+    # "script_coverage" is the content-coverage value scoring reads (historical name); "language" explains it.
+    raw_data = {"script_coverage": language.coverage, "language": language.as_dict()}
     return ModuleResult(module=MODULE_NAME, status="ok", findings=findings, raw_data=raw_data)
 
 

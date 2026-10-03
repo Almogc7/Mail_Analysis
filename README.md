@@ -219,6 +219,27 @@ flagged verdict was disagreed with; `python -m app.feedback export` writes CSV. 
 self-selected by whoever reviews them, so this is a signal for finding noisy detections over time, not an
 unbiased error rate.
 
+### What the detectors can and cannot see
+
+- **Content analysis covers English and Hebrew only.** The urgency phrases, generic-greeting rules and
+  brand-in-body checks exist for those two languages. Mail in any other language is *identified* (by function
+  words, not content lexicons) but not analysed: its content coverage is reduced to 0.25, so content analysis
+  alone can never support a benign verdict, and an informational finding says so. Language-agnostic signals —
+  links, sender infrastructure, headers and authentication — still apply to every language. On the public
+  tuning sample, roughly 58% of mail with enough text was not English; no lexicons were added for other
+  languages.
+- **Not detectable with the current design:** text-only mail with no URL, no attachment and nothing
+  structural (business-email-compromise, advance-fee and sextortion-style lures); image-only mail (there is no
+  OCR, and an empty-text body gets content coverage 0.25 with a finding that says it is absence of evidence);
+  and attachment *content* (files are hashed and classified by extension, never opened).
+- **Authentication results only count from trusted receivers** (see "Authentication trust"). Out of the box
+  nothing is trusted, so SPF/DKIM/DMARC are `not_evaluated`.
+- **The eval reports two trust modes side by side.** *STRICT* trusts nothing (what a default deployment sees);
+  *CONFIGURED* trusts the headers the corpus collector's gateway wrote. The public corpus carries that
+  collector's SPF/DKIM/DMARC *failures* far more often than mail that reached a gateway-protected inbox would,
+  so CONFIGURED shows what trusting a gateway adds, **not** real-world recall. The final hold-out run reports
+  both modes (pre-registered in `backend/tests/HOLDOUT_LOG.md`).
+
 ## Testing & real-world validation
 
 The backend test suite is network-isolated via dependency injection — every module that

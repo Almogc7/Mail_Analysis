@@ -41,3 +41,6 @@ malicious fixture, so read verdicts, not percentages. Strict = `needs_review` is
 | After commit | Kvish (S / C) | Kvish seeds ablated (S / C) | Tuning flagged (S / C) | Tuning inconclusive (S / C) | Tuning benign (S / C) | Synthetic benign flagged / inconclusive (S / C) |
 |---|---|---|---|---|---|---|
 | eval modes (after (0), (g1)) | 1/1 / 1/1 | see note | 9/75 / **25/75** | 0 / 0 | 66 / 50 | 0/15, 0 inc. / 0/15, 0 inc. |
+| language-aware content coverage (en/he only; other languages and empty bodies reduce coverage) | 1/1 / 1/1 | **0/1 / 0/1** | 9/75 / 25/75 | 0 / 0 | 66 / 50 | 0/15, 0 inc. / 0/15, 0 inc. |
+
+(The eval-modes row above lists Kvish seeds-ablated as "see note": it is 0/1 in both modes. Language coverage changes confidence, not verdicts, until the verdict-model commit makes "benign" require sufficient coverage.)

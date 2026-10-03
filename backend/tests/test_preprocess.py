@@ -103,7 +103,8 @@ def test_banner_phrases_no_longer_trigger_urgency_findings():
     ).encode()
     parsed = parse_email_file(raw, "x.eml")
     assert "final notice" in parsed.body_text.lower()  # the original is preserved untouched
-    assert run_content_analysis(parsed).findings == []
+    scoring = [f for f in run_content_analysis(parsed).findings if f.severity != "info" or f.weight > 0]
+    assert scoring == []  # the banner words scored nothing (an informational language note is fine)
 
 
 def test_kvish6_fixture_banner_is_stripped_structurally_without_any_config():
