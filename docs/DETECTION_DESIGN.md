@@ -88,9 +88,9 @@ legitimate patterns the rule is written NOT to fire on; each has a benign fixtur
 | ID | Rule | Sev / weight | Documented technique | Near-miss exemptions |
 |---|---|---|---|---|
 | `C1` brand/display-name claim | An exact whole-token brand (map + aliases, incl. Hebrew/transliteration) in the display name or subject, sender registrable domain not the brand's. Replaces today's display-name finding. **MEDIUM and no floor on its own** | medium / 12 | Display-name spoofing | sender on the brand's domain never fires; fuzzy-only stays a separate medium/10 finding; a business literally named like a brand ("Apple Valley Dental") is MEDIUM only |
-| `C1b` brand mention in the body | An exact brand token in the body text of a message from a non-brand sender. **Additive only, not a family signal** | info-low / 3 | Body-only brand mentions are common in benign mail (a friend writing about an order) | never counts toward the floor |
-| `C2` claimed-entity mismatch | One non-platform registrable domain D dominates the message's links+images (>= 50% of non-platform hosts, >= 2 occurrences), D is unrelated to the sender's registrable domain, AND the message has NO `DKIM-Signature` header at all. Does NOT depend on trust: an absent header is an observable fact; a present one is only a claim. When a trusted receiver verified an ALIGNED DKIM/DMARC pass, the signal is suppressed | low / 8 | A lure built from an entity's links/assets but sent from an unrelated, unsigned origin | mail whose links are on the sender's domain or on shared platforms never fires; any DKIM-Signature header present (even unverified) suppresses it |
-| `C3` decoy links to the claimed entity | A token of the display name or subject (digits stripped, whole token, >= 4 letters) equals the label of a linked registrable domain that is not the sender's (e.g. display `kvish6`, link `kvish6.co.il`); OR a link points at a known brand's real domain from a non-brand sender. Brand-map independent in the first form | medium / 10 | Decoy links to the real service make a lure look genuine while the call-to-action goes elsewhere | the sender's own domain, shared platforms and generic words (< 4 letters, or in a small stop list) never match |
+| `C1b` brand mention in the body | An exact brand token or alias in the body text of a message from a non-brand sender. **Additive only, not a family signal** (never tagged `structural`) | info / 3 | Body-only brand mentions are common in benign mail (a friend writing about an order) | never counts toward the floor |
+| `C2` claimed-entity mismatch | One non-platform registrable domain D dominates the message's links and images (>= 50% of the non-platform link+image host occurrences, >= 2 occurrences), D is unrelated to the sender's registrable domain, AND the message has **no `DKIM-Signature` header at all**. Brand-agnostic (no brand list) and trust-independent: an absent header is an observable fact. A present `DKIM-Signature` is only a claim, so it neither proves anything nor lets the message be judged: C2 simply does not fire. A verified, aligned DKIM/DMARC pass from a TRUSTED receiver is a stronger negative and is recorded as the reason C2 stayed silent | low / 8 | A lure built from an entity's links and assets but sent from an unrelated, unsigned origin | mail whose links are on the sender's domain or on shared platforms never fires; any DKIM-Signature present suppresses it (see evasion note) |
+| `C3` decoy links to the claimed entity | A token of the display name or subject (digits stripped, whole token, >= 4 letters, not a generic word) equals the label of a linked registrable domain that is not the sender's (e.g. display `kvish6`, link `kvish6.co.il`); OR a link points at a known brand's real domain (generic map plus the untracked local map and its aliases) from a sender that is not that brand's. The first form needs no brand list | medium / 10 | Decoy links to the real service make a lure look genuine while the call-to-action goes elsewhere | the sender's own domain, shared platforms, generic words and a token equal to the sender's own label never match |
 
 ## Additive weights, in order of evidential strength (a priori)
 
@@ -194,3 +194,36 @@ Deviations, each with its reason:
   18/75 (the 18 come from trusted gateway authentication failures, not from structure). The structural families
   separate the Kvish-type lure (shared-hosting origin + borrowed tracker + cloned assets) and little else in this sample.
 * Synthetic benign (n=21): S2 fires in 4, L1 in 1; none carries two families.
+
+## Claim family (e): definitions fixed before the first run (2026-10-03)
+
+* **Placement (D6).** C1b, C2 and C3 are implemented in `auth_check` (`auth_check/claims.py`), not in `content_analysis`
+  as first registered, because C2 must know whether a trusted receiver verified an aligned DKIM/DMARC pass, and only
+  `auth_check` has that result. They are tagged family `claim`; weights, severities and the floor rule are unchanged.
+* **Brand aliases** (Hebrew, transliteration, org names) live ONLY in the untracked local brand file. The tracked code has
+  generic brands and a loader: a brand entry may be a list of domains (as before) or
+  `{"domains": [...], "aliases": [...]}`; each alias becomes another key of the brand map with the same domains. The
+  `kvish6` seed stays a labelled seed and is removed by `--ablate-seeds`.
+* **Evasion, stated plainly.** C2 is defeated by adding any `DKIM-Signature` header, and an attacker can add one that
+  nobody verifies. That costs the attacker nothing. C2 is therefore a signal about unsigned lures from careless origins,
+  not a barrier. It is kept weak (low / 8) and can only matter next to a second family.
+* **Not suppressed by authentication:** C3 is not suppressed by a verified pass, because an attacker authenticates their
+  own domain (iteration 1); a decoy link to the real service is what C3 looks for.
+
+New benign fixtures that must stay below SUSPICIOUS, with no weight change to make them pass (any that do not are reported):
+a newsletter whose sender domain differs from its brand link domain, DKIM-Signature present; a brand sending from its own
+aligned domain with links to its own CDN; a small business whose name matches a brand token, sending from its own domain
+(the "Apple Valley Dental" case), and a variant using a click tracker.
+
+Eval: an enrichment variant where every provider answers UNKNOWN (instead of the offline clean stub) is added and every
+table is labelled with its enrichment mode.
+
+Pre-registered predictions for (e):
+
+| # | Prediction |
+|---|---|
+| e1 | Ablated Kvish stays `suspicious` in both modes (it already reaches it from sender + link). |
+| e2 | Every benign fixture, old and new, stays below SUSPICIOUS in both trust modes and both enrichment modes. |
+| e3 | On the tuning set the claim family adds a modest number of samples with >= 2 families. No target is set; if flagged does not rise, that is reported, not tuned. |
+| e4 | With enrichment UNKNOWN, CONFIGURED benign drops sharply: every fixture with an indicator becomes inconclusive (incomplete enrichment); only fixtures with no external links can stay benign. |
+| e5 | C2 fires on benign fixtures that lack a DKIM-Signature and link to a third-party domain; that is expected, one family, and never flagged. |
