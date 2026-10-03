@@ -286,10 +286,15 @@ unbiased error rate.
   verification against real ESP headers.** The assumption (a branded return-path or DKIM `d=` on the sender's own
   domain, mail arriving over the network, means the platform's name is legitimately absent from the path) comes from
   vendors' documentation, not from real captured messages.
+- **C2 (claimed-entity mismatch) is a weak, evadable signal.** Any `DKIM-Signature` header silences it, whether or
+  not anyone verified it, and an attacker can add one for free. **Structural detection adds few flags on commodity
+  phish**: on the public tuning sample most flags in CONFIGURED mode come from trusted-gateway authentication failures,
+  not from the sender, link and claim families, which together added only a handful (see `docs/DETECTION_DESIGN.md`).
 - **Known false-positive class (reported, not tuned):** a third party sending a newsletter for a brand from its
   own domain, linking and hot-linking the brand's site, looks like a cloned brand template from an unrelated origin
   (claim signal C3 plus link signal L2, two families). It is fixture `22_...` in the benign set and is marked as an
-  expected failure in the tests.
+  expected failure in the tests. A known-sender exemption was considered and **rejected**: compromised vendor and partner
+  accounts pass identity checks, so exempting them would repeat the mistake of treating authentication as legitimacy.
 - **Brand aliases** (Hebrew names, transliterations, organisation names) are configured only in the untracked
   `backend/brands.local.json` (`{"brand": {"domains": [...], "aliases": [...]}}`); the tracked code carries generic
   brands only.

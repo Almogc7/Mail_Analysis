@@ -148,7 +148,7 @@ Tuning iterations used: **2 / 5** (D5 below was made before L1 fired on any tuni
 |---|---|---|---|---|
 | 0 | 2026-10-03 | Design registered; floor rule + C1 demotion + S1/S2/S3 implemented as written | pre-registration | STRICT flagged 9 -> 0; CONFIGURED 25 -> 18 (see deviation D2) |
 | 1 | 2026-10-03 | Benign rule: add known-sender list (untracked, empty by default) and complete-enrichment requirement; inconclusive sub-reason; queue priority; ranking sanity metric | benign rule treated authentication as legitimacy; 11/75 tuning phish reached benign in CONFIGURED | CONFIGURED missed 11 -> 0 (all 11 inconclusive); synthetic benign CONFIGURED benign 8 -> 6, inconclusive 9/15 |
-| 2 | 2026-10-03 | C2: the dominant foreign domain must also host at least one clickable link (images alone do not make a claimed entity); the same condition L2 already had | First (e) run flagged benign fixture 20 (shared-hosting bakery, unrelated stock-image CDN, no DKIM-Signature): S2 + C2 = two families. Independent rationale: the entity a message claims to be is something the recipient can reach | STRICT tuning flagged 9 -> 6, CONFIGURED 25 -> 22; C2 fired in 33 -> 29 of 75; fixture 20 back below SUSPICIOUS |
+| 2 | 2026-10-03 | C2: the dominant foreign domain must also host at least one clickable link (images alone do not make a claimed entity); the same condition L2 already had | First (e) run flagged benign fixture 20 (shared-hosting bakery, unrelated stock-image CDN, no DKIM-Signature): S2 + C2 = two families. Independent rationale: the entity a message claims to be is something the recipient can reach | **It also reduced tuning flags**: STRICT 9 -> 6, CONFIGURED 25 -> 22 (before -> after); C2 fired in 33 -> 29 of 75; fixture 20 back below SUSPICIOUS (accepted by the owner as logged) |
 
 Iteration 1 is a verdict-model change, not a detection signal, but it is logged here because it was made after looking
 at tuning results.
@@ -247,8 +247,13 @@ flagged (S2 + C2). After iteration 2: STRICT 6/75, CONFIGURED 22/75; C2 29/75; t
   and L2 (images hot-linked from that same domain, which also hosts the links) are different families, and together they
   floor. The message is structurally identical to a cloned brand template sent from an unrelated origin; a present
   DKIM-Signature does not separate them (C2 is silent by design). No weight or rule was changed for it. The only lever
-  that would separate them is exempting senders on the known-sender list from the structural floor, which is the owner's
-  decision. The test is a strict expected failure, so it starts failing when this is fixed.
+  that would separate them is exempting senders on the known-sender list from the structural floor, and the owner has
+  **decided against it**: compromised vendor and partner accounts pass identity checks, so an exemption would recreate the
+  "authentication != legitimacy" mistake that iteration 1 removed. Fixture 22 stays a documented, expected false positive.
+  Revisit only on field data from the analyst feedback log. If revisited, the narrowest form only: known sender AND a
+  verified aligned DKIM pass from a trusted receiver, turning SUSPICIOUS into inconclusive with `signals_present`, never
+  touching MALICIOUS, with every finding still visible. The test is a strict expected failure, so it starts failing when
+  this changes.
 * **D8 -- C3 form (b) requires the claim.** The registered text said "a link points at a known brand's real domain from a
   non-brand sender". Read literally it fires on every newsletter that links Facebook, LinkedIn or an app store. Decided
   before any run: form (b) requires that the display name or subject also claims that brand.
