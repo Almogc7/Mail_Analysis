@@ -86,7 +86,12 @@ def test_the_two_mode_report_is_pre_registered_in_the_tracked_log_and_in_the_gen
         assert "PRE-REGISTRATION" in text and "BOTH modes" in text and "STRICT" in text and "CONFIGURED" in text
         assert "never reported in only the" in text
     assert "written 2026-10-03, before any hold-out evaluation" in tracked
-    assert "FINAL HOLD-OUT run started" not in tracked  # the hold-out has not been evaluated
+    # The hold-out was evaluated exactly once (2026-10-03) and is spent. A second logged start would be a run "tuned after
+    # viewing hold-out" and must be labelled as such in the log; this test fails until someone does that deliberately.
+    starts = tracked.count("FINAL HOLD-OUT run started")
+    assert starts == 1, f"{starts} hold-out runs are logged; the hold-out is spent after the first"
+    assert tracked.index("PRE-REGISTRATION OF THE FINAL HOLD-OUT RUN") < tracked.index("FINAL HOLD-OUT run started")
+    assert "0f20c4be5a80872262b3be46c96caea8d8b7499f" in tracked  # the exact commit under test was pre-registered
 
 
 def test_the_start_line_is_written_even_if_evaluation_crashes(corpus, tmp_path, monkeypatch):
