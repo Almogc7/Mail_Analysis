@@ -15,6 +15,10 @@ def apply_overrides(
 ) -> tuple[str, list[AppliedOverride]]:
     bucket = base_bucket
     applied: list[AppliedOverride] = []
+    # True once ANY floor trigger exists -- even when the score alone already put the bucket at "suspicious", so
+    # no floor override gets recorded. A floor means "a hard indicator fired": uncertainty about OTHER evidence
+    # (low coverage) must never erase it, so the needs_review rule below must not touch such a verdict.
+    floor_triggered = False
 
     # 1. Floor overrides: a single hard indicator forces at least "suspicious".
     for category, min_severity in config.floor_override_severity.items():
@@ -22,6 +26,7 @@ def apply_overrides(
         if result is None or result.status in {"error", "skipped"}:
             continue
         triggering = [f for f in result.findings if severity_at_least(f.severity, min_severity)]
+        floor_triggered = floor_triggered or bool(triggering)
         if triggering and _BUCKET_RANK[bucket] < _BUCKET_RANK["suspicious"]:
             bucket = "suspicious"
             applied.append(
@@ -42,10 +47,9 @@ def apply_overrides(
     content_result = module_results.get("content_analysis")
     if content_result is not None and content_result.status not in {"error", "skipped"}:
         high_severity_findings = [f for f in content_result.findings if severity_at_least(f.severity, "high")]
-        if (
-            len(high_severity_findings) >= config.content_floor_min_high_severity_count
-            and _BUCKET_RANK[bucket] < _BUCKET_RANK["suspicious"]
-        ):
+        corroborated = len(high_severity_findings) >= config.content_floor_min_high_severity_count
+        floor_triggered = floor_triggered or corroborated
+        if corroborated and _BUCKET_RANK[bucket] < _BUCKET_RANK["suspicious"]:
             bucket = "suspicious"
             applied.append(
                 AppliedOverride(
@@ -81,12 +85,25 @@ def apply_overrides(
             )
         )
 
-    # 3. Needs-review: evidence too incomplete to trust a legit/suspicious call.
-    if (
+    # 3. Needs-review: evidence too incomplete to trust a legit/suspicious call -- but never over a floor.
+    would_need_review = (
         bucket in {"legit", "suspicious"}
         and confidence < config.confidence_threshold
         and weighted_score >= config.needs_review_score_floor
-    ):
+    )
+    if would_need_review and floor_triggered:
+        applied.append(
+            AppliedOverride(
+                rule="floor_protects_verdict",
+                effect=f"verdict stays {bucket}",
+                reason=(
+                    f"Overall confidence {confidence:.2f} is below {config.confidence_threshold}, which would normally "
+                    "mean needs_review, but a hard indicator (a floor trigger) fired. Low coverage of OTHER evidence "
+                    "cannot cancel it, so the verdict is not downgraded."
+                ),
+            )
+        )
+    elif would_need_review:
         applied.append(
             AppliedOverride(
                 rule="low_confidence_needs_review",
