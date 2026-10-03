@@ -1,6 +1,9 @@
 from app.contracts.findings import ModuleResult
 from app.contracts.scoring import AppliedOverride
+from app import config as app_config
+from app.scoring.aggregate import category_coverage
 from app.scoring.config import ScoringConfig, severity_at_least
+from app.shared.matching import registrable_domain
 
 _BUCKET_RANK = {"legit": 0, "suspicious": 1, "malicious": 2}
 
@@ -9,13 +12,16 @@ def benign_evidence_gaps(
     module_results: dict[str, ModuleResult | None], confidence: float, config: ScoringConfig
 ) -> list[str]:
     """What is missing for a verdict of 'benign' (the literal 'legit' until the rename). An EMPTY list means the
-    message has POSITIVE evidence. 'No findings' is never evidence of safety; benign needs all three of:
+    message has POSITIVE evidence. 'No findings' is never evidence of safety, and neither is authentication: an
+    attacker authenticates their own domain. Benign needs all of:
 
       1. a verified, ALIGNED DKIM pass or a DMARC pass from a TRUSTED receiver (authentication that ties the
          message to the From domain; a header is only a claim unless a trusted receiver wrote it);
-      2. no finding above info severity anywhere (info findings are visibility notes);
-      3. adequate coverage (overall confidence at or above the threshold), so the checks that found nothing
-         were actually able to look.
+      2. the sender's registrable domain is on the KNOWN-SENDER list (untracked config, empty by default) -- the only
+         positive evidence of legitimacy, as opposed to authenticity;
+      3. no finding above info severity anywhere (info findings are visibility notes);
+      4. adequate coverage: overall confidence at or above the threshold AND enrichment complete (an unknown or
+         uninformative indicator, or an enrichment module that did not run, counts as inadequate).
 
     Anything else that is not flagged is inconclusive."""
     gaps: list[str] = []
@@ -33,6 +39,15 @@ def benign_evidence_gaps(
         else:
             gaps.append("no verified, aligned DKIM pass or DMARC pass from a trusted receiver")
 
+    if config.require_known_sender_for_benign:
+        known = config.known_sender_domains if config.known_sender_domains is not None else app_config.KNOWN_SENDER_DOMAINS
+        known = {registrable_domain(d.strip().strip('.').lower()) or d.strip().strip('.').lower() for d in known}
+        sender = ((raw.get("identity") or {}).get("display_name_spoofing") or {}).get("actual_registrable_domain")
+        if not known:
+            gaps.append("no known-sender list is configured, so no sender can be recognised as legitimate")
+        elif not sender or sender not in known:
+            gaps.append("the sender's domain is not on the known-sender list")
+
     above_info = [
         f for result in module_results.values() if result is not None and result.status not in {"error", "skipped"}
         for f in result.findings if f.severity != "info"
@@ -42,6 +57,11 @@ def benign_evidence_gaps(
 
     if confidence < config.confidence_threshold:
         gaps.append(f"coverage is too low (confidence {confidence:.2f} < {config.confidence_threshold})")
+    enrichment = module_results.get("enrichment")
+    if enrichment is None or enrichment.status in {"error", "skipped"}:
+        gaps.append("enrichment did not run")
+    elif category_coverage("enrichment", enrichment) < 1.0:
+        gaps.append("enrichment is incomplete (an indicator is unknown, uninformative or was not looked up)")
     return gaps
 
 

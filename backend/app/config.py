@@ -57,6 +57,27 @@ GATEWAY_SUBJECT_TAG_PATTERNS = _json_pattern_list("GATEWAY_SUBJECT_TAG_PATTERNS"
 # "not_evaluated". Tenant-specific hostnames live ONLY in the untracked backend/.env.
 TRUSTED_RECEIVER_PATTERNS = _json_pattern_list("TRUSTED_RECEIVER_PATTERNS")
 
+# Known-sender list: registrable domains whose mail you positively recognise (your suppliers, your own domains). A
+# 'benign' verdict needs a sender on this list in addition to verified authentication (app/scoring/overrides.py): an
+# authenticated message only proves WHO sent it, not that the sender is legitimate -- attackers authenticate their own
+# domains. Read from an UNTRACKED JSON file (default backend/known_senders.local.json, override with
+# KNOWN_SENDERS_FILE): {"domains": ["example.com", ...]}. EMPTY BY DEFAULT: with no list, nothing can be benign.
+def _load_known_sender_domains() -> frozenset[str]:
+    file = Path(os.getenv("KNOWN_SENDERS_FILE") or Path(__file__).resolve().parents[1] / "known_senders.local.json")
+    if not file.exists():
+        return frozenset()
+    try:
+        data = json.loads(file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{file.name} must be JSON: {exc}") from exc
+    domains = data.get("domains") if isinstance(data, dict) else None
+    if not isinstance(domains, list) or not all(isinstance(d, str) and d.strip() for d in domains):
+        raise ValueError(f'{file.name} must be {{"domains": ["example.com", ...]}}')
+    return frozenset(d.strip().strip(".").lower() for d in domains)
+
+
+KNOWN_SENDER_DOMAINS = _load_known_sender_domains()
+
 # Enrichment privacy policy (see app/enrichment/policy.py). By default only HOSTNAMES leave this machine: the
 # path and query of a URL (where per-recipient tracking tokens live) are never sent unless a provider is
 # named in ENRICHMENT_PATH_QUERY_PROVIDERS (opt-in, default none). Providers named in

@@ -3,6 +3,8 @@ from app.scoring import run_scoring
 from app.scoring.overrides import apply_overrides
 from app.scoring.config import ScoringConfig
 
+KNOWN = ScoringConfig(known_sender_domains=frozenset({"sender.example"}))  # a deployment with this sender configured
+
 
 def _auth_result(findings=None, header_present=True, status="ok", positive_evidence=False) -> ModuleResult:
     headers = {"header_present": header_present}
@@ -10,6 +12,7 @@ def _auth_result(findings=None, header_present=True, status="ok", positive_evide
     if positive_evidence:  # a trusted receiver verified an ALIGNED DKIM pass: the evidence benign requires
         headers.update(trusted_receivers_configured=True, dkim={"evaluated": True, "result": "pass"}, dmarc={"evaluated": False})
         raw["alignment"] = {"dkim": {"aligned": True}}
+        raw["identity"] = {"display_name_spoofing": {"actual_registrable_domain": "sender.example"}}
     return ModuleResult(module="auth_check", status=status, findings=findings or [], raw_data=raw)
 
 
@@ -143,7 +146,7 @@ def test_ceiling_override_caps_content_only_malicious_bucket():
 
 
 def test_all_modules_clean_with_positive_evidence_is_benign_with_high_confidence():
-    outcome = run_scoring([_auth_result(positive_evidence=True), _enrichment_result(), _content_result()])
+    outcome = run_scoring([_auth_result(positive_evidence=True), _enrichment_result(), _content_result()], KNOWN)
 
     assert outcome.verdict == "legit"
     assert outcome.confidence == 1.0
@@ -225,7 +228,7 @@ def test_reduced_content_script_coverage_can_trigger_needs_review():
 
 
 def test_missing_module_treated_as_zero_subscore_and_coverage():
-    outcome = run_scoring([_auth_result(positive_evidence=True), _enrichment_result()])  # content_analysis absent
+    outcome = run_scoring([_auth_result(positive_evidence=True), _enrichment_result()], KNOWN)  # content_analysis absent
 
     content_score = next(c for c in outcome.breakdown.categories if c.category == "content_analysis")
     assert content_score.subscore == 0

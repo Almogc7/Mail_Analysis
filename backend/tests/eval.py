@@ -83,10 +83,25 @@ def configured_source() -> str:
     return "default: trusts every header that names a hop in the chain"
 
 
+# Registrable domains the CONFIGURED deployment lists as known senders. The synthetic benign fixtures all send from
+# reserved example domains (plus docusign.net for the brand-domain fixture); no real corpus sender is on the list, so it
+# changes nothing for the phishing sets. STRICT lists nobody. Override with EVAL_CONFIGURED_KNOWN_SENDERS (JSON array).
+DEFAULT_CONFIGURED_KNOWN_SENDERS = ["example.com", "example.org", "example.net", "docusign.net"]
+
+
+def configured_known_senders() -> frozenset[str]:
+    raw = os.getenv("EVAL_CONFIGURED_KNOWN_SENDERS", "").strip()
+    value = json.loads(raw) if raw else DEFAULT_CONFIGURED_KNOWN_SENDERS
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        raise ValueError("EVAL_CONFIGURED_KNOWN_SENDERS must be a JSON array of domains")
+    return frozenset(value)
+
+
 def apply_mode(mode: str) -> None:
     import app.config as app_config
 
     app_config.TRUSTED_RECEIVER_PATTERNS = [] if mode == "strict" else configured_patterns()
+    app_config.KNOWN_SENDER_DOMAINS = frozenset() if mode == "strict" else configured_known_senders()
 
 
 # Kept for tests that build a trust configuration around the fixtures' placeholder gateways.

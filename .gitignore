@@ -17,3 +17,4 @@ backend/brands.local.json
 
 # Analyst feedback log -- local only (hashes/verdicts/signal names; see backend/app/feedback.py)
 backend/feedback.local.sqlite*
+backend/known_senders.local.json

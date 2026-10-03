@@ -42,6 +42,14 @@ class ScoringConfig:
     # Several signals in one family count once. Not to be loosened to raise tuning recall.
     structural_floor_min_families: int = 2
 
+    # Known senders (registrable domains) that may be benign. None = read app.config.KNOWN_SENDER_DOMAINS (the untracked
+    # list, empty by default). Authentication proves who sent a message, not that the sender is legitimate, so benign
+    # needs a sender on this list as well (iteration 1 in docs/DETECTION_DESIGN.md).
+    known_sender_domains: frozenset[str] | None = None
+    # Test/diagnostic switch: False reproduces the pre-iteration-1 rule (authentication alone) so the cases it
+    # let through can be counted. Never set it in production.
+    require_known_sender_for_benign: bool = True
+
     # Ceiling override: content_analysis alone (auth_check and enrichment both at/below
     # this) can't push the verdict past "suspicious".
     ceiling_hard_category_threshold: float = 10.0
