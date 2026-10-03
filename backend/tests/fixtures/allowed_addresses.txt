@@ -42,3 +42,6 @@ netflix.billing.team@gmail.com
 
 # --- Synthetic test input (tests/test_hosting_sender.py): a machine-named sender on the brand's own domain ---
 svc1a2b3c@srv12.paypal.com
+
+# --- Synthetic freemail sender for the error-analysis bucket test (tests/test_error_analysis.py) ---
+someone@gmail.com
