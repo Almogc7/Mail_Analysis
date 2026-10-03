@@ -52,3 +52,20 @@ benign mail in the hold-out).
    changed after the hold-out has been viewed, every later hold-out run is labelled "tuned after viewing hold-out" and its numbers are
    not comparable to this one.
 3. The run is made once. A second run, for any reason, is logged as such and does not replace the first.
+- 2026-10-03 10:45:52 UTC | HEAD 40a4fc0 | FINAL HOLD-OUT run started | n=75 | enrichment=clean ablate_seeds=False modes=strict,configured
+- 2026-10-03 10:45:56 UTC | result | mode=strict | n=75 | flagged=6 inconclusive=69 missed=0 | inconclusive=69, suspicious=6
+- 2026-10-03 10:45:58 UTC | result | mode=configured | n=75 | flagged=20 inconclusive=55 missed=0 | inconclusive=55, suspicious=20
+
+### Published result (2026-10-03), as run, both modes, once
+
+Run at commit `40a4fc0` (differs from the code commit `0f20c4b` only in this file), exit 0, no crash, no sample errors.
+
+| Mode | flagged | inconclusive | missed | structural signals (samples) |
+|---|---|---|---|---|
+| STRICT | 6/75 = 8.0% [3.7-16.4%] (malicious 0, suspicious 6) | 69/75 = 92.0% [83.6-96.3%] (signals present 57, no signals 12) | 0/75 = 0.0% [0.0-4.9%] | S2 8, L2 1, L3 11, C1 9, C2 23, C3 1; >= 2 families: 6 |
+| CONFIGURED | 20/75 = 26.7% [18.0-37.6%] (malicious 0, suspicious 20) | 55/75 = 73.3% [62.4-82.0%] (signals present 41, no signals 14) | 0/75 = 0.0% [0.0-4.9%] | S2 8, L2 1, L3 11, C1 9, C2 22, C3 1; >= 2 families: 6 |
+
+Against the pre-registered ranges: STRICT flagged 6 (range 3-12), inconclusive 69 (63-72), missed 0; CONFIGURED flagged 20 (15-30),
+inconclusive 55 (45-60), missed 0. **Every figure fell inside its predicted range.** That is a statement about this corpus's
+phishing recall at these settings, not about real-world precision, which this run cannot measure. No code, weight, rule or fixture
+was changed after viewing this result; any later change makes later hold-out runs "tuned after viewing hold-out".
