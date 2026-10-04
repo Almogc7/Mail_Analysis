@@ -15,7 +15,8 @@ Reading the numbers:
     phishing corpus contains no benign mail at all) and the benign sets are small, so pooling them
     yields a meaningless number. Recall is reported per malicious set; false positives per benign
     source, with synthetic (hand-written regression guards, NOT an accuracy claim) kept apart from
-    real mail supplied by the owner (benign/_from_user/).
+    real mail supplied by the owner (benign/_from_user/). The synthetic corpus is TWO groups, printed
+    under their own names: "benign fixtures" (benign/synthetic) and "synthetic spoofs" (malicious/synthetic).
   * malicious/synthetic/ are hand-written display-name-spoof positives (matcher tests), not real phish.
   * --enrichment clean assumes every provider answers "no detections" (what a fresh
     attacker-controlled URL looks like). It measures the structural signals alone.
@@ -494,12 +495,24 @@ def _main(argv: list[str] | None = None) -> int:
         return out
 
     tables = {mode: by_source(mode) for mode in modes}
+
+    def group_name(label: str, source: str) -> str:
+        """The two hand-written sets share the internal source 'synthetic' but are different things and are never pooled."""
+        if source == "synthetic":
+            return "benign fixtures" if label == "benign" else "synthetic spoofs"
+        return source
+
+    n_benign_fixtures = len(tables[modes[0]].get(("benign", "synthetic"), []))
+    n_spoofs = len(tables[modes[0]].get(("malicious", "synthetic"), []))
+    print()
+    print(f"{tag} SYNTHETIC CORPUS -- TWO GROUPS, reported separately and never pooled: {n_benign_fixtures} benign fixtures and {n_spoofs} synthetic spoofs "
+          f"(hand-written, {n_benign_fixtures + n_spoofs} files in all). Neither is an accuracy claim.")
     metrics: dict[str, dict] = {m: {"malicious": {}, "benign": {}} for m in modes}
-    kinds = {"kvish": "real, 1 sample", "synthetic": "hand-written spoof positives", "tuning_corpus": "real, tuning split"}
+    kinds = {"kvish": "real, 1 sample", "synthetic": "hand-written display-name-spoof positives", "tuning_corpus": "real, tuning split"}
 
     print(f"\n{tag} MALICIOUS SETS -- each reported alone (flagged = malicious|suspicious; inconclusive = inconclusive; missed = a confident benign verdict)")
     for key in sorted({k for t in tables.values() for k in t if k[0] == "malicious"}):
-        print(f"  {key[1]:14} ({kinds.get(key[1], '')})")
+        print(f"  {group_name(*key):16} ({kinds.get(key[1], '')}; n={len(tables[modes[0]].get(key, []))})")
         for mode in modes:
             rows = tables[mode].get(key, [])
             counts = _counts([r.verdict for r in rows])
@@ -511,7 +524,7 @@ def _main(argv: list[str] | None = None) -> int:
           "   trusted, so 'benign' -- which requires a verified, aligned DKIM/DMARC pass -- is mostly UNREACHABLE by design.)")
     for src in ("synthetic", "_from_user"):
         note = "hand-written regression guards, NOT an accuracy claim" if src == "synthetic" else "real mail; the owner is not supplying any"
-        print(f"  {src:14} ({note})")
+        print(f"  {group_name('benign', src):16} ({note}; n={len(tables[modes[0]][('benign', src)])})")
         for mode in modes:
             rows = tables[mode][("benign", src)]
             counts = _counts([r.verdict for r in rows])
@@ -524,19 +537,19 @@ def _main(argv: list[str] | None = None) -> int:
     for key in sorted({k for t in tables.values() for k in t}):
         if not tables[modes[0]].get(key):
             continue
-        print(f"  {key[0]}/{key[1]}")
+        print(f"  {key[0]}/{group_name(*key)}")
         for mode in modes:
             print(f"      {mode.upper():10} {_signal_counts(tables[mode][key])}")
 
     print()
-    print(f"{tag} RANKING SANITY CHECK -- queue priority of the tuning phish vs the SYNTHETIC benign set. A sanity check only:")
+    print(f"{tag} RANKING SANITY CHECK -- queue priority of the tuning phish vs the 26 hand-written benign fixtures (not the spoofs). A sanity check only:")
     print("  the benign side is hand-written, so this says the ordering is not backwards, not how well it ranks real mail.")
     for mode in modes:
         phish = [r.priority for r in tables[mode].get(("malicious", "tuning_corpus"), [])]
         benign = [r.priority for r in tables[mode].get(("benign", "synthetic"), [])]
         a, f = auc(phish, benign), frac_above_median(phish, benign)
         metrics[mode]["ranking"] = {"auc": a, "frac_phish_above_benign_median": f, "n_phish": len(phish), "n_benign": len(benign)}
-        text = "n/a (empty side)" if a is None else f"AUC {a:.3f}   fraction of tuning phish above the synthetic-benign median priority {f:.2f}"
+        text = "n/a (empty side)" if a is None else f"AUC {a:.3f}   fraction of tuning phish above the benign-fixture median priority {f:.2f}"
         print(f"      {mode.upper():10} {text}   (phish n={len(phish)}, benign n={len(benign)})")
 
     benign_mal = sorted({r.name for m in modes for r in rows_by_mode[m] if r.label == "benign" and r.verdict == "malicious"})
