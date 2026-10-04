@@ -36,7 +36,7 @@ docker compose up --build                                       # open http://lo
 ```
 
 Nothing organisation-specific is inside the image: the keys, trusted receivers, brands and known senders are mounted from `team-config\`
-(git-ignored). The feedback log lives on a Docker volume and survives restarts. *Status: this path was written and reviewed but not yet run end to end by the maintainer; the Python path was.*
+(git-ignored). The feedback log lives on a Docker volume and survives restarts. ***Status: written but untested** (it has never been built or run); the Python path was run end to end.*
 
 ## Configuration (all optional, all local)
 

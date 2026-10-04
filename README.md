@@ -180,8 +180,11 @@ the placeholder `unknown-authserv`; the evidence then states that attribution wa
 
 Threat-intel lookups send **hostnames, not URLs**. The path and query of a link — where per-recipient
 tracking tokens live — are never sent unless a provider is named in `ENRICHMENT_PATH_QUERY_PROVIDERS`
-(opt-in, default none). Internal-looking hosts (no public name, `.corp`/`.local`, private or
-documentation addresses) are never sent. Attachments are looked up by **hash only**: no file and no file
+(opt-in, default none). Internal-looking hosts (no public name, `.corp`/`.local`/`.internal`/`.lan`/`.test`,
+single-label names, obfuscated address spellings like `127.1`, and private, loopback, link-local, multicast,
+reserved, carrier-grade-NAT, documentation or IPv6-embedded-private addresses) are never sent to any provider; they
+are UNKNOWN (not looked up), never clean, get no lookup links in the indicator list, and block a "no indicators
+found" verdict. Attachments are looked up by **hash only**: no file and no file
 name is ever uploaded. Every provider sits behind a guard (`app/enrichment/policy.py`) that exposes only
 `lookup()` and raises rather than send a request outside the policy; VirusTotal and URLScan are queried
 with GET only, and URLScan by search, so no scan is ever submitted. Each provider can be switched off with
@@ -434,7 +437,7 @@ off-switch, risk-ordered capping) are enforced in `app/enrichment/policy.py`, in
 
 ### Setup
 
-**Analysts on Windows: use `docs/QUICKSTART_WINDOWS.md`** (`setup.ps1` then `run.ps1`, or Docker). It serves the API and the web UI from one
+**Analysts on Windows: use `docs/QUICKSTART_WINDOWS.md`** (`setup.ps1` then `run.ps1`; a Docker setup also exists but is **written and untested**: it has never been built or run, so treat it as a draft). It serves the API and the web UI from one
 process on `http://localhost:8000`. The block below is the developer setup (separate dev servers).
 
 ```bash
