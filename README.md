@@ -421,6 +421,9 @@ MalwareBazaar) from the sibling [IOC_Enricher](#built-alongside-ioc_enricher) pr
 
 ### Setup
 
+**Analysts on Windows: use `docs/QUICKSTART_WINDOWS.md`** (`setup.ps1` then `run.ps1`, or Docker). It serves the API and the web UI from one
+process on `http://localhost:8000`. The block below is the developer setup (separate dev servers).
+
 ```bash
 # Backend
 cd backend

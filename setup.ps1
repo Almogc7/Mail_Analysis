@@ -19,7 +19,9 @@ param(
     [string]$IocEnricherRepo = "https://github.com/Almogc7/ioc-enrichment-tool",
     [string]$IocEnricherRef = ""
 )
-$ErrorActionPreference = "Stop"
+# Native commands (git, npm, pip) write progress to stderr; with "Stop" Windows PowerShell 5.1 turns that into a fatal error.
+# So errors are handled explicitly: every native call is followed by an exit-code check.
+$ErrorActionPreference = "Continue"
 $root = $PSScriptRoot
 $backend = Join-Path $root "backend"
 $sibling = Join-Path (Split-Path $root -Parent) "IOC_Enricher"
@@ -67,15 +69,15 @@ if (-not (Test-Path (Join-Path $sibling "IOC_Enricher.py"))) {
     } else {
         $zip = Join-Path $env:TEMP "ioc_enricher.zip"; $tmp = Join-Path $env:TEMP "ioc_enricher_unzip"
         if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
-        Invoke-WebRequest -Uri "$IocEnricherRepo/archive/$IocEnricherRef.zip" -OutFile $zip
-        Expand-Archive -Path $zip -DestinationPath $tmp
+        Invoke-WebRequest -Uri "$IocEnricherRepo/archive/$IocEnricherRef.zip" -OutFile $zip -ErrorAction Stop
+        Expand-Archive -Path $zip -DestinationPath $tmp -ErrorAction Stop
         Move-Item (Get-ChildItem $tmp | Select-Object -First 1).FullName $sibling
     }
 } else {
     Write-Host "Found $sibling (left exactly as it is)"
 }
 $check = "import sys; sys.path.insert(0, r'$sibling'); from IOC_Enricher import MalwareBazaarClient, RiskScorer, ScoreConfig, ThreatFoxClient, URLScanClient, VirusTotalClient"
-& $venvPython -c $check 2>$null
+& $venvPython -c $check 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) {
     Fail ("The IOC_Enricher at $sibling is missing provider clients this app needs (MalwareBazaarClient ...). It is too old: update it " +
           "(git -C `"$sibling`" pull) or set a newer ref in deploy\IOC_ENRICHER_REF, then run setup again.")

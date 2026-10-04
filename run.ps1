@@ -11,7 +11,9 @@ param(
     [int]$Port = 8000,
     [switch]$NoBrowser
 )
-$ErrorActionPreference = "Stop"
+# Native commands (git, npm, pip) write progress to stderr; with "Stop" Windows PowerShell 5.1 turns that into a fatal error.
+# So errors are handled explicitly: every native call is followed by an exit-code check.
+$ErrorActionPreference = "Continue"
 $backend = Join-Path $PSScriptRoot "backend"
 $venvPython = Join-Path $backend ".venv\Scripts\python.exe"
 if (-not (Test-Path $venvPython)) {
