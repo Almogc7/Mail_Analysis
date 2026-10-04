@@ -1,0 +1,27 @@
+/* Workbench panels (docs/DESIGN_V2.md, phase A). Everything here is for text shown as TEXT: nothing renders HTML, loads an image or makes a link
+   clickable. Long indicators wrap instead of overflowing. Neutral colours only for "no indicators found": no green, no check mark. */
+.wb-panel { display: flex; flex-direction: column; gap: var(--space-3); }
+.wb-title { margin: 0; font-size: 1.05em; }
+.wb-lead { margin: 0; color: var(--text-secondary); font-size: 0.9em; }
+.wb-note { color: var(--text-secondary); font-size: 0.85em; margin: 0; }
+.wb-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4); }
+.wb-subtitle { margin: 0 0 var(--space-2); font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); }
+.wb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.wb-row { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-2) var(--space-3); background: var(--bg-panel-raised); }
+.wb-row--notice { border-color: var(--accent-amber); }
+.wb-row-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); }
+.wb-mono { font-family: var(--font-mono); word-break: break-all; overflow-wrap: anywhere; }
+.wb-small { font-size: 0.85em; color: var(--text-secondary); margin-top: var(--space-1); }
+.wb-badge { font-size: 0.75em; padding: 0 var(--space-2); border-radius: var(--radius); border: 1px solid var(--border); color: var(--text-secondary); white-space: nowrap; }
+.wb-badge--warn { border-color: var(--accent-amber); color: var(--accent-amber); }
+.wb-badge--info { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+.wb-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+.wb-table th, .wb-table td { text-align: left; padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--border-muted); vertical-align: top; }
+.wb-pre { margin: 0; padding: var(--space-3); background: var(--bg-muted); border: 1px solid var(--border); border-radius: var(--radius); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24rem; overflow: auto; font-family: var(--font-mono); font-size: 0.85em; }
+.wb-toggle { align-self: flex-start; }
+.wb-copy-state { color: var(--text-secondary); font-size: 0.8em; margin-left: var(--space-2); }
+.hop-list { list-style: none; margin: 0; padding: 0 0 0 var(--space-3); border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: var(--space-3); }
+.hop { position: relative; padding-left: var(--space-3); }
+.hop::before { content: ''; position: absolute; left: calc(-1 * var(--space-3) - 5px); top: 0.5em; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+.hop--origin::before { background: var(--accent-amber); }
+.hop--trusted::before { background: var(--accent-cyan); }
