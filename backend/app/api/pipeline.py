@@ -6,6 +6,7 @@ from app.contracts.analysis import AnalysisResult
 from app.contracts.findings import ModuleResult
 from app.content_analysis import run_content_analysis
 from app.enrichment import run_enrichment
+from app.coverage import build_coverage_report
 from app.evidence import build_evidence
 from app.indicators import build_indicator_pack
 from app.llm import run_llm_opinion
@@ -61,12 +62,20 @@ def run_pipeline(raw_bytes: bytes, filename: str, on_step: StepCallback = _noop)
     except Exception as exc:
         logger.warning("evidence block could not be built (%s)", type(exc).__name__)
 
+    coverage = None
+    try:
+        coverage = build_coverage_report(parsed, [auth_result, enrichment_result, content_result], evidence)
+    except Exception as exc:
+        logger.warning("coverage report could not be built (%s)", type(exc).__name__)
+
     on_step("llm_opinion")
     opinion = run_llm_opinion(analysis_result)
 
     update: dict = {"llm_opinion": opinion, "indicators": indicators}
     if evidence is not None:
         update.update(evidence=evidence, schema_version=2)
+    if coverage is not None:
+        update.update(coverage_report=coverage, schema_version=2)
     return analysis_result.model_copy(update=update)
 
 

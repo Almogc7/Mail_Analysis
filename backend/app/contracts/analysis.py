@@ -138,6 +138,19 @@ class Evidence(BaseModel):
     images: list[ImageEntry] = []
 
 
+class CoverageItem(BaseModel):
+    """One line of 'what was checked, what was not, and why'. Built from data the analysis already holds; adds nothing to the score."""
+
+    area: str
+    subject: str | None = None
+    status: Literal["checked", "partly", "not_checked"]
+    reason: str = ""  # a stable code, e.g. no_trusted_receiver_configured, no_api_key, never_opened
+    detail: str = ""  # counts and plain words only: never an indicator, address, URL or text from the message
+    by_design: bool = False  # the app never does this on purpose (it never opens links or attachments)
+    blocks_no_indicators: bool = False  # an unchecked high-risk surface: once verdict v2 is active, it blocks "No indicators found"
+    how_to_clear: str = ""
+
+
 class AnalysisResult(BaseModel):
     parsed_email: ParsedEmail
     module_results: list[ModuleResult] = []
@@ -152,3 +165,4 @@ class AnalysisResult(BaseModel):
     # client ignores them. schema_version is 2 when the blocks are present.
     schema_version: int = 1
     evidence: Evidence | None = None
+    coverage_report: list[CoverageItem] | None = None

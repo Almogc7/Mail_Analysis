@@ -231,7 +231,8 @@ def test_the_block_changes_neither_verdict_nor_score_nor_priority_and_a_failure_
         raise RuntimeError("SECRET-TEXT-IN-AN-ERROR")
 
     without = _run(monkeypatch, boom)
-    assert without.evidence is None and without.schema_version == 1
+    # the two blocks are independent: with the evidence builder failing the coverage report is still built (so the version is 2)
+    assert without.evidence is None and without.coverage_report is not None and without.schema_version == 2
     assert (with_block.verdict, with_block.score, with_block.confidence, with_block.scoring.priority) == (without.verdict, without.score, without.confidence, without.scoring.priority)
     assert [f.title for f in with_block.findings] == [f.title for f in without.findings]
 
