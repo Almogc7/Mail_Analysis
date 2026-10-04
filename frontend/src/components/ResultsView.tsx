@@ -11,6 +11,7 @@ import { AttachmentsPanel } from './AttachmentsPanel'
 import { BodyPanel } from './BodyPanel'
 import { ImagesPanel } from './ImagesPanel'
 import { RawHeadersPanel } from './RawHeadersPanel'
+import { FindingsByFamily } from './FindingsByFamily'
 
 const MODULE_ORDER = ['auth_check', 'enrichment', 'content_analysis']
 
@@ -22,7 +23,7 @@ interface ResultsViewProps {
 }
 
 /**
- * Page order (docs/DESIGN_V2.md, phase A): verdict and reasons, coverage, sender and path, links, attachments, body, images, indicators,
+ * Page order (docs/DESIGN_V2.md, phase A): verdict and reasons, findings by signal family, coverage, sender and path, links, attachments, body, images, indicators,
  * the per-module detail, raw headers, the LLM opinion, feedback. The evidence panels appear only when the backend sent an evidence block, so an
  * older result still renders as before.
  */
@@ -35,6 +36,8 @@ export function ResultsView({ result, onReset, jobId }: ResultsViewProps) {
   return (
     <div className="results-view">
       <SummaryCard result={result} />
+
+      <FindingsByFamily findings={result.findings} />
 
       <CoveragePanel items={result.coverage_report} />
 
@@ -50,6 +53,7 @@ export function ResultsView({ result, onReset, jobId }: ResultsViewProps) {
 
       <IndicatorsPanel pack={result.indicators} />
 
+      <h2 className="wb-title">Detail by module</h2>
       <div className="module-panels">
         {orderedModules.map((m) => (
           <ModulePanel result={m} key={m.module} />
