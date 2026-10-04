@@ -18,7 +18,7 @@ from app.contracts.analysis import Indicator, IndicatorPack, Pivot
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import ModuleResult
 from app.enrichment.policy import classify_host, host_of
-from app.hops import hidden_indexes
+from app.hops import gateway_hop_indexes, hidden_indexes
 
 _DOMAIN_PIVOTS = (
     ("VirusTotal", "https://www.virustotal.com/gui/domain/{v}"),
@@ -104,11 +104,14 @@ class _Collector:
         self.enrichment, self.dropped = enrichment, dropped
         self.items: dict[tuple[str, str], Indicator] = {}
         self.shown: set[tuple[str, str]] = set()  # keys seen anywhere EXCEPT in a hop hidden by local config
+        self.not_gateway: set[tuple[str, str]] = set()  # keys seen anywhere EXCEPT in a hop sent by a trusted receiver
 
-    def add(self, kind: str, value: str, seen_in: str, hidden: bool = False, **extra: Any) -> Indicator:
+    def add(self, kind: str, value: str, seen_in: str, hidden: bool = False, gateway: bool = False, **extra: Any) -> Indicator:
         key = (kind, value)
         if not hidden:
             self.shown.add(key)
+        if not gateway:
+            self.not_gateway.add(key)
         item = self.items.get(key)
         if item is None:
             item = Indicator(kind=kind, value=value, **extra)
@@ -160,14 +163,17 @@ def build_indicator_pack(parsed: ParsedEmail, module_results: list[ModuleResult]
     # EVERY hop is collected, hidden or not: coverage and blockers are computed from the full list. A hop hidden by local config (only ever one at or
     # above the first trusted hop: see app/hops.py) is merely flagged, and visible_pack() leaves it out of the response.
     chain = parsed.received_chain
-    hidden_hops = hidden_indexes(chain, next((m for m in module_results if m.module == "auth_check"), None))
+    auth = next((m for m in module_results if m.module == "auth_check"), None)
+    hidden_hops = hidden_indexes(chain, auth)
+    gateway_hops = gateway_hop_indexes(chain, auth)
     for index, hop in enumerate(chain):
         origin = index == len(chain) - 1
         hidden = index in hidden_hops
+        gateway = index in gateway_hops
         if hop.from_ip and _is_public_ip(hop.from_ip):
-            c.add("ip", hop.from_ip, "origin hop (where the message entered the mail system)" if origin else "Received hop", hidden=hidden)
+            c.add("ip", hop.from_ip, "origin hop (where the message entered the mail system)" if origin else "Received hop", hidden=hidden, gateway=gateway)
         if origin and hop.from_host and "." in hop.from_host:
-            c.add("domain", hop.from_host.strip(".").lower(), "origin hop host name", hidden=hidden)
+            c.add("domain", hop.from_host.strip(".").lower(), "origin hop host name", hidden=hidden, gateway=gateway)
 
     # ---- attachments (hashes only; files are never opened) ----------------------------------------------------------
     for att in parsed.attachments:
@@ -201,6 +207,7 @@ def build_indicator_pack(parsed: ParsedEmail, module_results: list[ModuleResult]
             item.status, item.note = "n/a", "Address seen in the headers; compare it with the display name and the story."
         item.manual_check = item.status in {"unknown", "shared_platform", "not_looked_up", "internal"}
         item.hidden_by_config = (item.kind, item.value) not in c.shown
+        item.gateway = (item.kind, item.value) not in c.not_gateway  # only ever seen in a hop sent by a trusted receiver
         items.append(item)
 
     items.sort(key=lambda i: (_ORDER.get(i.status, 9), i.kind))
@@ -215,7 +222,9 @@ def visible_pack(pack: IndicatorPack | None) -> IndicatorPack | None:
     full pack is what evidence and coverage were built from."""
     if pack is None:
         return None
-    kept = [i for i in pack.indicators if not i.hidden_by_config]
+    # An address that is only your own trusted gateway needs no manual check: the response copy clears manual_check (the full pack keeps it, so coverage and
+    # blockers are still built from the full set).
+    kept = [i.model_copy(update={"manual_check": False}) if i.gateway else i for i in pack.indicators if not i.hidden_by_config]
     counts: dict[str, int] = {}
     for i in kept:
         counts[i.kind] = counts.get(i.kind, 0) + 1

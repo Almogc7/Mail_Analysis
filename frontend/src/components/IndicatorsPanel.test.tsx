@@ -147,3 +147,32 @@ describe('IndicatorsPanel: indicators hidden by local config are counted, never 
     expect(screen.getByText(/3 indicators hidden by local config/)).toBeInTheDocument()
   })
 })
+
+describe('IndicatorsPanel: the analyst\'s own gateway', () => {
+  const gateway = indicator({
+    kind: 'ip', value: '203.0.113.9', seen_in: ['Received hop'], status: 'not_looked_up', note: 'Not looked up. Check it by hand.',
+    providers: {}, manual_check: false, gateway: true,
+  })
+
+  it('is labelled "your gateway", says there is nothing to check, and does not show the check-by-hand wording', () => {
+    render(<IndicatorsPanel pack={pack([gateway, indicator({ value: 'a.example.org', status: 'unknown', manual_check: true })])} />)
+    expect(screen.getByText('your gateway')).toBeInTheDocument()
+    expect(screen.getByText(/address of a server you trust/i)).toBeInTheDocument()
+    expect(screen.queryByText('Not looked up. Check it by hand.')).toBeNull()
+    expect(screen.queryByText('Not looked up: check by hand')).toBeNull()
+  })
+
+  it('is not counted as a manual check and is left out of the "only manual checks" view', () => {
+    render(<IndicatorsPanel pack={pack([gateway, indicator({ value: 'a.example.org', status: 'unknown', manual_check: true })])} />)
+    expect(screen.getByText(/need a manual check/).closest('p')).toHaveTextContent('1 need a manual check')
+    fireEvent.click(screen.getByLabelText(/only manual checks/i))
+    expect(screen.queryByText('203.0.113.9')).toBeNull()
+    expect(screen.getByText('a.example.org')).toBeInTheDocument()
+  })
+
+  it('still lists the gateway address (and offers it in the copy) when all indicators are shown', () => {
+    render(<IndicatorsPanel pack={pack([gateway])} />)
+    expect(screen.getByText('203.0.113.9')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy 203.0.113.9' })).toBeInTheDocument()
+  })
+})

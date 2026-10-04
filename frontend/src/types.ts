@@ -135,6 +135,8 @@ export interface Indicator {
   pivots: Pivot[]
   manual_check: boolean
   filename: string | null
+  /** The address of a trusted receiver itself ("your gateway"): nothing to check by hand, and not counted as a manual check. */
+  gateway?: boolean
 }
 
 export interface IndicatorPack {

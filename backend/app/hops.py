@@ -79,6 +79,25 @@ def is_unverified(index: int, boundary: int | None) -> bool:
     return boundary is None or index > boundary
 
 
+def _norm(host: str | None) -> str:
+    return (host or "").strip(".").lower()
+
+
+def gateway_hop_indexes(chain, auth: ModuleResult | None) -> set[int]:
+    """Newest-first indexes of the hops SENT BY a trusted receiver. The hop that wrote a trusted result names the trusted host in its `by` field; the
+    next hop (newer, so written by our own infrastructure) names the same host in its `from` field, with the address the trusted receiver really used.
+    That address is "your gateway". The trusted hop's own `from` address is the sender's, so it is never a gateway address."""
+    found: set[int] = set()
+    for trusted in trusted_hop_indexes(auth):
+        if trusted >= len(chain):
+            continue
+        by = _norm(chain[trusted].by_host)
+        if not by:
+            continue
+        found.update(i for i in range(trusted) if _norm(chain[i].from_host) == by)
+    return found
+
+
 def hidden_indexes(chain, auth: ModuleResult | None) -> set[int]:
     """Newest-first indexes of the hops the analyst's config hides: looks internal AND at or above the trust boundary."""
     boundary = trust_boundary(auth)

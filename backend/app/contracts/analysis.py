@@ -35,6 +35,9 @@ class Indicator(BaseModel):
     filename: str | None = None
     # Seen ONLY in hops hidden by the local INTERNAL_HOP_PATTERNS. The full pack (used by evidence and coverage) keeps them; the response never does.
     hidden_by_config: bool = False
+    # The address of a trusted receiver itself (it wrote a trusted authentication result): the analyst's own gateway, so there is nothing to check by hand.
+    # The full pack keeps manual_check as computed; only the response pack clears it (see visible_pack).
+    gateway: bool = False
 
 
 class IndicatorPack(BaseModel):

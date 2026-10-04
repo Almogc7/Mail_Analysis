@@ -111,12 +111,14 @@ export function IndicatorsPanel({ pack }: { pack: IndicatorPack | null | undefin
             <h3>{KIND_LABELS[kind]} ({group.length})</h3>
             <ul className="indicator-list">
               {group.map((i) => (
-                <li key={`${i.kind}:${i.value}`} className={`indicator indicator--${i.status}`}>
+                <li key={`${i.kind}:${i.value}`} className={`indicator indicator--${i.gateway ? 'gateway' : i.status}`}>
                   <div className="indicator-main">
                     <code className="indicator-value" dir="auto">{i.value}</code>
                     {i.filename && <span className="indicator-file" dir="auto"> ({i.filename})</span>}
-                    {STATUS_LABELS[i.status] && (
-                      <span className={`indicator-status indicator-status--${i.status}`}>{STATUS_LABELS[i.status]}</span>
+                    {i.gateway ? (
+                      <span className="indicator-status indicator-status--gateway">your gateway</span>
+                    ) : (
+                      STATUS_LABELS[i.status] && <span className={`indicator-status indicator-status--${i.status}`}>{STATUS_LABELS[i.status]}</span>
                     )}
                     <button className="indicator-copy" onClick={() => run(i.value, i.value)} aria-label={`Copy ${i.value}`}>
                       Copy
@@ -126,7 +128,11 @@ export function IndicatorsPanel({ pack }: { pack: IndicatorPack | null | undefin
                     Seen as: {i.seen_in.join('; ')}
                     {i.count > 1 ? ` (${i.count} times)` : ''}
                   </div>
-                  {i.note && <div className="indicator-note">{i.note}</div>}
+                  {i.gateway ? (
+                    <div className="indicator-note">The address of a server you trust: it wrote the trusted authentication result for this message. Nothing to check by hand.</div>
+                  ) : (
+                    i.note && <div className="indicator-note">{i.note}</div>
+                  )}
                   {Object.keys(i.providers).length > 0 && (
                     <div className="indicator-providers">
                       {Object.entries(i.providers).map(([name, state]) => `${name}: ${state}`).join(' · ')}
