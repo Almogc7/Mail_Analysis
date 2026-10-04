@@ -91,9 +91,16 @@ button:hover:not(:disabled) {
   background: color-mix(in srgb, var(--verdict-needs-review) 15%, transparent);
   color: var(--verdict-needs-review);
 }
+/* "No indicators found" is neutral on purpose: no green, no check mark, nothing that reads as reassurance (D1 in docs/DESIGN_V2.md). */
 .verdict-benign {
-  background: color-mix(in srgb, var(--verdict-legit) 15%, transparent);
-  color: var(--verdict-legit);
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.why-list ul {
+  margin: 0;
+  padding-left: var(--space-4);
+  overflow-wrap: anywhere;
 }
 .confidence-line {
   color: var(--text-secondary);

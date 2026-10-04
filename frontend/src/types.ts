@@ -98,6 +98,8 @@ export interface ScoringBreakdown {
   categories: CategoryScore[]
   weighted_score: number
   applied_overrides: AppliedOverride[]
+  inconclusive_reason?: string | null
+  priority?: number
 }
 
 export interface LLMOpinion {
@@ -141,6 +143,112 @@ export interface IndicatorPack {
   manual_check_count: number
 }
 
+// ---- workbench blocks (docs/DESIGN_V2.md, phase A). All optional: an older result simply does not have them. ----
+
+export interface HopEntry {
+  index: number
+  from_host: string | null
+  by_host: string | null
+  from_ip: string | null
+  protocol: string | null
+  tls: boolean
+  authenticated: boolean
+  local_submission: boolean
+  timestamp: string | null
+  delay_seconds_from_previous: number | null
+  clock_skew: boolean
+  trusted_receiver: boolean
+  is_origin: boolean
+}
+
+export interface AuthRow {
+  method: string
+  evaluated: boolean
+  result: string | null
+  receiver: string | null
+  reason: string | null
+  source: string | null
+}
+
+export interface SenderEvidence {
+  from_address: EmailAddress | null
+  reply_to: EmailAddress | null
+  return_path: EmailAddress | null
+  auth: AuthRow[]
+  alignment: Record<string, boolean | null>
+  mismatches: string[]
+  trusted_receivers_configured: boolean
+}
+
+export type LinkKind = 'direct' | 'tracker' | 'wrapper' | 'shortener' | 'redirector' | 'shared_platform'
+
+export interface LinkEntry {
+  url: string
+  url_defanged: string
+  host: string | null
+  registrable_domain: string | null
+  display_text: string | null
+  kind: LinkKind
+  platform: string | null
+  anchor_mismatch: boolean
+  occurrences: number
+  sources: string[]
+  status: string
+}
+
+export interface AttachmentEntry {
+  filename: string | null
+  declared_type: string | null
+  detected_type: string | null
+  extension: string | null
+  size_bytes: number
+  sha256: string
+  risk_class: string
+  active_content: boolean
+  double_extension: boolean
+  static_analysis: Record<string, unknown> | null
+}
+
+export interface BodyInfo {
+  language: string | null
+  language_status: string | null
+  text_chars: number
+  html_chars: number
+  has_html: boolean
+  forms: number
+  remote_images: number
+  links: number
+}
+
+export interface ImageEntry {
+  source: 'html' | 'attachment'
+  host: string | null
+  url_defanged: string | null
+  filename: string | null
+  size_bytes: number | null
+  decoded: Record<string, unknown>[] | null
+}
+
+export interface Evidence {
+  sender: SenderEvidence
+  hop_timeline: HopEntry[]
+  links: LinkEntry[]
+  attachments: AttachmentEntry[]
+  body: BodyInfo
+  images: ImageEntry[]
+}
+
+export interface CoverageItem {
+  area: string
+  subject: string | null
+  status: 'checked' | 'partly' | 'not_checked'
+  reason: string
+  detail: string
+  by_design: boolean
+  blocks_no_indicators: boolean
+  how_to_clear: string
+}
+
 export interface AnalysisResult {
   parsed_email: ParsedEmail
   module_results: ModuleResult[]
@@ -151,6 +259,9 @@ export interface AnalysisResult {
   scoring: ScoringBreakdown | null
   llm_opinion: LLMOpinion | null
   indicators?: IndicatorPack | null
+  schema_version?: number
+  evidence?: Evidence | null
+  coverage_report?: CoverageItem[] | null
 }
 
 export interface AnalysisJob {
