@@ -1,4 +1,4 @@
-import type { AnalysisResult, Finding, ModuleResult, ParsedEmail } from '../types'
+import type { AnalysisResult, CoverageItem, Evidence, Finding, ModuleResult, ParsedEmail } from '../types'
 
 export function makeParsedEmail(overrides: Partial<ParsedEmail> = {}): ParsedEmail {
   return {
@@ -68,6 +68,40 @@ export function makeAnalysisResult(overrides: Partial<AnalysisResult> = {}): Ana
       applied_overrides: [],
     },
     llm_opinion: null,
+    ...overrides,
+  }
+}
+
+export function makeCoverageItem(overrides: Partial<CoverageItem> = {}): CoverageItem {
+  return {
+    area: 'authentication',
+    subject: 'spf',
+    status: 'checked',
+    reason: '',
+    detail: 'Evaluated by a trusted receiver.',
+    by_design: false,
+    blocks_no_indicators: false,
+    how_to_clear: '',
+    ...overrides,
+  }
+}
+
+export function makeEvidence(overrides: Partial<Evidence> = {}): Evidence {
+  return {
+    sender: {
+      from_address: { display_name: 'Alice', address: 'alice@example.com', domain: 'example.com' },
+      reply_to: null,
+      return_path: null,
+      auth: [],
+      alignment: {},
+      mismatches: [],
+      trusted_receivers_configured: false,
+    },
+    hop_timeline: [],
+    links: [],
+    attachments: [],
+    body: { language: 'en', language_status: 'detected', text_chars: 5, html_chars: 0, has_html: false, forms: 0, remote_images: 0, links: 0 },
+    images: [],
     ...overrides,
   }
 }
