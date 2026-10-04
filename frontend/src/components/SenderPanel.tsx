@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { AuthRow, EmailAddress, HopEntry, SenderEvidence } from '../types'
 
 function addr(a: EmailAddress | null): string {
@@ -18,11 +19,49 @@ function authText(row: AuthRow): string {
   return `${row.result ?? 'no result'}${row.receiver ? ` as written by ${row.receiver}` : ''}`
 }
 
+type Row = { kind: 'hop'; hop: HopEntry } | { kind: 'hidden'; hops: HopEntry[] }
+
+/** Consecutive hops sent from the analyst's own systems become one summary row. */
+function group(hops: HopEntry[]): Row[] {
+  const rows: Row[] = []
+  for (const hop of hops) {
+    const last = rows[rows.length - 1]
+    if (!hop.internal) rows.push({ kind: 'hop', hop })
+    else if (last?.kind === 'hidden') last.hops.push(hop)
+    else rows.push({ kind: 'hidden', hops: [hop] })
+  }
+  return rows
+}
+
 export function HopTimeline({ hops }: { hops: HopEntry[] }) {
   if (hops.length === 0) return <p className="wb-note">No Received headers were present.</p>
   return (
+    <>
+    {hops.some((h) => h.unverified) && (
+      <p className="wb-note">
+        Hops marked claimed / unverified were written before the message reached a server you trust, so the sender controls them. Read every field
+        of those hops as a claim.
+      </p>
+    )}
     <ol className="hop-list" aria-label="Received hops, oldest first">
-      {hops.map((h) => {
+      {group(hops).map((row) => {
+        if (row.kind === 'hidden') {
+          const trusted = row.hops.filter((h) => h.trusted_receiver).length
+          const first = row.hops[0].index
+          const last = row.hops[row.hops.length - 1].index
+          return (
+            <li key={`hidden-${first}`} className="hop hop--hidden">
+              <div className="wb-row-main">
+                <strong>{first === last ? `Hop ${first}` : `Hops ${first} to ${last}`}</strong>
+                <span className="wb-badge">
+                  {row.hops.length} hop{row.hops.length === 1 ? '' : 's'} hidden by local config
+                </span>
+                {trusted > 0 && <span className="wb-badge wb-badge--info">{trusted === 1 ? 'one' : trusted} wrote a trusted authentication result</span>}
+              </div>
+            </li>
+          )
+        }
+        const h = row.hop
         const later = delay(h.delay_seconds_from_previous)
         return (
           <li key={h.index} className={`hop${h.is_origin ? ' hop--origin' : ''}${h.trusted_receiver ? ' hop--trusted' : ''}`}>
@@ -36,6 +75,7 @@ export function HopTimeline({ hops }: { hops: HopEntry[] }) {
               {h.trusted_receiver && <span className="wb-badge wb-badge--info">trusted receiver</span>}
               {h.clock_skew && <span className="wb-badge wb-badge--warn">timestamp earlier than the previous hop</span>}
               {h.local_submission && <span className="wb-badge">local submission</span>}
+              {h.unverified && <span className="wb-badge wb-badge--warn">claimed / unverified</span>}
             </div>
             <div className="wb-small">
               {[h.protocol, h.tls ? 'TLS' : 'no TLS recorded', h.authenticated ? 'authenticated' : null, h.timestamp, later].filter(Boolean).join(' · ')}
@@ -44,10 +84,12 @@ export function HopTimeline({ hops }: { hops: HopEntry[] }) {
         )
       })}
     </ol>
+    </>
   )
 }
 
 export function SenderPanel({ sender, hops }: { sender: SenderEvidence; hops: HopEntry[] }) {
+  const [pathOpen, setPathOpen] = useState(false)  // collapsed by default: the path matters for the first outside hop, rarely for the rest
   const alignment = Object.entries(sender.alignment)
   return (
     <section className="view-card wb-panel" aria-label="Sender and authentication">
@@ -85,7 +127,7 @@ export function SenderPanel({ sender, hops }: { sender: SenderEvidence; hops: Ho
               ))}
               {alignment.map(([name, value]) => (
                 <tr key={`al-${name}`}>
-                  <th scope="row">{name} aligned</th>
+                  <th scope="row">{name.replaceAll('_', ' ')} aligned</th>
                   <td>{value === null ? 'not known' : value ? 'yes' : 'no'}</td>
                 </tr>
               ))}
@@ -95,7 +137,10 @@ export function SenderPanel({ sender, hops }: { sender: SenderEvidence; hops: Ho
       </div>
       <div>
         <h3 className="wb-subtitle">Path the message took</h3>
-        <HopTimeline hops={hops} />
+        <button type="button" className="wb-toggle" aria-expanded={pathOpen} onClick={() => setPathOpen((o) => !o)}>
+          {pathOpen ? 'Hide path' : `Show path (${hops.length} hop${hops.length === 1 ? '' : 's'})`}
+        </button>
+        {pathOpen && <HopTimeline hops={hops} />}
       </div>
     </section>
   )

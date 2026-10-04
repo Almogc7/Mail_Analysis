@@ -51,7 +51,7 @@ describe('LinksPanel', () => {
     expect(screen.getByText('security wrapper')).toBeInTheDocument()
     expect(screen.getByText('Safelinks')).toBeInTheDocument()
     expect(screen.getByText('seen 3 times')).toBeInTheDocument()
-    expect(screen.getByText('shared platform, not judged by host')).toBeInTheDocument()
+    expect(screen.getByText('shared platform: check by hand')).toBeInTheDocument()
   })
 })
 
@@ -87,5 +87,19 @@ describe('AttachmentsPanel', () => {
   it('says so when there are none', () => {
     render(<AttachmentsPanel attachments={[]} />)
     expect(screen.getByText('No attachments.')).toBeInTheDocument()
+  })
+})
+
+describe('LinksPanel: every backend status has a plain-words label', () => {
+  it.each([
+    ['nothing_found', 'nothing found (not proof of safety)'],
+    ['provider_hit', 'a provider reported it'],
+    ['unknown', 'unknown: check by hand'],
+    ['not_looked_up', 'not looked up: check by hand'],
+    ['internal', 'internal name, not sent anywhere'],
+  ] as const)('%s', (status, label) => {
+    render(<LinksPanel links={[link({ status })]} />)
+    expect(screen.getByText(label)).toBeInTheDocument()
+    expect(screen.queryByText(status)).toBeNull() // never the raw code
   })
 })

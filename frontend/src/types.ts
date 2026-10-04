@@ -141,6 +141,8 @@ export interface IndicatorPack {
   indicators: Indicator[]
   counts: Record<string, number>
   manual_check_count: number
+  /** Indicators left out of this list because they came only from hops hidden by local config. */
+  hidden_by_config_count?: number
 }
 
 // ---- workbench blocks (docs/DESIGN_V2.md, phase A). All optional: an older result simply does not have them. ----
@@ -159,6 +161,10 @@ export interface HopEntry {
   clock_skew: boolean
   trusted_receiver: boolean
   is_origin: boolean
+  /** Sent from one of the analyst's own systems (INTERNAL_HOP_PATTERNS): the backend blanks its names and address. */
+  internal?: boolean
+  /** Below the trust boundary (or no trusted hop exists): written by the sender, so every field is a claim. */
+  unverified?: boolean
 }
 
 export interface AuthRow {
@@ -193,7 +199,7 @@ export interface LinkEntry {
   anchor_mismatch: boolean
   occurrences: number
   sources: string[]
-  status: string
+  status: IndicatorStatus
 }
 
 export interface AttachmentEntry {

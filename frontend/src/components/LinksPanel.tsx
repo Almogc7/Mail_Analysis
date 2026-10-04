@@ -1,4 +1,4 @@
-import type { LinkEntry } from '../types'
+import type { IndicatorStatus, LinkEntry } from '../types'
 import { CopyButton } from './CopyButton'
 
 const KIND_LABEL: Record<LinkEntry['kind'], string> = {
@@ -10,13 +10,15 @@ const KIND_LABEL: Record<LinkEntry['kind'], string> = {
   shared_platform: 'shared platform',
 }
 
-const STATUS_LABEL: Record<string, string> = {
+// Keyed by the backend's own IndicatorStatus values, so a new status cannot slip through as a raw code without a type error.
+const STATUS_LABEL: Record<IndicatorStatus, string> = {
   provider_hit: 'a provider reported it',
-  checked_no_hit: 'checked, no hit',
-  unknown: 'not found at any source',
-  shared_platform: 'shared platform, not judged by host',
-  not_looked_up: 'not looked up',
-  manual_check: 'check by hand',
+  nothing_found: 'nothing found (not proof of safety)',
+  unknown: 'unknown: check by hand',
+  shared_platform: 'shared platform: check by hand',
+  not_looked_up: 'not looked up: check by hand',
+  internal: 'internal name, not sent anywhere',
+  'n/a': '',
 }
 
 /** Links are shown as plain defanged text: never an anchor, never opened, never resolved. */

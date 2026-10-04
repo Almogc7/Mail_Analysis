@@ -72,7 +72,8 @@ function downloadCsv(csv: string) {
 export function IndicatorsPanel({ pack }: { pack: IndicatorPack | null | undefined }) {
   const [onlyManual, setOnlyManual] = useState(false)
   const [message, setMessage] = useState('')
-  if (!pack || pack.indicators.length === 0) return null
+  const hiddenCount = pack?.hidden_by_config_count ?? 0
+  if (!pack || (pack.indicators.length === 0 && hiddenCount === 0)) return null
 
   const shown = pack.indicators.filter((i) => !onlyManual || i.manual_check)
   const run = async (label: string, text: string) => setMessage((await copy(text)) ? `${label}: copied` : `${label}: copy failed`)
@@ -85,6 +86,12 @@ export function IndicatorsPanel({ pack }: { pack: IndicatorPack | null | undefin
         <strong>{pack.manual_check_count}</strong> need a manual check: the app could not judge them, which is not the same as
         clean. The links open third-party sites only when you click them.
       </p>
+
+      {hiddenCount > 0 && (
+        <p className="indicators-lead">
+          {hiddenCount} indicator{hiddenCount === 1 ? '' : 's'} hidden by local config (addresses of your own mail systems). Raw headers still show everything.
+        </p>
+      )}
 
       <div className="indicators-toolbar">
         <label>

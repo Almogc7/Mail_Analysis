@@ -127,3 +127,23 @@ describe('IndicatorsPanel', () => {
     expect(screen.getByText('Indicators to check')).toBeInTheDocument()
   })
 })
+
+describe('IndicatorsPanel: indicators hidden by local config are counted, never named', () => {
+  it('says how many were hidden and shows none of them', () => {
+    const { container } = render(<IndicatorsPanel pack={{ ...pack([indicator()]), hidden_by_config_count: 2 }} />)
+    expect(screen.getByText(/2 indicators hidden by local config/)).toBeInTheDocument()
+    expect(container.textContent).toContain('evil.example.org')
+  })
+
+  it('uses the singular for one, and shows no note when nothing was hidden', () => {
+    const { rerender } = render(<IndicatorsPanel pack={{ ...pack([indicator()]), hidden_by_config_count: 1 }} />)
+    expect(screen.getByText(/1 indicator hidden by local config/)).toBeInTheDocument()
+    rerender(<IndicatorsPanel pack={{ ...pack([indicator()]), hidden_by_config_count: 0 }} />)
+    expect(screen.queryByText(/hidden by local config/)).toBeNull()
+  })
+
+  it('still reports the count when every indicator was hidden, instead of vanishing', () => {
+    render(<IndicatorsPanel pack={{ ...pack([]), hidden_by_config_count: 3 }} />)
+    expect(screen.getByText(/3 indicators hidden by local config/)).toBeInTheDocument()
+  })
+})
