@@ -415,9 +415,22 @@ parsing), `rapidfuzz` (fuzzy brand matching), `beautifulsoup4` (HTML parsing),
 
 **Frontend**: React 19, Vite, TypeScript. Vitest + React Testing Library for tests.
 
-**Enrichment**: reuses provider integrations (VirusTotal, URLScan, ThreatFox,
-MalwareBazaar) from the sibling [IOC_Enricher](#built-alongside-ioc_enricher) project via a
-`sys.path` bridge rather than duplicating that code — see `backend/app/enrichment/ioc_bridge.py`.
+**Enrichment**: four first-party, read-only lookup providers in `backend/app/enrichment/providers/` —
+VirusTotal, urlscan.io, ThreatFox and MalwareBazaar — plus the risk scorer that turns their answers into
+the enrichment findings. The repository is self-contained: it has no dependency on any other repository
+and no path or `sys.path` configuration. The provider code originated in the author's earlier IOC_Enricher
+project and is now maintained here independently (see "Origin of the provider code").
+
+| Provider | What it is asked | Key |
+|---|---|---|
+| VirusTotal | the report for a domain, IP, file hash or URL (GET only; nothing is uploaded) | `VT_API_KEY` |
+| urlscan.io | a search of scans that already exist (never submits a scan) | `URLSCAN_API_KEY` |
+| ThreatFox | an exact-match question about an indicator | `THREATFOX_API_KEY` |
+| MalwareBazaar | a question about a file hash | `MALWAREBAZAAR_API_KEY` |
+
+Put your keys in `backend/.env` (untracked). A source without a key reports "disabled", and its indicators are
+UNKNOWN, never clean. The privacy rules in "Enrichment privacy" (hostname-only by default, per-provider
+off-switch, risk-ordered capping) are enforced in `app/enrichment/policy.py`, in front of every provider.
 
 ### Setup
 
@@ -430,7 +443,7 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-copy .env.example .env        # fill in IOC_ENRICHER_PATH (if not a sibling dir) and provider API keys
+copy .env.example .env        # add your provider API keys (all optional)
 pytest                        # 61 tests should pass
 uvicorn app.main:app --reload # serves on http://localhost:8000
 
@@ -442,10 +455,9 @@ npm run dev                   # serves on http://localhost:5173, proxies /analyz
 ```
 
 `backend/.env` holds this project's own copies of provider API keys (`VT_API_KEY`,
-`URLSCAN_API_KEY`, `THREATFOX_API_KEY`, `MALWAREBAZAAR_API_KEY`, `GOOGLE_API_KEY`) —
-deliberately separate from IOC_Enricher's own `.env`, so this app never depends on that
-repo's environment being configured. Any provider without a key configured degrades
-gracefully to a "disabled" status per finding rather than failing the analysis.
+`URLSCAN_API_KEY`, `THREATFOX_API_KEY`, `MALWAREBAZAAR_API_KEY`, `GOOGLE_API_KEY`). Any
+provider without a key configured degrades gracefully to a "disabled" status per finding
+rather than failing the analysis.
 
 **Scope note**: this tool is designed to run on a personal/home network only. It is not
 hardened for multi-tenant or production deployment — no auth on the API, an in-memory job
@@ -471,13 +483,12 @@ dev-server proxy.
 - **No production/multi-tenant hardening**, per the scope note above — this is a portfolio
   and personal-use tool, not a deployment-ready service.
 
-## Built alongside: IOC_Enricher
+## Origin of the provider code
 
-This project reuses provider-integration code (VirusTotal, AbuseIPDB, OTX, URLScan,
-ThreatFox, MalwareBazaar, RDAP) and scoring logic from a separate, earlier project —
-**IOC_Enricher** — a standalone IOC lookup and batch-enrichment tool with its own FastAPI
-backend and React frontend. Rather than duplicating that provider-integration code,
-Mail Analysis imports it directly via a `sys.path` bridge (see
-`backend/app/enrichment/ioc_bridge.py` and `backend/app/llm/gemini_bridge.py`), treating it
-as a local dependency without modifying that repo. IOC_Enricher is a sibling project in this
-portfolio, not a subdirectory of this one — see its own repo for details.
+The lookup providers (VirusTotal, urlscan.io, ThreatFox, MalwareBazaar), the risk scorer and the small
+Gemini chat client began in an earlier project of the author, a standalone IOC lookup and batch-enrichment
+tool. Only the pieces this app uses were copied, as first-party code under
+`backend/app/enrichment/providers/` and `backend/app/llm/gemini_client.py`, and they are now maintained
+here separately: changes there are not mirrored back, and nothing here imports from it. The copy was
+verified against the original with identical fake HTTP (544 scenarios: same results, same requests) and
+against 765 recorded scorer outputs before the dependency was removed.

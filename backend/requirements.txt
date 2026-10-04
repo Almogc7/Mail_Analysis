@@ -9,12 +9,12 @@ authres
 rapidfuzz
 tldextract
 
-# Importing IOC_Enricher.py (via the sys.path bridge in app/enrichment/ioc_bridge.py)
-# transitively requires its own top-level dependency:
+# HTTP client for the lookup providers (app/enrichment/providers)
 requests
 
-# Importing IOC_Enricher's api.chat (via app/llm/gemini_bridge.py) transitively requires:
+# Optional LLM second opinion (app/llm/gemini_client.py; off unless LLM_ENABLED is set, SDK imported only on use)
 google-genai
 
+# Tests
 pytest
 httpx

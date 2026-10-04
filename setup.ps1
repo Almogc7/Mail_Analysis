@@ -6,25 +6,22 @@
   What it does, and nothing else:
     1. checks Python 3.10+                              (stops with an install hint if missing)
     2. creates backend\.venv and installs the dependencies
-    3. makes sure the IOC_Enricher repo is next to this one (clones/downloads it, ref in deploy\IOC_ENRICHER_REF)
-    4. creates backend\.env from the example if you have none (no keys are filled in for you)
-    5. builds the web UI if Node.js is installed        (otherwise only the API runs; the script says so)
-    6. runs the test suite unless -SkipTests
+    3. creates backend\.env from the example if you have none (no keys are filled in for you)
+    4. builds the web UI if Node.js is installed        (otherwise only the API runs; the script says so)
+    5. runs the test suite unless -SkipTests
 
-  It never touches mail, never contacts a threat-intelligence service and never uploads anything.
+  Everything the app needs is in this repository. The script never touches mail, never contacts a threat-intelligence
+  service and never uploads anything.
 #>
 param(
     [switch]$SkipTests,
-    [switch]$SkipFrontend,
-    [string]$IocEnricherRepo = "https://github.com/Almogc7/ioc-enrichment-tool",
-    [string]$IocEnricherRef = ""
+    [switch]$SkipFrontend
 )
 # Native commands (git, npm, pip) write progress to stderr; with "Stop" Windows PowerShell 5.1 turns that into a fatal error.
 # So errors are handled explicitly: every native call is followed by an exit-code check.
 $ErrorActionPreference = "Continue"
 $root = $PSScriptRoot
 $backend = Join-Path $root "backend"
-$sibling = Join-Path (Split-Path $root -Parent) "IOC_Enricher"
 
 function Step($text) { Write-Host ""; Write-Host "== $text" -ForegroundColor Cyan }
 function Fail($text) { Write-Host "ERROR: $text" -ForegroundColor Red; exit 1 }
@@ -53,37 +50,7 @@ if (-not (Test-Path $venvPython)) { & $python @pythonArgs -m venv (Join-Path $ba
 & $venvPython -m pip install --quiet -r (Join-Path $backend "requirements.txt")
 if ($LASTEXITCODE -ne 0) { Fail "pip install failed (check your internet connection / proxy)" }
 
-# ---- 3. IOC_Enricher -----------------------------------------------------------------------------------------------
-Step "Looking for the IOC_Enricher repo"
-if ($IocEnricherRef -eq "") {
-    $refFile = Join-Path $root "deploy\IOC_ENRICHER_REF"
-    $IocEnricherRef = if (Test-Path $refFile) { (Get-Content $refFile -TotalCount 1).Trim() } else { "main" }
-}
-if (-not (Test-Path (Join-Path $sibling "IOC_Enricher.py"))) {
-    Write-Host "Not found at $sibling. Fetching $IocEnricherRepo at '$IocEnricherRef' ..."
-    if (Get-Command git -ErrorAction SilentlyContinue) {
-        git clone --quiet $IocEnricherRepo $sibling
-        if ($LASTEXITCODE -ne 0) { Fail "git clone failed" }
-        git -C $sibling checkout --quiet $IocEnricherRef
-        if ($LASTEXITCODE -ne 0) { Fail "could not check out '$IocEnricherRef' in $sibling" }
-    } else {
-        $zip = Join-Path $env:TEMP "ioc_enricher.zip"; $tmp = Join-Path $env:TEMP "ioc_enricher_unzip"
-        if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
-        Invoke-WebRequest -Uri "$IocEnricherRepo/archive/$IocEnricherRef.zip" -OutFile $zip -ErrorAction Stop
-        Expand-Archive -Path $zip -DestinationPath $tmp -ErrorAction Stop
-        Move-Item (Get-ChildItem $tmp | Select-Object -First 1).FullName $sibling
-    }
-} else {
-    Write-Host "Found $sibling (left exactly as it is)"
-}
-$check = "import sys; sys.path.insert(0, r'$sibling'); from IOC_Enricher import MalwareBazaarClient, RiskScorer, ScoreConfig, ThreatFoxClient, URLScanClient, VirusTotalClient"
-& $venvPython -c $check 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    Fail ("The IOC_Enricher at $sibling is missing provider clients this app needs (MalwareBazaarClient ...). It is too old: update it " +
-          "(git -C `"$sibling`" pull) or set a newer ref in deploy\IOC_ENRICHER_REF, then run setup again.")
-}
-
-# ---- 4. .env -------------------------------------------------------------------------------------------------------
+# ---- 3. .env -------------------------------------------------------------------------------------------------------
 Step "Configuration"
 $envFile = Join-Path $backend ".env"
 if (-not (Test-Path $envFile)) {
@@ -92,9 +59,8 @@ if (-not (Test-Path $envFile)) {
 } else {
     Write-Host "backend\.env already exists (left as it is)"
 }
-if ((Split-Path $sibling -Parent) -ne (Split-Path $root -Parent)) { Add-Content $envFile "IOC_ENRICHER_PATH=$sibling" }
 
-# ---- 5. web UI -----------------------------------------------------------------------------------------------------
+# ---- 4. web UI -----------------------------------------------------------------------------------------------------
 Step "Web UI"
 $dist = Join-Path $root "frontend\dist\index.html"
 if ($SkipFrontend) {
@@ -109,7 +75,7 @@ if ($SkipFrontend) {
     Write-Host "Node.js was not found, so the web UI was NOT built; only the API will run. Install Node 20+ from https://nodejs.org, or use Docker." -ForegroundColor Yellow
 }
 
-# ---- 6. tests ------------------------------------------------------------------------------------------------------
+# ---- 5. tests ------------------------------------------------------------------------------------------------------
 if (-not $SkipTests) {
     Step "Running the tests (offline, about half a minute)"
     Push-Location $backend

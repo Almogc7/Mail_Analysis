@@ -1,11 +1,8 @@
 # docker compose up --build        then open http://localhost:8000
-# Optional: IOC_ENRICHER_REF=<commit> docker compose up --build   (which IOC_Enricher ref to build against)
 services:
   mail-analysis:
     build:
       context: .
-      args:
-        IOC_ENRICHER_REF: ${IOC_ENRICHER_REF:-main}
     image: mail-analysis:local
     # Localhost only. The app has NO login: never publish it on a network until authentication is added.
     ports:

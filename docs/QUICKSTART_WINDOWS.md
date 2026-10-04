@@ -14,12 +14,6 @@ Two ways to run it. Pick one.
 
 Both listen on **this machine only** (`http://localhost:8000`). The app has **no login**; do not expose it on a network.
 
-## Before you start: the IOC_Enricher dependency
-
-The provider clients and the risk scorer live in a second repository, `IOC_Enricher`. The setup script fetches it for you (next to this
-folder). **It must be a version that contains `MalwareBazaarClient`.** If setup stops with "IOC_Enricher ... is too old", ask the
-maintainer for the right ref and put it in `deploy\IOC_ENRICHER_REF` (or update the folder `..\IOC_Enricher`).
-
 ## Option 1: Python
 
 ```powershell
@@ -30,7 +24,7 @@ powershell -ExecutionPolicy Bypass -File .\setup.ps1
 powershell -ExecutionPolicy Bypass -File .\run.ps1        # opens http://localhost:8000
 ```
 
-`setup.ps1` checks Python, creates `backend\.venv`, installs the dependencies, makes sure `IOC_Enricher` is next to this folder, creates
+`setup.ps1` checks Python, creates `backend\.venv`, installs the dependencies (everything is in this repository: there is no second repo to fetch), creates
 `backend\.env` from an example (no keys filled in), builds the web UI if Node.js is installed, and runs the test suite. Without Node.js it
 still works but only the API is served (`http://localhost:8000/docs`). Stop with Ctrl+C.
 
@@ -42,9 +36,7 @@ docker compose up --build                                       # open http://lo
 ```
 
 Nothing organisation-specific is inside the image: the keys, trusted receivers, brands and known senders are mounted from `team-config\`
-(git-ignored). The feedback log lives on a Docker volume and survives restarts. Build against a specific IOC_Enricher version with
-`$env:IOC_ENRICHER_REF="<commit>"; docker compose up --build`. *Status: this path was written and reviewed but not yet run end to end by
-the maintainer; the Python path was.*
+(git-ignored). The feedback log lives on a Docker volume and survives restarts. *Status: this path was written and reviewed but not yet run end to end by the maintainer; the Python path was.*
 
 ## Configuration (all optional, all local)
 
@@ -88,7 +80,6 @@ the maintainer; the Python path was.*
 | Message | Meaning |
 |---|---|
 | `Python 3.10 or newer was not found` | install Python from python.org and tick "Add python.exe to PATH" |
-| `IOC_Enricher ... is too old` | see "Before you start" |
 | `port 8000 is already in use` | it is already running, or use `run.ps1 -Port 9000` |
 | UI missing, only `/docs` works | Node.js was not installed; install Node 20+ and run `setup.ps1` again |
 | `TRUSTED_RECEIVER_PATTERNS must be a JSON array` | a single backslash in the value; write each backslash twice |
