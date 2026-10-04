@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(backend/.venv/Scripts/python.exe -m pytest *)",
+      "Bash(backend/.venv/Scripts/python.exe backend/tests/eval.py *)",
+      "Bash(backend/.venv/Scripts/python.exe -m tests.eval *)",
+      "Bash(backend/.venv/Scripts/python.exe scripts/check_fixtures.py)",
+      "Bash(backend/.venv/Scripts/python.exe scripts/check_control_chars.py)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff)",
+      "Bash(git diff *)",
+      "Bash(git log)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ],
+    "deny": [
+      "Bash(git push*)",
+      "Bash(git -C * push*)",
+      "Bash(git -c * push*)",
+      "Bash(git push --force*)",
+      "Bash(git filter-repo*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean*)",
+      "Bash(*--final-holdout*)",
+      "Bash(git commit*--no-verify*)",
+      "Read(./backend/.env)",
+      "Read(/backend/.env)",
+      "Edit(./backend/.env)",
+      "Edit(/backend/.env)",
+      "Read(/backend/tests/fixtures/_local_corpus/holdout/**)",
+      "Read(holdout/**)",
+      "Edit(/backend/tests/fixtures/_local_corpus/holdout/**)",
+      "Edit(holdout/**)",
+      "Bash(*_local_corpus/holdout*)"
+    ]
+  }
+}
