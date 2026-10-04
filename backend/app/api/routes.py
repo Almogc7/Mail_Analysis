@@ -1,4 +1,5 @@
 import threading
+import time
 import uuid
 from typing import Literal
 
@@ -7,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from app import feedback
 from app.api.pipeline import run_pipeline
-from app.config import MAX_UPLOAD_SIZE_BYTES
+from app.config import JOB_TTL_SECONDS, MAX_UPLOAD_SIZE_BYTES
 from app.contracts.analysis import AnalysisResult
 
 router = APIRouter()
@@ -23,10 +24,23 @@ class AnalysisJob(BaseModel):
     error: str | None = None
 
 
-# In-memory job store -- fine for a single-user, home-network tool. Jobs don't survive a
-# restart; no eviction/expiry in v1 (TODO if this ever needs to run unattended for long).
+# In-memory job store: fine for a single-user, local tool. Jobs do not survive a restart, and FINISHED jobs expire after JOB_TTL_SECONDS
+# (default 30 minutes, 0 = never): the live result holds the message body text (D5 in docs/DESIGN_V2.md), which must not sit in memory
+# indefinitely. A job that is still running is never expired from under its own thread.
 _jobs: dict[str, AnalysisJob] = {}
+_job_created: dict[str, float] = {}
 _jobs_lock = threading.Lock()
+_now = time.monotonic
+
+
+def _purge_expired() -> None:
+    if JOB_TTL_SECONDS <= 0:
+        return
+    cutoff = _now() - JOB_TTL_SECONDS
+    with _jobs_lock:
+        for job_id in [j for j, created in _job_created.items() if created < cutoff and _jobs.get(j) is not None and _jobs[j].status in ("done", "error")]:
+            _jobs.pop(job_id, None)
+            _job_created.pop(job_id, None)
 
 
 def _set_job(job_id: str, **updates) -> None:
@@ -64,8 +78,11 @@ async def submit_analysis(file: UploadFile) -> dict[str, str]:
     if len(raw_bytes) > MAX_UPLOAD_SIZE_BYTES:
         raise HTTPException(status_code=413, detail=f"File exceeds the {MAX_UPLOAD_SIZE_BYTES} byte limit")
 
+    _purge_expired()
     job_id = uuid.uuid4().hex
-    _jobs[job_id] = AnalysisJob(job_id=job_id, status="pending")
+    with _jobs_lock:
+        _jobs[job_id] = AnalysisJob(job_id=job_id, status="pending")
+        _job_created[job_id] = _now()
 
     thread = threading.Thread(target=_execute_job, args=(job_id, raw_bytes, filename), daemon=True)
     thread.start()
@@ -75,6 +92,7 @@ async def submit_analysis(file: UploadFile) -> dict[str, str]:
 
 @router.get("/analyze/{job_id}", response_model=AnalysisJob)
 def get_analysis(job_id: str) -> AnalysisJob:
+    _purge_expired()
     job = _jobs.get(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Unknown job_id")
@@ -90,6 +108,7 @@ class FeedbackIn(BaseModel):
 def submit_feedback(job_id: str, body: FeedbackIn) -> dict:
     """Analyst agree/disagree on a finished analysis. Stored locally as hashes, verdict and signal
     names only (see app/feedback.py); the note is the one free-text field."""
+    _purge_expired()
     job = _jobs.get(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Unknown job_id")

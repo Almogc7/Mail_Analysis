@@ -85,3 +85,7 @@ FEEDBACK_DB = Path(os.getenv("FEEDBACK_DB", str(Path(__file__).resolve().parents
 
 # /analyze route upload limit.
 MAX_UPLOAD_SIZE_BYTES = int(os.getenv("MAX_UPLOAD_SIZE_BYTES", str(25 * 1024 * 1024)))
+
+# How long a FINISHED analysis (and the message body text inside it) stays in memory, in seconds. 0 = never expire. The store is memory-only:
+# nothing is written to disk and a restart clears it.
+JOB_TTL_SECONDS = int(os.getenv("JOB_TTL_SECONDS", "1800"))
