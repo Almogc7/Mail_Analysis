@@ -1,6 +1,7 @@
 # Design v2: an evidence workbench for reported emails
 
-**Status: proposal for the owner's approval. Nothing here is implemented.** Written 2026-10-04.
+**Status: owner decisions D1 to D12 are recorded in section 10 (2026-10-04); acceptance criteria (D8) are NOT yet approved. Phase A is being
+built; nothing from phases B to E is implemented.** Written 2026-10-04. Where section 10 differs from an earlier section, **section 10 wins**.
 
 **Labelling rule.** The hold-out was spent on 2026-10-03 (`backend/tests/HOLDOUT_LOG.md`). Everything in this document that could change a
 verdict, a threshold or a signal is **"tuned after viewing hold-out"**: its design was informed by results the project has already seen
@@ -372,3 +373,69 @@ the untracked `.env`.
 
 **Honesty of the output.** Every report footer repeats three facts: real-world precision is not established; "no indicators found" is not a safety
 verdict; the list of what was not checked is part of the result.
+
+## 10. Decisions (recorded 2026-10-04)
+
+Everything below is "tuned after viewing hold-out" where it touches a verdict, a threshold or a signal. Standing rules: no push, no history
+rewrite, no `--final-holdout`, `backend/.env` is the owner's file.
+
+| # | Decision | Status |
+|---|---|---|
+| D1 | **Four tiers approved.** "No indicators found" is **always shown with its blockers** and with **neutral styling: no green, no check mark, no shield**. It reads as a statement of what was and was not found, not as reassurance. | approved |
+| D2 | **H1 to H3 approved, with these precisions** (they replace the wording of 2.2 H3): VirusTotal at least **10 engines malicious** counts for **URLs and file hashes**; for **domains only if the domain is not on the shared-platform list** (a hit on a platform host says nothing about the page); **an IP alone never counts**. **Any later change to a threshold is logged** in this document with its reason and the data behind it. | approved |
+| D3 | **A v1 `malicious` without hard evidence is shown as Suspicious (T2).** | approved |
+| D4 | **Blockers for "No indicators found" approved (2.3 item 5), with two additions: password-protected archives, and HTML attachments.** A password-protected archive cannot be examined; an HTML attachment is a classic credential-harvesting carrier. Both block until they have been analysed. | approved, extended |
+| D5 | **The message body text stays in the live response**, held **in memory only with a short time to live** (the job store expires; default 30 minutes). It is **never logged, persisted, exported, sent to any provider or sent to the LLM**, and is **rendered as plain text only**. In a future **shared-instance mode the body is stripped** from the response. | approved |
+| D6 | **The free-text note is excluded from every export and summary**, has a **length cap**, and the UI shows a **warning not to paste email content** into it. | approved |
+| D7 | **Dispositions: `confirmed_phish`, `spam`, `benign`, `bec`, `other`, `unsure`.** Recorded by the analyst **after investigation**, **editable once**. Stored fields only: **file hash, verdict (tier), signal names, label, timestamp** (the local note is separate and never exported, D6). | approved |
+| D8 | **Acceptance criteria (section 6.3) are NOT yet approved.** The owner is reviewing section 6. Rules that apply regardless, recorded now: criteria are **written and approved before any measurement**; the **fresh sample is drawn once, with a new seed, after the v2 freeze**; precision criteria are judged on **Wilson lower bounds**; the **minimum number of dispositions is fixed in advance** (in the approved criteria); **precision criteria are evaluated only on analyst dispositions**, never on a public corpus or on synthetic mail. | **pending** |
+| D9 | **Hunting-query templates: a generic format first**, then KQL or SPL (the owner will say which). **Table and field names live in untracked configuration**; **no organisation names appear in any tracked file.** | approved |
+| D10 | **Evidence-source order approved** (lookalike, HTML attachment, static attachment, QR, RDAP, redirect and landing). **Attachment parsers run in a separate subprocess with a timeout, a memory limit and no network.** | approved |
+| D11 | **One pinned, wheel-only QR package, with hash pinning** (`pip --require-hashes`). Candidates and notes are below; the choice is the owner's. **Pillow decompression-bomb limits** apply to every image that is decoded. | candidates proposed |
+| D12 | **Local first; shared instance later.** | approved |
+
+### Items that stay OFF and unbuilt until the security team approves them
+
+External URL fetching or scanning; any sandbox; RDAP and every other new outbound lookup; any use of an LLM; storing dispositions; hosting a
+shared instance. Nothing for these is built in Phase A. When built later, each is OFF by default and needs explicit configuration.
+
+### New proposal H0: a local IOC list as an additional hard-evidence source (documented, NOT built)
+
+**H0 (offline).** An indicator in the message **exactly matches an entry in a local IOC list** kept in untracked configuration. The list is
+the owner's SOC blocklist export plus indicators from **confirmed phish** (dispositions `confirmed_phish` or `bec`). A match is hard evidence (T1),
+because the organisation itself has already judged that indicator malicious.
+
+Proposed rules, for approval before anything is built:
+
+* **Format:** one file (CSV or JSON), columns `kind` (domain, ip, url-host, hash), `value`, `source`, `added`, optional `expires`. No content.
+* **Matching:** lower-case exact match after de-fanging; a domain entry also matches its subdomains; an IP counts only if it is public; a hash
+  matches exactly. **An entry for a shared-platform host, for a registrable domain on the known-sender list, or for an internal-looking name is
+  rejected at load time** (a poisoned or careless entry must not turn a platform or a supplier into "confirmed malicious").
+* **Hygiene:** `expires` is honoured; a stale entry is reported in the coverage report, not silently used; a loader reports counts only.
+* **Feedback loop:** adding an indicator from a confirmed phish is an **explicit analyst action**, never automatic, and shows the exact entries
+  before they are written.
+* **Privacy:** the list never leaves the machine, is git-ignored, is never logged (counts only), and is never sent to a provider.
+* **Evaluation:** because the list comes from the same organisation's judgements, an H0 match is a statement about the organisation's own
+  history; it is excluded from the precision criteria for T1 (it would make them circular) and reported separately.
+
+### D11: QR package candidates (looked up on PyPI on 2026-10-04; the lookup returned partial data, so confirm every item at selection time)
+
+| Candidate | Licence | Wheels | Maintenance signal | Notes |
+|---|---|---|---|---|
+| **`zxing-cpp`** (Python bindings of the zxing-cpp C++ library) | Apache-2.0 | prebuilt CPython wheels for Windows amd64, manylinux x86_64 and macOS (universal2); source distribution also published | releases in 2023-07, 2023-12 and 2025-01, and a later 3.1.1; active project on GitHub | no system library needed; decodes QR and other codes from an image buffer; small |
+| `pyzbar` | MIT | Windows wheels (win32, amd64) that **bundle the zbar DLLs**; on Linux and macOS the system library `libzbar` must be installed | **last release 2022-03-15**; no source distribution on PyPI | depends on the LGPL zbar library underneath; an extra system step on non-Windows; effectively unmaintained |
+| `opencv-python-headless` (`cv2.QRCodeDetector`) | Apache-2.0 | wheels of roughly 31 MB (Windows) and 36 MB (Linux) | actively released | a very large dependency for one function; a large parser surface |
+| `Pillow` (not a decoder: it loads the image and enforces the limits) | MIT-CMU | wheels for all platforms | actively released; needs Python 3.10 or newer (matches this project) | required in any case to open the image and to apply `Image.MAX_IMAGE_PIXELS` and the decompression-bomb error; pinned the same way |
+
+**Recommendation: `zxing-cpp` plus `Pillow`**, both wheel-only with pinned hashes. Reasons: no system library, a permissive licence, wheels on every
+platform the analysts use, small, and maintained. Limits to adopt with it: only PNG, JPEG, GIF and BMP are decoded; a maximum file size; the
+pixel limit set below Pillow's default (a decompression-bomb error is treated as "not checked: image limit", never as clean); decoding happens in the
+parser subprocess of D10; the decoded text is shown defanged and is never a link.
+
+### Consequences recorded for the plan
+
+* Phase A (section 7) does not change a verdict, adds no evidence source, adds no outbound lookup and ships the workbench panels and the additive schema.
+  Leaving to later phases: the analyst-decision panel, hunting queries, ATT&CK suggestions and the report draft (phase D); tiers and blockers (phase B).
+* The job store gets a time to live now (D5), because the body panel is the first place the body text is shown.
+* Until verdict v2 is active, the page shows the **v1 verdict** with the new neutral styling, and lists each **unchecked high-risk surface** next to it,
+  marked "would block 'No indicators found' once verdict v2 is active".
