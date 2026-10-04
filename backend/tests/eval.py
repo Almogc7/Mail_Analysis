@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import sys
 from dataclasses import asdict, dataclass, field
@@ -397,6 +398,18 @@ def _fmt_benign(c: dict[str, int]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """The eval is a batch tool: the app's per-message console warnings (enrichment UNKNOWN summaries) would print once per sample and bury
+    the tables, so only errors are logged while it runs. The level is restored afterwards."""
+    app_logger = logging.getLogger("app")
+    previous = app_logger.level
+    app_logger.setLevel(logging.ERROR)
+    try:
+        return _main(argv)
+    finally:
+        app_logger.setLevel(previous)
+
+
+def _main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ablate-seeds", action="store_true", help="remove the single-sample brand/Hebrew seeds")
     ap.add_argument("--enrichment", choices=("clean", "unknown", "disabled"), default="clean",

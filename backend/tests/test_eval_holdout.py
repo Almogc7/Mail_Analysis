@@ -207,3 +207,17 @@ def test_wilson_interval_matches_known_values():
     assert ev.wilson(0, 75)[0] == 0.0 and round(100 * ev.wilson(0, 75)[1], 1) == 4.9
     assert ev.wilson(75, 75)[1] == 1.0 and ev.wilson(0, 0) is None
     assert ev.fmt_rate(0, 0) == "n/a" and ev.fmt_rate(6, 75).startswith("6/75 = 8.0% [95% CI 3.7-16.4%]")
+
+
+def test_the_eval_does_not_flood_stderr_with_per_message_enrichment_warnings_and_restores_the_level(corpus, capsys):
+    import logging
+
+    from app.logging_config import configure_logging
+
+    configure_logging()
+    before = logging.getLogger("app").level
+    _run("--corpus-dir", str(corpus), "--no-gate", "--enrichment", "unknown")
+    captured = capsys.readouterr()
+    assert "UNKNOWN, not clean" not in captured.err and "enrichment:" not in captured.err  # the tables are readable
+    assert "STRICT" in captured.out  # and the report itself is unchanged
+    assert logging.getLogger("app").level == before
