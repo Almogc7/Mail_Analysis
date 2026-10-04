@@ -1,7 +1,5 @@
 // Mirrors backend/app/contracts/*.py exactly. Keep in sync by hand -- there is no shared
-// schema generation between the two repos (same "no live cross-repo dependency" situation
-// as the rest of the frontend, see the plan's note on why frontend reuse can't work like
-// the backend's IOC_Enricher import bridge).
+// schema generation between the backend and the frontend.
 
 export type Severity = 'info' | 'low' | 'medium' | 'high' | 'critical'
 export type Verdict = 'malicious' | 'suspicious' | 'benign' | 'inconclusive'

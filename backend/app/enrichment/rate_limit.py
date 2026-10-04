@@ -7,8 +7,8 @@ class VTRateLimiter:
 
     Tracks a rolling window of call timestamps and sleeps just long enough before the
     next call so the window never exceeds the limit. Scoped to VirusTotal only --
-    other providers' looser free-tier limits are left to IOC_Enricher's own built-in
-    429 retry/backoff.
+    other providers' looser free-tier limits are left to the provider base class's own
+    429 retry/backoff (app.enrichment.providers.base).
     """
 
     def __init__(self, max_calls: int = 4, period_seconds: float = 60.0, sleep_fn=time.sleep, time_fn=time.monotonic):

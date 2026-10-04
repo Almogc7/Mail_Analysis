@@ -27,7 +27,7 @@ def _noop(step: str) -> None:
 def run_pipeline(raw_bytes: bytes, filename: str, on_step: StepCallback = _noop) -> AnalysisResult:
     """Runs Modules 1-6 end to end. Parsing and Module 5 (scoring) are allowed to raise --
     nothing meaningful can be returned without them. Modules 2-4 are individually wrapped
-    so one category failing (e.g. enrichment's IOC_ENRICHER_PATH misconfigured) doesn't
+    so one category failing (e.g. an enrichment provider raising unexpectedly) doesn't
     sink the whole analysis; Module 6 already never raises by its own contract."""
     on_step("parsing")
     parsed = parse_email_file(raw_bytes, filename)

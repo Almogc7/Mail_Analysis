@@ -16,12 +16,9 @@ class StubProviderClient:
 
 
 def _stub_enrichment_clients():
-    # Import RiskScorer/ScoreConfig directly rather than via ioc_bridge.get_clients() --
+    # Import RiskScorer/ScoreConfig directly rather than via providers.get_clients() --
     # tests monkeypatch that function to *be* this one, so calling it here would recurse.
-    from app.enrichment.ioc_bridge import ensure_ioc_enricher_on_path
-
-    ensure_ioc_enricher_on_path()
-    from IOC_Enricher import RiskScorer, ScoreConfig
+    from app.enrichment.providers.scoring import RiskScorer, ScoreConfig
 
     stub = StubProviderClient()
     return {
@@ -51,9 +48,9 @@ def _upload(filename: str, content: bytes, monkeypatch=None):
 
 
 def test_happy_path_completes_with_full_analysis_result(monkeypatch):
-    monkeypatch.setattr("app.enrichment.ioc_bridge.get_clients", _stub_enrichment_clients)
+    monkeypatch.setattr("app.enrichment.providers.get_clients", _stub_enrichment_clients)
     monkeypatch.setattr(
-        "app.llm.gemini_bridge.get_client",
+        "app.llm.gemini_client.get_client",
         lambda: (lambda prompt: '{"narrative": "stubbed narrative", "flags": []}'),
     )
 
@@ -92,13 +89,12 @@ def test_oversized_file_rejected(monkeypatch):
 
 
 def test_unparseable_bytes_resolve_to_error_job(monkeypatch):
-    # IOC_Enricher.py's own load_dotenv() (triggered by a real, non-stubbed get_clients())
-    # would otherwise pick up real keys from IOC_Enricher's .env and make this test hit
-    # live services -- always stub both bridges, never rely on a test happening to fail
-    # before reaching them.
-    monkeypatch.setattr("app.enrichment.ioc_bridge.get_clients", _stub_enrichment_clients)
+    # A real, non-stubbed get_clients() would pick up real keys from backend/.env and make this test hit
+    # live services -- always stub both the providers and the LLM client, never rely on a test happening
+    # to fail before reaching them.
+    monkeypatch.setattr("app.enrichment.providers.get_clients", _stub_enrichment_clients)
     monkeypatch.setattr(
-        "app.llm.gemini_bridge.get_client",
+        "app.llm.gemini_client.get_client",
         lambda: (lambda prompt: '{"narrative": "n", "flags": []}'),
     )
 
@@ -117,11 +113,11 @@ def test_unparseable_bytes_resolve_to_error_job(monkeypatch):
 
 def test_enrichment_failure_does_not_sink_the_whole_job(monkeypatch):
     def raising_get_clients():
-        raise FileNotFoundError("IOC_ENRICHER_PATH does not exist")
+        raise RuntimeError("a provider client could not be constructed")
 
-    monkeypatch.setattr("app.enrichment.ioc_bridge.get_clients", raising_get_clients)
+    monkeypatch.setattr("app.enrichment.providers.get_clients", raising_get_clients)
     monkeypatch.setattr(
-        "app.llm.gemini_bridge.get_client",
+        "app.llm.gemini_client.get_client",
         lambda: (lambda prompt: '{"narrative": "n", "flags": []}'),
     )
 
@@ -142,12 +138,12 @@ def test_enrichment_failure_does_not_sink_the_whole_job(monkeypatch):
 
 
 def test_llm_unavailable_does_not_sink_the_whole_job(monkeypatch):
-    monkeypatch.setattr("app.enrichment.ioc_bridge.get_clients", _stub_enrichment_clients)
+    monkeypatch.setattr("app.enrichment.providers.get_clients", _stub_enrichment_clients)
 
     def raising_get_client():
         raise RuntimeError("GOOGLE_API_KEY is not configured")
 
-    monkeypatch.setattr("app.llm.gemini_bridge.get_client", raising_get_client)
+    monkeypatch.setattr("app.llm.gemini_client.get_client", raising_get_client)
 
     raw = (FIXTURES / "clean_legit.eml").read_bytes()
     resp = _upload("clean_legit.eml", raw)

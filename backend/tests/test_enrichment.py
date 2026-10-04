@@ -1,6 +1,6 @@
 from app.contracts.email import Attachment, EmailAddress, ExtractedUrl, ParsedEmail
 from app.enrichment import run_enrichment
-from app.enrichment.ioc_bridge import get_clients
+from app.enrichment.providers import get_clients
 from app.enrichment.rate_limit import VTRateLimiter
 from app.scoring.aggregate import category_coverage
 from tests.fixtures.provider_responses import (
@@ -19,7 +19,7 @@ from tests.fixtures.provider_responses import (
 
 
 class StubClient:
-    """Duck-typed stand-in for an IOC_Enricher provider client. Records calls so tests
+    """Duck-typed stand-in for a provider client. Records calls so tests
     can assert caching/dedup behavior, and returns a fixed canned result regardless of
     input (or a per-value override via `responses`)."""
 
@@ -38,7 +38,7 @@ def _no_sleep_limiter() -> VTRateLimiter:
 
 
 def _real_scorer_clients(**overrides) -> dict:
-    """Uses IOC_Enricher's real RiskScorer/ScoreConfig (pure logic, no network) alongside
+    """Uses the real RiskScorer/ScoreConfig (pure logic, no network) alongside
     stub provider clients, so the mapping from provider dict shapes to Findings is
     exercised against real scoring behavior without ever calling the network."""
     real = get_clients()

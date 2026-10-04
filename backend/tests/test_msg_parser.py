@@ -76,14 +76,12 @@ def test_msg_full_pipeline_produces_expected_verdict_and_findings(monkeypatch):
     Microsoft-generated header -- auth_check correctly flags it regardless of whether the
     sample's original intent was benign.
 
-    Stubs the LLM bridge explicitly: whether GOOGLE_API_KEY is "configured" depends on
-    whether an earlier test in the same pytest session already imported the real
-    IOC_Enricher module (its own load_dotenv() populates os.environ process-wide for the
-    rest of the run) -- without stubbing, this test silently made a real Gemini call and
-    took 13s+ when run as part of the full suite, the same class of bug fixed once already
-    in test_analyze_route.py. Never rely on session ordering to avoid live calls."""
+    Stubs the LLM client explicitly: whether GOOGLE_API_KEY is "configured" depends on the
+    developer's backend/.env -- without stubbing, this test could silently make a real Gemini
+    call and take 13s+, the same class of bug fixed once already in test_analyze_route.py.
+    Never rely on the local environment to avoid live calls."""
     monkeypatch.setattr(
-        "app.llm.gemini_bridge.get_client",
+        "app.llm.gemini_client.get_client",
         lambda: (lambda prompt: '{"narrative": "n", "flags": []}'),
     )
     # This header has no authserv-id (a Microsoft quirk), so it can only be trusted via the

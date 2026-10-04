@@ -3,7 +3,7 @@ from typing import Any
 from app.config import MAX_HASHES_TO_ENRICH, MAX_URLS_TO_ENRICH
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding, ModuleResult
-from app.enrichment import ioc_bridge
+from app.enrichment import providers as provider_package  # not "providers": functions below have a local of that name
 from app.enrichment.policy import (
     EnrichmentPolicy,
     GuardedProvider,
@@ -163,8 +163,6 @@ def _enrich_url_unit(
     explain = clients["risk_scorer"].explain(
         scoring_type,
         vt=results["virustotal"],
-        abuse={},
-        otx={},
         config=clients["score_config"],
         threatfox=results["threatfox"],
         urlscan=results["urlscan"] if urlscan_scores else {},
@@ -189,8 +187,6 @@ def _enrich_hash(sha256: str, providers: dict[str, GuardedProvider], clients: di
     explain = clients["risk_scorer"].explain(
         "sha256",
         vt=vt_result,
-        abuse={},
-        otx={},
         config=clients["score_config"],
         threatfox=threatfox_result,
         malwarebazaar=mb_result,
@@ -204,7 +200,7 @@ def run_enrichment(
     vt_limiter: VTRateLimiter | None = None,
     policy: EnrichmentPolicy | None = None,
 ) -> ModuleResult:
-    clients = clients if clients is not None else ioc_bridge.get_clients()
+    clients = clients if clients is not None else provider_package.get_clients()
     vt_limiter = vt_limiter if vt_limiter is not None else VTRateLimiter()
     policy = policy if policy is not None else load_policy()
     providers = guard_clients(clients, policy)

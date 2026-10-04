@@ -1,6 +1,6 @@
-"""Realistic recorded response *shapes* for IOC_Enricher's provider clients, used to
+"""Realistic recorded response *shapes* for the provider clients (app/enrichment/providers), used to
 build stub responses in test_enrichment.py. These are not live network replays -- just
-hand-shaped dicts matching IOC_Enricher.py's real enrich() return shape, so mapping logic
+hand-shaped dicts matching the clients' real enrich() return shape, so mapping logic
 is exercised against realistic data without any network call in the test suite.
 
 The hash values below are the well-known, publicly published EICAR antivirus test file

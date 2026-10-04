@@ -19,11 +19,11 @@ describe('ModulePanel', () => {
       module: 'enrichment',
       status: 'error',
       findings: [],
-      raw_data: { error: 'IOC_ENRICHER_PATH does not exist' },
+      raw_data: { error: 'a provider client could not be constructed' },
     })
     render(<ModulePanel result={result} />)
 
     expect(screen.getByText(/this check could not run/i)).toBeInTheDocument()
-    expect(screen.getByText(/IOC_ENRICHER_PATH does not exist/)).toBeInTheDocument()
+    expect(screen.getByText(/a provider client could not be constructed/)).toBeInTheDocument()
   })
 })

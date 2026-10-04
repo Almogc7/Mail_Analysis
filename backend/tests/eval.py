@@ -148,7 +148,7 @@ class _Stub:
 
 
 def _stub_clients(mode: str) -> dict:
-    from app.enrichment.ioc_bridge import get_clients
+    from app.enrichment.providers import get_clients
     from tests.fixtures.provider_responses import (
         CLEAN_URLSCAN_RESULT,
         CLEAN_VT_URL_RESULT,

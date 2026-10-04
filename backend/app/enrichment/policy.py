@@ -139,7 +139,7 @@ def _result(status: str, error: str, enabled: bool = True) -> dict[str, Any]:
 
 
 class GuardedProvider:
-    """Wraps one IOC_Enricher provider client. Exposes ONLY lookup(); never forwards any other method,
+    """Wraps one provider client (app.enrichment.providers). Exposes ONLY lookup(); never forwards any other method,
     so nothing can be uploaded or submitted through it."""
 
     def __init__(self, name: str, client: Any, policy: EnrichmentPolicy):

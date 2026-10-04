@@ -35,8 +35,8 @@ def test_llm_is_disabled_by_default_in_the_shipped_config():
 def test_when_disabled_nothing_is_constructed_or_sent(monkeypatch):
     monkeypatch.setattr("app.llm.LLM_ENABLED", False)
     touched = []
-    monkeypatch.setattr("app.llm.gemini_bridge.get_client", lambda: touched.append("client") or (lambda p: OK_REPLY))
-    monkeypatch.setattr("app.llm.gemini_bridge.get_model_name", lambda: touched.append("model") or "x")
+    monkeypatch.setattr("app.llm.gemini_client.get_client", lambda: touched.append("client") or (lambda p: OK_REPLY))
+    monkeypatch.setattr("app.llm.gemini_client.get_model_name", lambda: touched.append("model") or "x")
 
     opinion = run_llm_opinion(_result_with())
 
@@ -56,7 +56,7 @@ def test_the_pipeline_with_the_llm_off_still_completes(monkeypatch):
     from app.api.pipeline import run_pipeline
 
     monkeypatch.setattr("app.llm.LLM_ENABLED", False)
-    monkeypatch.setattr("app.enrichment.ioc_bridge.get_clients", __import__("tests.test_analyze_route", fromlist=["x"])._stub_enrichment_clients)
+    monkeypatch.setattr("app.enrichment.providers.get_clients", __import__("tests.test_analyze_route", fromlist=["x"])._stub_enrichment_clients)
     monkeypatch.setattr("app.enrichment.rate_limit.VTRateLimiter.wait_if_needed", lambda self: None)
     raw = (FIXTURES / "benign" / "synthetic" / "05_spf_only_small_business.eml").read_bytes()
     result = run_pipeline(raw, "x.eml")

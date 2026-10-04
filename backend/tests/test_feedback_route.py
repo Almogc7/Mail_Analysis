@@ -16,10 +16,10 @@ client = TestClient(app)
 @pytest.fixture(autouse=True)
 def isolated(monkeypatch, tmp_path):
     monkeypatch.setattr(feedback, "FEEDBACK_DB", tmp_path / "fb.sqlite")
-    monkeypatch.setattr("app.enrichment.ioc_bridge.get_clients", _stub_enrichment_clients)
+    monkeypatch.setattr("app.enrichment.providers.get_clients", _stub_enrichment_clients)
     # The Kvish fixture has 7 URLs; the real VT rate limiter (4/min) would really sleep between stub lookups.
     monkeypatch.setattr("app.enrichment.rate_limit.VTRateLimiter.wait_if_needed", lambda self: None)
-    monkeypatch.setattr("app.llm.gemini_bridge.get_client", lambda: (lambda prompt: '{"narrative": "n", "flags": []}'))
+    monkeypatch.setattr("app.llm.gemini_client.get_client", lambda: (lambda prompt: '{"narrative": "n", "flags": []}'))
     return tmp_path / "fb.sqlite"
 
 

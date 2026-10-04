@@ -74,7 +74,7 @@ def test_client_construction_failure_is_unavailable(monkeypatch):
     def raising_get_client():
         raise RuntimeError("GOOGLE_API_KEY is not configured")
 
-    monkeypatch.setattr("app.llm.gemini_bridge.get_client", raising_get_client)
+    monkeypatch.setattr("app.llm.gemini_client.get_client", raising_get_client)
 
     opinion = run_llm_opinion(_sample_analysis_result())
 

@@ -16,6 +16,8 @@ from typing import Any, Dict, Optional
 
 import requests
 
+from app import config as _config  # noqa: F401  (loads backend/.env before the tunables below are read, as the old import order did)
+
 TIMEOUT = int(os.getenv("IOC_TIMEOUT_SECONDS", "20"))
 MAX_RETRIES = int(os.getenv("IOC_MAX_RETRIES", "2"))
 RETRY_BACKOFF_SECONDS = float(os.getenv("IOC_RETRY_BACKOFF_SECONDS", "1.0"))
