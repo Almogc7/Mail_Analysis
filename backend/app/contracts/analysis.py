@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from app.contracts.email import ParsedEmail
+from app.contracts.email import EmailAddress, ParsedEmail
 from app.contracts.findings import Finding, ModuleResult
 from app.contracts.llm_opinion import LLMOpinion
 from app.contracts.scoring import ScoringBreakdown
@@ -41,6 +41,103 @@ class IndicatorPack(BaseModel):
     manual_check_count: int = 0
 
 
+class HopEntry(BaseModel):
+    """One Received hop, OLDEST FIRST (index 1 is where the message entered the mail system)."""
+
+    index: int
+    from_host: str | None = None
+    by_host: str | None = None
+    from_ip: str | None = None
+    protocol: str | None = None
+    tls: bool = False
+    authenticated: bool = False
+    local_submission: bool = False
+    timestamp: str | None = None
+    delay_seconds_from_previous: float | None = None
+    clock_skew: bool = False  # the timestamp is earlier than the previous hop's: a clock is wrong or a header was edited
+    trusted_receiver: bool = False  # this hop wrote an authentication result the app trusts
+    is_origin: bool = False
+
+
+class AuthRow(BaseModel):
+    method: str  # spf | dkim | dmarc
+    evaluated: bool
+    result: str | None = None
+    receiver: str | None = None  # the trusted host that wrote the result, when evaluated
+    reason: str | None = None  # why it was not evaluated
+    source: str | None = None
+
+
+class SenderEvidence(BaseModel):
+    from_address: EmailAddress | None = None
+    reply_to: EmailAddress | None = None
+    return_path: EmailAddress | None = None
+    auth: list[AuthRow] = []
+    alignment: dict[str, bool | None] = {}
+    mismatches: list[str] = []
+    trusted_receivers_configured: bool = False
+
+
+class LinkEntry(BaseModel):
+    """A link in the message. Never opened, never resolved, never rendered as a clickable link by the UI."""
+
+    url: str
+    url_defanged: str
+    host: str | None = None
+    registrable_domain: str | None = None
+    display_text: str | None = None
+    kind: Literal["direct", "tracker", "wrapper", "shortener", "redirector", "shared_platform"] = "direct"
+    platform: str | None = None
+    anchor_mismatch: bool = False
+    occurrences: int = 1
+    sources: list[str] = []
+    status: str = "n/a"  # the indicator status of its host (see IndicatorStatus)
+
+
+class AttachmentEntry(BaseModel):
+    """Metadata and hashes only: the file is never opened, never offered for download."""
+
+    filename: str | None = None
+    declared_type: str | None = None
+    detected_type: str | None = None  # filled by static analysis (a later phase)
+    extension: str | None = None
+    size_bytes: int = 0
+    sha256: str
+    risk_class: str = "other"
+    active_content: bool = False
+    double_extension: bool = False
+    static_analysis: dict | None = None  # filled by static analysis (a later phase)
+
+
+class BodyInfo(BaseModel):
+    language: str | None = None
+    language_status: str | None = None
+    text_chars: int = 0
+    html_chars: int = 0
+    has_html: bool = False
+    forms: int = 0
+    remote_images: int = 0
+    links: int = 0
+
+
+class ImageEntry(BaseModel):
+    source: Literal["html", "attachment"]
+    host: str | None = None
+    url_defanged: str | None = None
+    filename: str | None = None
+    size_bytes: int | None = None
+    decoded: list[dict] | None = None  # QR decoding is a later phase; None means "not decoded"
+
+
+class Evidence(BaseModel):
+    sender: SenderEvidence = SenderEvidence()
+    hop_timeline: list[HopEntry] = []
+    links: list[LinkEntry] = []
+    attachments: list[AttachmentEntry] = []
+    body: BodyInfo = BodyInfo()
+    images: list[ImageEntry] = []
+
+
 class AnalysisResult(BaseModel):
     parsed_email: ParsedEmail
     module_results: list[ModuleResult] = []
@@ -51,3 +148,7 @@ class AnalysisResult(BaseModel):
     scoring: ScoringBreakdown | None = None
     llm_opinion: LLMOpinion | None = None
     indicators: IndicatorPack | None = None
+    # Workbench blocks (docs/DESIGN_V2.md, phase A). All optional and additive: an older result without them still parses, and an older
+    # client ignores them. schema_version is 2 when the blocks are present.
+    schema_version: int = 1
+    evidence: Evidence | None = None

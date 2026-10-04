@@ -1,3 +1,4 @@
+import logging
 from typing import Callable
 
 from app.auth_check import run_auth_check
@@ -5,12 +6,14 @@ from app.contracts.analysis import AnalysisResult
 from app.contracts.findings import ModuleResult
 from app.content_analysis import run_content_analysis
 from app.enrichment import run_enrichment
+from app.evidence import build_evidence
 from app.indicators import build_indicator_pack
 from app.llm import run_llm_opinion
 from app.parser import parse_email_file
 from app.scoring import build_analysis_result
 
 StepCallback = Callable[[str], None]
+logger = logging.getLogger(__name__)
 
 
 def _safe_run(module_name: str, fn: Callable[[], ModuleResult]) -> ModuleResult:
@@ -50,10 +53,21 @@ def run_pipeline(raw_bytes: bytes, filename: str, on_step: StepCallback = _noop)
     except Exception:
         indicators = None
 
+    # The evidence block is the same kind of aid: organised facts for the workbench page, no scoring, no verdict. If it fails, the analysis
+    # still returns (the page falls back to the older layout); only the exception's class is logged, never its text.
+    evidence = None
+    try:
+        evidence = build_evidence(parsed, [auth_result, enrichment_result, content_result], indicators)
+    except Exception as exc:
+        logger.warning("evidence block could not be built (%s)", type(exc).__name__)
+
     on_step("llm_opinion")
     opinion = run_llm_opinion(analysis_result)
 
-    return analysis_result.model_copy(update={"llm_opinion": opinion, "indicators": indicators})
+    update: dict = {"llm_opinion": opinion, "indicators": indicators}
+    if evidence is not None:
+        update.update(evidence=evidence, schema_version=2)
+    return analysis_result.model_copy(update=update)
 
 
 __all__ = ["run_pipeline"]
