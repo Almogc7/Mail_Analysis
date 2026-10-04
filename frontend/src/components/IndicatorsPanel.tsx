@@ -113,8 +113,8 @@ export function IndicatorsPanel({ pack }: { pack: IndicatorPack | null | undefin
               {group.map((i) => (
                 <li key={`${i.kind}:${i.value}`} className={`indicator indicator--${i.status}`}>
                   <div className="indicator-main">
-                    <code className="indicator-value">{i.value}</code>
-                    {i.filename && <span className="indicator-file"> ({i.filename})</span>}
+                    <code className="indicator-value" dir="auto">{i.value}</code>
+                    {i.filename && <span className="indicator-file" dir="auto"> ({i.filename})</span>}
                     {STATUS_LABELS[i.status] && (
                       <span className={`indicator-status indicator-status--${i.status}`}>{STATUS_LABELS[i.status]}</span>
                     )}

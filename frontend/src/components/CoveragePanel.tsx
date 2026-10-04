@@ -11,7 +11,7 @@ function Row({ item }: { item: CoverageItem }) {
     <li className={`wb-row${item.status === 'checked' ? '' : ' wb-row--notice'}`}>
       <div className="wb-row-main">
         <strong>{item.area}</strong>
-        {item.subject && <span className="wb-mono">{item.subject}</span>}
+        {item.subject && <span className="wb-mono" dir="auto">{item.subject}</span>}
         <span className={`wb-badge${item.status === 'checked' ? '' : ' wb-badge--warn'}`}>{STATUS_LABEL[item.status]}</span>
         {item.by_design && <span className="wb-badge">never done, by design</span>}
         {item.blocks_no_indicators && <span className="wb-badge wb-badge--warn">blocks "No indicators found"</span>}

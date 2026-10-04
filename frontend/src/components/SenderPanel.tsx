@@ -67,7 +67,7 @@ export function HopTimeline({ hops }: { hops: HopEntry[] }) {
           <li key={h.index} className={`hop${h.is_origin ? ' hop--origin' : ''}${h.trusted_receiver ? ' hop--trusted' : ''}`}>
             <div className="wb-row-main">
               <strong>Hop {h.index}</strong>
-              <span className="wb-mono">
+              <span className="wb-mono" dir="auto">
                 {h.from_host ?? 'unknown host'}
                 {h.from_ip ? ` [${h.from_ip}]` : ''} to {h.by_host ?? 'unknown host'}
               </span>
@@ -99,15 +99,15 @@ export function SenderPanel({ sender, hops }: { sender: SenderEvidence; hops: Ho
           <h3 className="wb-subtitle">Addresses</h3>
           <table className="wb-table">
             <tbody>
-              <tr><th scope="row">From</th><td className="wb-mono">{addr(sender.from_address)}</td></tr>
-              <tr><th scope="row">Reply-To</th><td className="wb-mono">{addr(sender.reply_to)}</td></tr>
-              <tr><th scope="row">Return-Path</th><td className="wb-mono">{addr(sender.return_path)}</td></tr>
+              <tr><th scope="row">From</th><td className="wb-mono" dir="auto">{addr(sender.from_address)}</td></tr>
+              <tr><th scope="row">Reply-To</th><td className="wb-mono" dir="auto">{addr(sender.reply_to)}</td></tr>
+              <tr><th scope="row">Return-Path</th><td className="wb-mono" dir="auto">{addr(sender.return_path)}</td></tr>
             </tbody>
           </table>
           {sender.mismatches.length > 0 && (
             <ul className="wb-list">
               {sender.mismatches.map((m, i) => (
-                <li key={i} className="wb-row wb-row--notice">{m}</li>
+                <li key={i} className="wb-row wb-row--notice" dir="auto">{m}</li>
               ))}
             </ul>
           )}

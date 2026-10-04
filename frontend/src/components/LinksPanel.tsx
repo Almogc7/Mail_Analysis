@@ -34,7 +34,7 @@ export function LinksPanel({ links }: { links: LinkEntry[] }) {
           {links.map((l, i) => (
             <li key={i} className={`wb-row${l.anchor_mismatch ? ' wb-row--notice' : ''}`}>
               <div className="wb-row-main">
-                <span className="wb-mono">{l.url_defanged}</span>
+                <span className="wb-mono" dir="auto">{l.url_defanged}</span>
                 <CopyButton text={l.url_defanged} label="Copy defanged" title="Copies the defanged form, never the live URL" />
               </div>
               <div className="wb-small">
@@ -44,7 +44,7 @@ export function LinksPanel({ links }: { links: LinkEntry[] }) {
                 {l.anchor_mismatch && <span className="wb-badge wb-badge--warn">shown text names a different place</span>}{' '}
                 {l.occurrences > 1 && <span className="wb-badge">seen {l.occurrences} times</span>}
               </div>
-              {l.display_text && <div className="wb-small">Shown to the reader as: <span className="wb-mono">{l.display_text}</span></div>}
+              {l.display_text && <div className="wb-small">Shown to the reader as: <span className="wb-mono" dir="auto">{l.display_text}</span></div>}
               {l.sources.length > 0 && <div className="wb-small">Found in: {l.sources.join(', ')}</div>}
             </li>
           ))}

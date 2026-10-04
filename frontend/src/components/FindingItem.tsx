@@ -19,16 +19,16 @@ export function FindingItem({ finding }: { finding: Finding }) {
         aria-expanded={expanded}
       >
         <span className="severity-badge">{finding.severity}</span>
-        <span className="finding-title">{finding.title}</span>
+        <span className="finding-title" dir="auto">{finding.title}</span>
         {hasEvidence && <span className="expand-caret">{expanded ? '▾' : '▸'}</span>}
       </button>
-      <p className="finding-description">{finding.description}</p>
+      <p className="finding-description" dir="auto">{finding.description}</p>
       {expanded && hasEvidence && (
         <dl className="finding-evidence">
           {Object.entries(finding.evidence).map(([key, value]) => (
             <div className="evidence-row" key={key}>
               <dt>{key}</dt>
-              <dd>{formatEvidenceValue(value)}</dd>
+              <dd dir="auto">{formatEvidenceValue(value)}</dd>
             </div>
           ))}
         </dl>

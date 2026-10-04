@@ -48,7 +48,7 @@ export function SummaryCard({ result }: { result: AnalysisResult }) {
           {reasons.length === 0 ? (
             <li>No finding above info severity.</li>
           ) : (
-            reasons.map((r, i) => <li key={i}>{r}</li>)
+            reasons.map((r, i) => <li key={i} dir="auto">{r}</li>)
           )}
         </ul>
       </div>
