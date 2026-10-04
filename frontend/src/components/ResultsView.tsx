@@ -4,6 +4,13 @@ import { ModulePanel } from './ModulePanel'
 import { LlmOpinionCard } from './LlmOpinionCard'
 import { FeedbackBar } from './FeedbackBar'
 import { IndicatorsPanel } from './IndicatorsPanel'
+import { CoveragePanel } from './CoveragePanel'
+import { SenderPanel } from './SenderPanel'
+import { LinksPanel } from './LinksPanel'
+import { AttachmentsPanel } from './AttachmentsPanel'
+import { BodyPanel } from './BodyPanel'
+import { ImagesPanel } from './ImagesPanel'
+import { RawHeadersPanel } from './RawHeadersPanel'
 
 const MODULE_ORDER = ['auth_check', 'enrichment', 'content_analysis']
 
@@ -14,14 +21,32 @@ interface ResultsViewProps {
   jobId?: string
 }
 
+/**
+ * Page order (docs/DESIGN_V2.md, phase A): verdict and reasons, coverage, sender and path, links, attachments, body, images, indicators,
+ * the per-module detail, raw headers, the LLM opinion, feedback. The evidence panels appear only when the backend sent an evidence block, so an
+ * older result still renders as before.
+ */
 export function ResultsView({ result, onReset, jobId }: ResultsViewProps) {
   const orderedModules = [...result.module_results].sort(
     (a, b) => MODULE_ORDER.indexOf(a.module) - MODULE_ORDER.indexOf(b.module),
   )
+  const evidence = result.evidence
 
   return (
     <div className="results-view">
       <SummaryCard result={result} />
+
+      <CoveragePanel items={result.coverage_report} />
+
+      {evidence && (
+        <>
+          <SenderPanel sender={evidence.sender} hops={evidence.hop_timeline} />
+          <LinksPanel links={evidence.links} />
+          <AttachmentsPanel attachments={evidence.attachments} />
+          <BodyPanel body={evidence.body} text={result.parsed_email.body_text} />
+          <ImagesPanel images={evidence.images} />
+        </>
+      )}
 
       <IndicatorsPanel pack={result.indicators} />
 
@@ -30,6 +55,8 @@ export function ResultsView({ result, onReset, jobId }: ResultsViewProps) {
           <ModulePanel result={m} key={m.module} />
         ))}
       </div>
+
+      {evidence && <RawHeadersPanel headers={result.parsed_email.headers} />}
 
       {result.llm_opinion && <LlmOpinionCard opinion={result.llm_opinion} />}
 

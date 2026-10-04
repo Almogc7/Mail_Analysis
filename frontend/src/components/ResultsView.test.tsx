@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { ResultsView } from './ResultsView'
-import { makeAnalysisResult, makeModuleResult } from '../test/fixtures'
+import { makeAnalysisResult, makeCoverageItem, makeEvidence, makeModuleResult } from '../test/fixtures'
 
 describe('ResultsView', () => {
   it('renders a fully clean result with no crashes', () => {
@@ -40,5 +40,35 @@ describe('ResultsView', () => {
     expect(screen.getByRole('region', { name: 'Analyst feedback' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Agree' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Disagree' })).toBeInTheDocument()
+  })
+
+  it('renders an older result that has no evidence or coverage exactly as before, with none of the new panels', () => {
+    render(<ResultsView result={makeAnalysisResult()} onReset={vi.fn()} />)
+    for (const name of ['Coverage', 'Sender and authentication', 'Links', 'Attachments', 'Body', 'Images', 'Raw headers']) {
+      expect(screen.queryByRole('region', { name })).toBeNull()
+    }
+  })
+
+  it('shows every workbench panel in the wireframe order when the backend sent them', () => {
+    const indicators = {
+      indicators: [{ kind: 'domain' as const, value: 'evil.example.org', seen_in: ['body'], count: 1, status: 'unknown' as const, note: '', providers: {}, pivots: [], manual_check: false, filename: null }],
+      counts: { domain: 1 },
+      manual_check_count: 0,
+    }
+    const result = makeAnalysisResult({ evidence: makeEvidence(), coverage_report: [makeCoverageItem()], schema_version: 2, indicators })
+    render(<ResultsView result={result} onReset={vi.fn()} />)
+    const order = ['Coverage', 'Sender and authentication', 'Links', 'Attachments', 'Body', 'Images', 'Indicators', 'Raw headers']
+    const positions = order.map((name) => screen.getByRole('region', { name }))
+    for (let i = 1; i < positions.length; i++) {
+      expect(positions[i - 1].compareDocumentPosition(positions[i]) & Node.DOCUMENT_POSITION_FOLLOWING, order[i]).toBeTruthy()
+    }
+  })
+
+  it('never renders message HTML even when the body text is hostile markup', () => {
+    const hostile = '<img src="https://track.example.org/p.gif"><script>alert(1)</script>'
+    const base = makeAnalysisResult({ evidence: makeEvidence(), coverage_report: [] })
+    const result = { ...base, parsed_email: { ...base.parsed_email, body_text: hostile, body_html: hostile } }
+    const { container } = render(<ResultsView result={result} onReset={vi.fn()} />)
+    expect(container.querySelector('img, script, iframe, a[href]')).toBeNull()
   })
 })
