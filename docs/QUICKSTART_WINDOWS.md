@@ -59,7 +59,7 @@ Nothing organisation-specific is inside the image: the keys, trusted receivers, 
 
 1. Open `http://localhost:8000`, drop the `.eml` or `.msg` in.
 2. Read the verdict as a sorting hint: **Inconclusive with signals present** is the normal result and means "look at this one".
-3. Work through **Indicators to check**: anything marked "check by hand" was not judged (shared platforms such as Power BI or SharePoint,
+3. Work through **Indicators to check**: anything marked "check by hand" was not judged (shared platforms such as SharePoint or Google Docs,
    unknown lookups, files no source has seen). Use the lookup links, or open the link in your sandbox. The links only go anywhere when you
    click them, and they carry a host, IP or hash, never the full URL.
 4. Copy the list (raw or defanged) or download the CSV for your ticket.

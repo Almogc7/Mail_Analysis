@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from app.config import MAX_HASHES_TO_ENRICH, MAX_URLS_TO_ENRICH
@@ -20,6 +21,7 @@ from app.enrichment.rate_limit import VTRateLimiter
 from app.shared.matching import registrable_domain
 
 MODULE_NAME = "enrichment"
+logger = logging.getLogger(__name__)
 
 
 def _is_incomplete(result: Any) -> bool:
@@ -304,7 +306,26 @@ def run_enrichment(
             )
         )
 
+    _log_outcome(statuses, internal=sum(1 for v in raw_data.values() if isinstance(v, dict) and v.get("internal_host_not_sent")),
+                 shared=sum(1 for v in raw_data.values() if isinstance(v, dict) and "uninformative" in v),
+                 skipped=len(skipped) + len(hashes_skipped), looked_up=len(to_enrich) + len(hashes_to_enrich))
     return ModuleResult(module=MODULE_NAME, status="ok", findings=findings, raw_data=raw_data)
+
+
+def _log_outcome(statuses: dict[str, dict[str, int]], internal: int, shared: int, skipped: int, looked_up: int) -> None:
+    """One console line per analysis about everything that is UNKNOWN rather than answered, mirroring the findings the API returns. Counts
+    only: no host, URL, hash or address is ever written to the log here."""
+    if not (statuses or internal or shared or skipped):
+        logger.info("enrichment: %d indicator(s) looked up, every provider answered", looked_up)
+        return
+    parts = [f"{p}: " + ", ".join(f"{s} x{n}" for s, n in sorted(c.items())) for p, c in sorted(statuses.items())]
+    if internal:
+        parts.append(f"{internal} internal-looking host(s) never sent (not looked up)")
+    if shared:
+        parts.append(f"{shared} shared-platform host(s) not looked up")
+    if skipped:
+        parts.append(f"{skipped} indicator(s) skipped by the per-email limit")
+    logger.warning("enrichment: %d indicator(s) looked up; the rest is UNKNOWN, not clean (%s)", looked_up, "; ".join(parts))
 
 
 __all__ = ["run_enrichment"]

@@ -54,9 +54,9 @@ def test_a_provider_hit_is_listed_first():
 
 
 def test_a_shared_platform_host_is_shown_as_a_manual_check_not_hidden():
-    raw = {"app.powerbi.com": {"uninformative": {"platform": "Microsoft Forms / Office web apps", "kind": "cloud_content"}}}
-    pack = build_indicator_pack(_mail(urls=["https://app.powerbi.com/view?r=SECRET-TOKEN"]), [_enrichment(raw)])
-    item = _find(pack, "domain", "app.powerbi.com")
+    raw = {"docs.google.com": {"uninformative": {"platform": "Google Docs / Drive / Forms / Sites", "kind": "cloud_content"}}}
+    pack = build_indicator_pack(_mail(urls=["https://docs.google.com/view?r=SECRET-TOKEN"]), [_enrichment(raw)])
+    item = _find(pack, "domain", "docs.google.com")
     assert item.status == "shared_platform" and item.manual_check and "Open the specific link in your sandbox" in item.note
     # the sender domain was not part of the enrichment either, so it is a manual check too
     assert pack.manual_check_count == 2 and _find(pack, "domain", "sender.example.org").status == "not_looked_up"

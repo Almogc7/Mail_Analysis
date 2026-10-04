@@ -73,7 +73,7 @@ describe('IndicatorsPanel', () => {
     const { container } = render(
       <IndicatorsPanel
         pack={pack([
-          indicator({ value: 'app.powerbi.com', status: 'shared_platform', manual_check: true, note: 'Open the specific link in your sandbox.' }),
+          indicator({ value: 'docs.google.com', status: 'shared_platform', manual_check: true, note: 'Open the specific link in your sandbox.' }),
           indicator({ kind: 'hash', value: 'a'.repeat(64), status: 'unknown', manual_check: true, filename: 'image.png', note: 'No source has a record of this file (never seen)' }),
         ])}
       />,

@@ -5,6 +5,9 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router as analyze_router
+from app.logging_config import configure_logging
+
+configure_logging()  # once, at startup: the enrichment and provider warnings reach the console
 
 app = FastAPI(title="Mail Analysis")
 app.include_router(analyze_router)
