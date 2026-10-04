@@ -131,6 +131,11 @@ class BaseClient:
             except requests.HTTPError as exc:
                 status_code = exc.response.status_code if exc.response is not None else None
                 last_http_status = status_code
+                if status_code == 404:
+                    # "Not found" is a definitive answer (e.g. VirusTotal has never seen this file): retrying cannot change it and only adds
+                    # seconds of back-off. Same result shape as before, returned at once. 429 and 5xx are still retried.
+                    logger.info("%s not found (404) url=%s", provider_name, url)
+                    return {"ok": False, "status": "failed", "error": str(exc), "http_status": 404}
                 if status_code == 429:
                     last_error = "Provider rate limit reached"
                     last_status = "rate_limited"

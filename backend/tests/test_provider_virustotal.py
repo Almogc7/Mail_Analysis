@@ -68,11 +68,38 @@ def test_only_read_only_gets_ever_leave_for_every_supported_type(fake_http):
     assert not any(hasattr(VirusTotalClient, name) for name in ("submit", "upload", "scan", "submit_url", "upload_file"))
 
 
-def test_a_404_is_an_error_result_with_the_http_status_and_is_retried_like_before(fake_http):
+def test_a_404_is_an_error_result_with_the_http_status_and_is_not_retried(fake_http, monkeypatch):
+    sleeps: list[float] = []
+    monkeypatch.setattr(base.time, "sleep", sleeps.append)
     fake_http.respond(FakeResponse(404, {}))
     result = VirusTotalClient("k").enrich(SHA, "sha256")
+    # exactly the result shape callers saw before (status failed + http_status 404): only the pointless retries are gone
     assert result["status"] == "failed" and result["http_status"] == 404 and "404" in result["error"] and result["enabled"] is True
-    assert len(fake_http.calls) == base.MAX_RETRIES + 1  # behaviour preserved from the original, 404 included
+    assert set(result) == {"enabled", "status", "error", "http_status"}
+    assert len(fake_http.calls) == 1 and sleeps == []
+
+
+def test_429_and_5xx_are_still_retried_with_back_off(fake_http, monkeypatch):
+    sleeps: list[float] = []
+    monkeypatch.setattr(base.time, "sleep", sleeps.append)
+    for code, status in ((429, "rate_limited"), (500, "failed"), (503, "failed")):
+        fake_http.calls.clear()
+        sleeps.clear()
+        fake_http.respond(FakeResponse(code, {}))
+        assert VirusTotalClient("k").enrich(SHA, "sha256")["status"] == status
+        assert len(fake_http.calls) == base.MAX_RETRIES + 1 and len(sleeps) == base.MAX_RETRIES
+
+
+def test_a_404_after_a_transient_error_stops_at_the_404(fake_http):
+    fake_http.respond(FakeResponse(503, {}), FakeResponse(404, {}), FakeResponse(200, REPORT))
+    assert VirusTotalClient("k").enrich(SHA, "sha256")["http_status"] == 404
+    assert len(fake_http.calls) == 2
+
+
+def test_other_client_errors_keep_their_existing_behaviour(fake_http):
+    fake_http.respond(FakeResponse(403, {}))
+    result = VirusTotalClient("k").enrich(SHA, "sha256")
+    assert result["status"] == "failed" and result["http_status"] == 403 and len(fake_http.calls) == base.MAX_RETRIES + 1
 
 
 def test_rate_limit_server_error_timeout_and_bad_json_are_all_non_ok(fake_http):
