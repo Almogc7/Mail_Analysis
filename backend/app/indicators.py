@@ -168,7 +168,14 @@ def build_indicator_pack(parsed: ParsedEmail, module_results: list[ModuleResult]
 
     items: list[Indicator] = []
     for item in c.items.values():
-        if item.kind in ("domain", "ip"):
+        if item.kind in ("domain", "ip") and classify_host(item.value) == "internal":
+            # An internal-looking name or address is never sent anywhere by the app, and no lookup link is offered either: clicking one
+            # would hand the internal name to a third party. It is UNKNOWN for the analyst to check, never clean.
+            item.status = "internal"
+            item.note = ("Internal-looking name or address: the app never sends it to any outside service, so it was not looked up, "
+                         "and no lookup links are offered. Check it by hand.")
+            item.providers, item.pivots = {}, []
+        elif item.kind in ("domain", "ip"):
             entry = _entry_for_host(raw, item.value)
             item.status, item.note, item.providers = _assess(entry, item.value in dropped)
             if enrichment is None:
@@ -184,7 +191,7 @@ def build_indicator_pack(parsed: ParsedEmail, module_results: list[ModuleResult]
             item.pivots = _pivots(_HASH_PIVOTS, item.value)
         else:  # email
             item.status, item.note = "n/a", "Address seen in the headers; compare it with the display name and the story."
-        item.manual_check = item.status in {"unknown", "shared_platform", "not_looked_up"}
+        item.manual_check = item.status in {"unknown", "shared_platform", "not_looked_up", "internal"}
         items.append(item)
 
     items.sort(key=lambda i: (_ORDER.get(i.status, 9), i.kind))

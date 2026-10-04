@@ -6,7 +6,7 @@ const STATUS_LABELS: Record<IndicatorStatus, string> = {
   unknown: 'Unknown: check by hand',
   shared_platform: 'Shared platform: check by hand',
   not_looked_up: 'Not looked up: check by hand',
-  internal: 'Internal name: not sent anywhere',
+  internal: 'Internal name, not sent anywhere: check by hand',
   nothing_found: 'Nothing found (not proof of safety)',
   'n/a': '',
 }

@@ -40,7 +40,11 @@ ALLOWED_TYPES: dict[str, frozenset[str]] = {
     "malwarebazaar": frozenset({"sha256"}),
 }
 
-_INTERNAL_SUFFIXES = (".local", ".localdomain", ".internal", ".corp", ".lan", ".home", ".intranet", ".private", ".localhost")
+_INTERNAL_SUFFIXES = (
+    ".local", ".localdomain", ".internal", ".corp", ".lan", ".home", ".intranet", ".private", ".localhost",
+    # reserved or infrastructure-only names that no public resolver answers for (RFC 2606, RFC 6761, RFC 8375, reverse DNS)
+    ".test", ".example", ".invalid", ".arpa",
+)
 _GRANULARITIES = ("hostname", "registrable")
 
 
@@ -95,15 +99,41 @@ def host_of(url: str) -> str | None:
         return host
 
 
+_NAT64 = ipaddress.ip_network("64:ff9b::/96")
+_IPV4_COMPATIBLE = ipaddress.ip_network("::/96")
+
+
+def _ip_is_public(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """True only for an address that is routable on the public internet. Stricter than ip.is_global: multicast counts as not public, and an
+    IPv6 address that merely EMBEDS an IPv4 one (mapped, NAT64, 6to4, Teredo, IPv4-compatible) is only public if the embedded address is."""
+    if ip.version == 6:
+        if ip.ipv4_mapped is not None:
+            return _ip_is_public(ip.ipv4_mapped)
+        if ip in _NAT64:
+            return _ip_is_public(ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF))
+        if ip in _IPV4_COMPATIBLE:
+            return False
+        if ip.sixtofour is not None and not _ip_is_public(ip.sixtofour):
+            return False
+        if ip.teredo is not None and not all(_ip_is_public(part) for part in ip.teredo):
+            return False
+    return ip.is_global and not ip.is_multicast
+
+
 def classify_host(host: str) -> str:
-    """'ip' | 'domain' | 'internal' (never sent externally)."""
+    """'ip' | 'domain' | 'internal' (never sent externally).
+
+    internal = a non-public IP address (private, loopback, link-local, multicast, reserved, documentation, carrier-grade NAT, unspecified,
+    or an IPv6 address embedding one of those); a name with no dot; a name under an internal-looking or never-publicly-resolvable suffix
+    (.corp .local .internal .lan ... .test .example .invalid .arpa); and any name whose last label has no letter, which covers the
+    obfuscated address spellings a browser would accept ('127.1', '0x7f.0.0.1', '0177.0.0.1', '2130706433') and cannot be a real domain."""
     try:
         ip = ipaddress.ip_address(host)
     except ValueError:
-        if "." not in host or host.endswith(_INTERNAL_SUFFIXES):
+        if "." not in host or host.endswith(_INTERNAL_SUFFIXES) or not any(c.isalpha() for c in host.rsplit(".", 1)[-1]):
             return "internal"
         return "domain"
-    return "ip" if ip.is_global else "internal"
+    return "ip" if _ip_is_public(ip) else "internal"
 
 
 def lookup_key(url: str, policy: EnrichmentPolicy) -> str | None:
@@ -158,6 +188,10 @@ class GuardedProvider:
             return _result("not_applicable", "internal-looking host: never sent to an external service", enabled=False)
         if ioc_type not in ALLOWED_TYPES[self.name]:
             return _result("not_applicable", f"{self.name} is not queried for {ioc_type} indicators by policy", enabled=False)
+        # Defence in depth: whatever the caller classified, a value that looks internal is never sent. A bug upstream must not leak a name.
+        probe = host_of(value) if ioc_type == "url" else value.strip(".").lower() if ioc_type in ("domain", "ip") else None
+        if probe is not None and classify_host(probe) == "internal":
+            return _result("not_applicable", "internal-looking host: never sent to an external service", enabled=False)
         if ioc_type == "url" and self.name not in self.policy.path_query_providers:
             raise PolicyViolation(f"{self.name}: sending a URL (path/query) requires ENRICHMENT_PATH_QUERY_PROVIDERS opt-in")
         if ioc_type in ("domain", "ip") and any(c in value for c in "/?#@ \t\r\n"):

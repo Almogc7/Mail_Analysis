@@ -102,9 +102,9 @@ def test_a_host_dropped_by_the_per_email_cap_says_so():
     assert item.status == "not_looked_up" and "limit was reached" in item.note
 
 
-def test_internal_looking_hosts_are_not_marked_for_manual_check():
+def test_internal_looking_hosts_are_a_manual_check_with_no_lookup_links():
     item = _find(build_indicator_pack(_mail(urls=["https://intranet/x"]), [_enrichment({"intranet": {"internal_host_not_sent": True}})]), "domain", "intranet")
-    assert item.status == "internal" and not item.manual_check
+    assert item.status == "internal" and item.manual_check and item.pivots == [] and "never sends it" in item.note
 
 
 def test_pivot_links_carry_only_the_host_ip_or_hash_never_a_path_or_query():
