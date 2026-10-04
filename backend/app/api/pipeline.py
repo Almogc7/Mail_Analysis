@@ -5,6 +5,7 @@ from app.contracts.analysis import AnalysisResult
 from app.contracts.findings import ModuleResult
 from app.content_analysis import run_content_analysis
 from app.enrichment import run_enrichment
+from app.indicators import build_indicator_pack
 from app.llm import run_llm_opinion
 from app.parser import parse_email_file
 from app.scoring import build_analysis_result
@@ -43,10 +44,16 @@ def run_pipeline(raw_bytes: bytes, filename: str, on_step: StepCallback = _noop)
     on_step("scoring")
     analysis_result = build_analysis_result(parsed, [auth_result, enrichment_result, content_result])
 
+    # The indicator pack is an analyst aid (no scoring, no verdict); a bug in it must never sink the analysis.
+    try:
+        indicators = build_indicator_pack(parsed, [auth_result, enrichment_result, content_result])
+    except Exception:
+        indicators = None
+
     on_step("llm_opinion")
     opinion = run_llm_opinion(analysis_result)
 
-    return analysis_result.model_copy(update={"llm_opinion": opinion})
+    return analysis_result.model_copy(update={"llm_opinion": opinion, "indicators": indicators})
 
 
 __all__ = ["run_pipeline"]
