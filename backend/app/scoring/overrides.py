@@ -65,6 +65,18 @@ def benign_evidence_gaps(
     return gaps
 
 
+def _benign_gap_lead(module_results: dict[str, ModuleResult | None]) -> str:
+    """The opening of the 'no positive evidence' reason. It must not say nothing was flagged when something was: a low finding does not make a
+    message suspicious, but it is a finding."""
+    flagged = any(
+        f.severity != "info" for result in module_results.values() if result is not None and result.status not in {"error", "skipped"} for f in result.findings
+    )
+    if flagged:
+        return ("Something was flagged, but not enough to call it suspicious, and nothing positive was established either; "
+                "the lack of a strong finding is not evidence of safety.")
+    return "Nothing was flagged, but 'no findings' is not evidence of safety."
+
+
 def apply_overrides(
     base_bucket: str,
     module_results: dict[str, ModuleResult | None],
@@ -213,7 +225,7 @@ def apply_overrides(
                 AppliedOverride(
                     rule="no_positive_evidence_for_benign",
                     effect="verdict=inconclusive (inconclusive)",
-                    reason="Nothing was flagged, but 'no findings' is not evidence of safety. Missing: " + "; ".join(gaps) + ".",
+                    reason=_benign_gap_lead(module_results) + " Missing: " + "; ".join(gaps) + ".",
                 )
             )
             bucket = "inconclusive"

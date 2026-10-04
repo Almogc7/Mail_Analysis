@@ -115,6 +115,43 @@ def test_the_reason_lists_every_gap_at_once():
     assert "not evidence of safety" in reason
 
 
+# ---- the wording must match what actually happened -------------------------------------------------------
+
+def _reason(auth, enrichment=None, content=None):
+    out = run_scoring([auth, enrichment or _enrichment(), content or _content()], KNOWN)
+    return next(o.reason for o in out.breakdown.applied_overrides if o.rule == "no_positive_evidence_for_benign")
+
+
+def test_the_reason_says_nothing_was_flagged_only_when_nothing_above_info_exists():
+    quiet = _reason(_auth(trusted=False, dkim_pass=False, findings=[_f("auth_check", "info", "SPF not evaluated")]))
+    assert quiet.startswith("Nothing was flagged, but 'no findings' is not evidence of safety.") and "above info severity" not in quiet
+
+
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda: (_auth(findings=[_f("auth_check", "low", "From header parse ambiguity")]), None, None),
+        lambda: (_auth(), _enrichment([_f("enrichment", "low", "Suspicious host: x.example")]), None),
+        lambda: (_auth(), None, _content([_f("content_analysis", "medium", "Urgency language", 10)])),
+    ],
+    ids=["low-auth", "low-enrichment", "medium-content"],
+)
+def test_the_reason_never_claims_nothing_was_flagged_when_a_finding_above_info_exists(build):
+    auth, enrichment, content = build()
+    reason = _reason(auth, enrichment, content)
+    assert "Nothing was flagged" not in reason
+    assert reason.startswith("Something was flagged, but not enough to call it suspicious")
+    assert "not evidence of safety" in reason and "finding(s) above info severity" in reason  # the gap list still names the finding
+
+
+def test_a_finding_from_a_module_that_errored_does_not_count_as_flagged():
+    auth = _auth(trusted=False, dkim_pass=False)
+    errored = ModuleResult(module="enrichment", status="error", findings=[_f("enrichment", "high", "x")], raw_data={})
+    out = run_scoring([auth, errored, _content()], KNOWN)
+    reason = next(o.reason for o in out.breakdown.applied_overrides if o.rule == "no_positive_evidence_for_benign")
+    assert reason.startswith("Nothing was flagged")
+
+
 # ---- flagged and floor-protected verdicts are untouched --------------------------------------------------
 
 def test_a_floor_based_suspicious_is_never_turned_inconclusive_by_this_rule():
