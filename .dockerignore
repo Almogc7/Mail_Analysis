@@ -1,0 +1,20 @@
+# Keep the build context small and keep local / sensitive material out of every image layer.
+.git
+**/.venv
+**/node_modules
+**/__pycache__
+**/*.pyc
+frontend/dist
+# malware corpora and local test data: never in an image
+corporaphishing_pot
+**/_local_corpus
+backend/tests
+# organisation-specific, untracked configuration (mounted at run time instead)
+**/.env
+**/.denylist.local
+**/*.local.json
+**/feedback.local.sqlite*
+team-config
+docs
+images
+*.md

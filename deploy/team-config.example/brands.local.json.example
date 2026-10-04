@@ -1,0 +1,6 @@
+{
+  "your organisation": {
+    "domains": ["yourorg.example"],
+    "aliases": ["short name", "name in another script"]
+  }
+}
