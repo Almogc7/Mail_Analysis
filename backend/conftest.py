@@ -16,3 +16,12 @@ def restore_trust_configuration(monkeypatch):
 
     monkeypatch.setattr(app_config, "TRUSTED_RECEIVER_PATTERNS", list(app_config.TRUSTED_RECEIVER_PATTERNS))
     monkeypatch.setattr(app_config, "KNOWN_SENDER_DOMAINS", app_config.KNOWN_SENDER_DOMAINS)
+
+
+@pytest.fixture(autouse=True)
+def no_local_hop_hiding(monkeypatch):
+    """INTERNAL_HOP_PATTERNS comes from the untracked backend/.env. Tests must not depend on one developer's local setting, so it starts empty;
+    the tests of the feature set their own patterns."""
+    import app.config as app_config
+
+    monkeypatch.setattr(app_config, "INTERNAL_HOP_PATTERNS", [])

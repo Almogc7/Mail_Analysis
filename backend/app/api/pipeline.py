@@ -8,7 +8,7 @@ from app.content_analysis import run_content_analysis
 from app.enrichment import run_enrichment
 from app.coverage import build_coverage_report
 from app.evidence import build_evidence
-from app.indicators import build_indicator_pack
+from app.indicators import build_indicator_pack, visible_pack
 from app.llm import run_llm_opinion
 from app.parser import parse_email_file
 from app.scoring import build_analysis_result
@@ -71,7 +71,9 @@ def run_pipeline(raw_bytes: bytes, filename: str, on_step: StepCallback = _noop)
     on_step("llm_opinion")
     opinion = run_llm_opinion(analysis_result)
 
-    update: dict = {"llm_opinion": opinion, "indicators": indicators}
+    # The response carries the pack WITHOUT indicators that came only from hops hidden by local config (display only; evidence and coverage above were
+    # built from the full pack).
+    update: dict = {"llm_opinion": opinion, "indicators": visible_pack(indicators)}
     if evidence is not None:
         update.update(evidence=evidence, schema_version=2)
     if coverage is not None:

@@ -18,6 +18,7 @@ from app.contracts.analysis import Indicator, IndicatorPack, Pivot
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import ModuleResult
 from app.enrichment.policy import classify_host, host_of
+from app.hops import hidden_indexes
 
 _DOMAIN_PIVOTS = (
     ("VirusTotal", "https://www.virustotal.com/gui/domain/{v}"),
@@ -102,9 +103,12 @@ class _Collector:
     def __init__(self, enrichment: dict[str, Any], dropped: set[str]) -> None:
         self.enrichment, self.dropped = enrichment, dropped
         self.items: dict[tuple[str, str], Indicator] = {}
+        self.shown: set[tuple[str, str]] = set()  # keys seen anywhere EXCEPT in a hop hidden by local config
 
-    def add(self, kind: str, value: str, seen_in: str, **extra: Any) -> Indicator:
+    def add(self, kind: str, value: str, seen_in: str, hidden: bool = False, **extra: Any) -> Indicator:
         key = (kind, value)
+        if not hidden:
+            self.shown.add(key)
         item = self.items.get(key)
         if item is None:
             item = Indicator(kind=kind, value=value, **extra)
@@ -153,13 +157,17 @@ def build_indicator_pack(parsed: ParsedEmail, module_results: list[ModuleResult]
             c.add("domain", address.domain.lower(), f"{label} domain")
 
     # ---- network path ---------------------------------------------------------------------------------------------
+    # EVERY hop is collected, hidden or not: coverage and blockers are computed from the full list. A hop hidden by local config (only ever one at or
+    # above the first trusted hop: see app/hops.py) is merely flagged, and visible_pack() leaves it out of the response.
     chain = parsed.received_chain
+    hidden_hops = hidden_indexes(chain, next((m for m in module_results if m.module == "auth_check"), None))
     for index, hop in enumerate(chain):
         origin = index == len(chain) - 1
+        hidden = index in hidden_hops
         if hop.from_ip and _is_public_ip(hop.from_ip):
-            c.add("ip", hop.from_ip, "origin hop (where the message entered the mail system)" if origin else "Received hop")
+            c.add("ip", hop.from_ip, "origin hop (where the message entered the mail system)" if origin else "Received hop", hidden=hidden)
         if origin and hop.from_host and "." in hop.from_host:
-            c.add("domain", hop.from_host.strip(".").lower(), "origin hop host name")
+            c.add("domain", hop.from_host.strip(".").lower(), "origin hop host name", hidden=hidden)
 
     # ---- attachments (hashes only; files are never opened) ----------------------------------------------------------
     for att in parsed.attachments:
@@ -192,6 +200,7 @@ def build_indicator_pack(parsed: ParsedEmail, module_results: list[ModuleResult]
         else:  # email
             item.status, item.note = "n/a", "Address seen in the headers; compare it with the display name and the story."
         item.manual_check = item.status in {"unknown", "shared_platform", "not_looked_up", "internal"}
+        item.hidden_by_config = (item.kind, item.value) not in c.shown
         items.append(item)
 
     items.sort(key=lambda i: (_ORDER.get(i.status, 9), i.kind))
@@ -199,6 +208,19 @@ def build_indicator_pack(parsed: ParsedEmail, module_results: list[ModuleResult]
     for i in items:
         counts[i.kind] = counts.get(i.kind, 0) + 1
     return IndicatorPack(indicators=items, counts=counts, manual_check_count=sum(i.manual_check for i in items))
+
+
+def visible_pack(pack: IndicatorPack | None) -> IndicatorPack | None:
+    """The pack as the RESPONSE carries it: indicators that came only from hops hidden by local config are left out and counted. Display only: the
+    full pack is what evidence and coverage were built from."""
+    if pack is None:
+        return None
+    kept = [i for i in pack.indicators if not i.hidden_by_config]
+    counts: dict[str, int] = {}
+    for i in kept:
+        counts[i.kind] = counts.get(i.kind, 0) + 1
+    return IndicatorPack(indicators=kept, counts=counts, manual_check_count=sum(i.manual_check for i in kept),
+                         hidden_by_config_count=len(pack.indicators) - len(kept))
 
 
 def _is_ip(host: str) -> bool:

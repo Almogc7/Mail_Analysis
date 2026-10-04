@@ -17,6 +17,7 @@ from app.contracts.analysis import (
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import ModuleResult
 from app.enrichment.policy import host_of, platform_of
+from app.hops import hidden_indexes, is_unverified, trust_boundary, trusted_hop_indexes
 from app.shared.matching import registrable_domain
 
 _TEXT_CAP = 200
@@ -119,13 +120,9 @@ def _iso(value) -> str | None:
 
 def _hop_timeline(parsed: ParsedEmail, auth: ModuleResult | None) -> list[HopEntry]:
     chain = list(parsed.received_chain)  # newest first
-    trusted_newest_index: set[int] = set()
-    if auth is not None and auth.status == "ok":
-        for method in ("spf", "dkim", "dmarc"):
-            entry = ((auth.raw_data or {}).get("auth_headers") or {}).get(method) or {}
-            hop_index = (entry.get("trust_basis") or {}).get("hop_index")
-            if entry.get("evaluated") and isinstance(hop_index, int):
-                trusted_newest_index.add(hop_index)
+    trusted_newest_index = trusted_hop_indexes(auth)
+    boundary = trust_boundary(auth)
+    hidden = hidden_indexes(chain, auth)  # display only: scoring and coverage never see this
     timeline: list[HopEntry] = []
     previous = None
     for position, newest_index in enumerate(range(len(chain) - 1, -1, -1)):
@@ -134,12 +131,20 @@ def _hop_timeline(parsed: ParsedEmail, auth: ModuleResult | None) -> list[HopEnt
         if hop.timestamp is not None and previous is not None:
             delay = (hop.timestamp - previous).total_seconds()
         skew = bool(delay is not None and delay < 0)
-        timeline.append(HopEntry(
-            index=position + 1, from_host=hop.from_host, by_host=hop.by_host, from_ip=hop.from_ip, protocol=hop.protocol, tls=hop.tls,
-            authenticated=hop.authenticated, local_submission=hop.is_local_submission, timestamp=_iso(hop.timestamp),
-            delay_seconds_from_previous=delay, clock_skew=skew, trusted_receiver=newest_index in trusted_newest_index,
-            is_origin=position == 0,
-        ))
+        unverified = is_unverified(newest_index, boundary)
+        if newest_index in hidden:
+            # Hidden by local config (and above the trust boundary): keep only what the timeline needs. No names, no address.
+            timeline.append(HopEntry(
+                index=position + 1, timestamp=_iso(hop.timestamp), delay_seconds_from_previous=delay, clock_skew=skew,
+                trusted_receiver=newest_index in trusted_newest_index, is_origin=position == 0, internal=True, unverified=False,
+            ))
+        else:
+            timeline.append(HopEntry(
+                index=position + 1, from_host=hop.from_host, by_host=hop.by_host, from_ip=hop.from_ip, protocol=hop.protocol, tls=hop.tls,
+                authenticated=hop.authenticated, local_submission=hop.is_local_submission, timestamp=_iso(hop.timestamp),
+                delay_seconds_from_previous=delay, clock_skew=skew, trusted_receiver=newest_index in trusted_newest_index,
+                is_origin=position == 0, unverified=unverified,
+            ))
         if hop.timestamp is not None:
             previous = hop.timestamp
     return timeline

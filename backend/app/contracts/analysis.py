@@ -33,12 +33,15 @@ class Indicator(BaseModel):
     # unknown / shared-platform / not looked up: shown as something for the analyst to check, never as clean
     manual_check: bool = False
     filename: str | None = None
+    # Seen ONLY in hops hidden by the local INTERNAL_HOP_PATTERNS. The full pack (used by evidence and coverage) keeps them; the response never does.
+    hidden_by_config: bool = False
 
 
 class IndicatorPack(BaseModel):
     indicators: list[Indicator] = []
     counts: dict[str, int] = {}
     manual_check_count: int = 0
+    hidden_by_config_count: int = 0  # how many indicators were left out of the response because they came only from hidden hops
 
 
 class HopEntry(BaseModel):
@@ -57,6 +60,8 @@ class HopEntry(BaseModel):
     clock_skew: bool = False  # the timestamp is earlier than the previous hop's: a clock is wrong or a header was edited
     trusted_receiver: bool = False  # this hop wrote an authentication result the app trusts
     is_origin: bool = False
+    internal: bool = False  # hidden by local config (INTERNAL_HOP_PATTERNS), and only ever a hop at or above the first trusted hop: names and address are blanked, only timing remains
+    unverified: bool = False  # below the trust boundary (or no trusted hop exists): written by whoever sent the message, so every field is a CLAIM
 
 
 class AuthRow(BaseModel):

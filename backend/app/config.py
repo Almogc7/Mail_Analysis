@@ -50,6 +50,10 @@ GATEWAY_SUBJECT_TAG_PATTERNS = _json_pattern_list("GATEWAY_SUBJECT_TAG_PATTERNS"
 # "not_evaluated". Tenant-specific hostnames live ONLY in the untracked backend/.env.
 TRUSTED_RECEIVER_PATTERNS = _json_pattern_list("TRUSTED_RECEIVER_PATTERNS")
 
+# Hostname regexes of YOUR OWN mail systems (gateway, mail-security service). A Received hop sent from one of them is collapsed in the timeline and
+# never listed as an indicator (app/hops.py). Display and indicator list only: scoring is unchanged. Names live ONLY in the untracked backend/.env.
+INTERNAL_HOP_PATTERNS = _json_pattern_list("INTERNAL_HOP_PATTERNS")
+
 # Known-sender list: registrable domains whose mail you positively recognise (your suppliers, your own domains). A
 # 'benign' verdict needs a sender on this list in addition to verified authentication (app/scoring/overrides.py): an
 # authenticated message only proves WHO sent it, not that the sender is legitimate -- attackers authenticate their own
