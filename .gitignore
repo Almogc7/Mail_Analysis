@@ -19,5 +19,3 @@ backend/brands.local.json
 backend/feedback.local.sqlite*
 backend/known_senders.local.json
 team-config/
-# scratch space for the standalone refactor (differential checks against the old bridge); never committed
-_import_src/
