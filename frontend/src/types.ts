@@ -110,6 +110,39 @@ export interface LLMOpinion {
   error: string | null
 }
 
+export type IndicatorStatus =
+  | 'provider_hit'
+  | 'unknown'
+  | 'shared_platform'
+  | 'not_looked_up'
+  | 'internal'
+  | 'nothing_found'
+  | 'n/a'
+
+export interface Pivot {
+  name: string
+  url: string
+}
+
+export interface Indicator {
+  kind: 'domain' | 'ip' | 'email' | 'hash'
+  value: string
+  seen_in: string[]
+  count: number
+  status: IndicatorStatus
+  note: string
+  providers: Record<string, string>
+  pivots: Pivot[]
+  manual_check: boolean
+  filename: string | null
+}
+
+export interface IndicatorPack {
+  indicators: Indicator[]
+  counts: Record<string, number>
+  manual_check_count: number
+}
+
 export interface AnalysisResult {
   parsed_email: ParsedEmail
   module_results: ModuleResult[]
@@ -119,6 +152,7 @@ export interface AnalysisResult {
   confidence: number | null
   scoring: ScoringBreakdown | null
   llm_opinion: LLMOpinion | null
+  indicators?: IndicatorPack | null
 }
 
 export interface AnalysisJob {

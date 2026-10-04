@@ -3,6 +3,7 @@ import { SummaryCard } from './SummaryCard'
 import { ModulePanel } from './ModulePanel'
 import { LlmOpinionCard } from './LlmOpinionCard'
 import { FeedbackBar } from './FeedbackBar'
+import { IndicatorsPanel } from './IndicatorsPanel'
 
 const MODULE_ORDER = ['auth_check', 'enrichment', 'content_analysis']
 
@@ -21,6 +22,8 @@ export function ResultsView({ result, onReset, jobId }: ResultsViewProps) {
   return (
     <div className="results-view">
       <SummaryCard result={result} />
+
+      <IndicatorsPanel pack={result.indicators} />
 
       <div className="module-panels">
         {orderedModules.map((m) => (
