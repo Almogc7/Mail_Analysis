@@ -33,6 +33,7 @@ from pathlib import Path
 from app.config import FEEDBACK_DB
 from app.contracts.analysis import AnalysisResult
 from app.contracts.findings import Finding
+from app.verdict_labels import verdict_label
 
 SCHEMA_VERSION = 1
 NOTE_MAX_CHARS = 500
@@ -181,11 +182,11 @@ def main(argv: list[str]) -> int:
     s = summary()
     print(f"feedback log: {s['total']} reviewed ({s['agree']} agree, {s['disagree']} disagree)")
     for verdict, c in sorted(s["by_verdict"].items()):
-        print(f"  {verdict:12} agree {c['agree']}  disagree {c['disagree']}")
+        print(f"  {verdict_label(verdict):20} agree {c['agree']}  disagree {c['disagree']}")
     rate = s["fp_rate_among_reviewed_flagged"]
     print(f"suspected false positives: {s['suspected_false_positives']} of {s['reviewed_flagged']} reviewed flagged"
           + (f" ({rate:.0%})" if rate is not None else ""))
-    print(f"suspected false negatives: {s['suspected_false_negatives']} (disagreed 'benign' verdicts)")
+    print(f"suspected false negatives: {s['suspected_false_negatives']} (disagreed 'No indicators found' verdicts)")
     print(f"disagreed with an inconclusive verdict: {s['disagreed_inconclusive']} (direction unknown)")
     if s["signals_in_disagreed_flagged"]:
         print("signals present when a flagged verdict was disagreed with:")

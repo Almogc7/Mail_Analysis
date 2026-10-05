@@ -86,7 +86,7 @@ _LANGUAGE_FINDINGS = {
         "Content analysis does not cover this language",
         "Content analysis has lexicons for English and Hebrew only. This text looks like {language} ({reason}), so the "
         "phrase and brand heuristics were NOT applied to it. Language-agnostic signals (links, sender, headers) still "
-        "apply. Content coverage is reduced so content analysis alone can never support a benign verdict.",
+        "apply. Content coverage is reduced so content analysis alone can never support a 'No indicators found' verdict.",
     ),
     "none": (
         "No readable text for content analysis",

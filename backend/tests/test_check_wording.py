@@ -106,6 +106,12 @@ def test_an_fstring_that_interpolates_a_verdict_value_is_flagged_because_benign_
     assert cw.static_hits(refs, frozenset()) == []  # it is reported in its own section, not as a literal hit
 
 
+def test_an_fstring_that_goes_through_the_label_function_is_not_flagged():
+    src = 'def f(bucket):\n    return f"too incomplete to trust a {verdict_label(bucket)} call."\n'
+    refs, _ = cw.py_string_refs(src, "backend/app/scoring/overrides.py", True)
+    assert cw.possible_hits(refs) == []
+
+
 # ---- exemptions: the allowlist, by exact string ----------------------------------------------------------------------------------
 
 def test_an_allowlisted_negated_disclaimer_passes_by_exact_string_only():
@@ -182,8 +188,9 @@ def test_a_runtime_hit_prints_the_template_with_quoted_message_text_masked_and_d
 
 # ---- the text sent to the language model -----------------------------------------------------------------------------------------
 
-def test_the_prompt_exempts_the_v1_verdict_literal_but_not_a_banned_word_in_a_title():
-    assert cw.scan_prompt("Verdict: benign (score=3/100)\nFindings (titles only):\n(none)") == []
+def test_the_prompt_has_no_exemption_so_the_raw_v1_value_is_a_hit_and_its_label_is_not():
+    assert cw.scan_prompt("Verdict: No indicators found (score=3/100)\nFindings (titles only):\n(none)") == []
+    assert [(h.kind, h.word) for h in cw.scan_prompt("Verdict: benign (score=3/100)\n(none)")] == [("llm prompt", "benign")]
     hits = cw.scan_prompt("Verdict: inconclusive (score=3/100)\n[auth_check/low] The header is not clean")
     assert [(h.kind, h.word) for h in hits] == [("llm prompt", "clean")]
 

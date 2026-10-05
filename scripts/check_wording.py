@@ -182,7 +182,7 @@ def py_string_refs(source: str, filename: str, in_scope_file: bool) -> tuple[lis
             if id(joined) not in seen_joined:
                 seen_joined.add(id(joined))
                 exprs = [ast.unparse(v.value) for v in joined.values if isinstance(v, ast.FormattedValue)]
-                if any(re.search(r"\b(bucket|verdict|base_bucket|final_bucket)\b", e) for e in exprs):
+                if any(re.search(r"\b(bucket|verdict|base_bucket|final_bucket)\b", e) and not e.startswith("verdict_label(") for e in exprs):
                     template = "".join(v.value if isinstance(v, ast.Constant) else "{" + ast.unparse(v.value) + "}" for v in joined.values)
                     refs.append(StringRef(filename, joined.lineno, "f-string interpolates a verdict value", template,
                                           in_scope_file or kind in ("log message", "cli output", "api error")))
@@ -322,10 +322,9 @@ def scan_payload(payload, allowed: frozenset[str] = frozenset()) -> list[Payload
 
 
 def scan_prompt(prompt: str, allowed: frozenset[str] = frozenset()) -> list[PayloadHit]:
-    """The text sent to the LLM. The v1 verdict value on its first line is the frozen internal literal, not wording."""
-    cleaned = re.sub(r"Verdict: (malicious|suspicious|benign|inconclusive)", "Verdict: <v1 value>", prompt)
+    """The text sent to the LLM. It has NO exemption: the raw v1 value `benign` must never be in it (the verdict goes through verdict_label)."""
     hits: list[PayloadHit] = []
-    for line in cleaned.splitlines():
+    for line in prompt.splitlines():
         if is_allowed(line, allowed):
             continue
         for word in dict.fromkeys(find_banned(line)):
@@ -333,8 +332,9 @@ def scan_prompt(prompt: str, allowed: frozenset[str] = frozenset()) -> list[Payl
     return hits
 
 
-def runtime_hits(allowed: frozenset[str] = frozenset()) -> list[PayloadHit]:
-    """The pipeline over the fixtures and the TUNING corpus (never the hold-out), four ways (STRICT and CONFIGURED, clean and unknown enrichment)."""
+def runtime_hits(allowed: frozenset[str] = frozenset(), corpus_dir: Path | None = None) -> list[PayloadHit]:
+    """The pipeline over the fixtures and the TUNING corpus (never the hold-out), four ways (STRICT and CONFIGURED, clean and unknown enrichment).
+    `corpus_dir` replaces the local tuning corpus (a test passes an empty folder to scan the committed fixtures only)."""
     import logging
 
     backend = ROOT / "backend"
@@ -351,7 +351,7 @@ def runtime_hits(allowed: frozenset[str] = frozenset()) -> list[PayloadHit]:
 
         seen: set[tuple[str, str, str, str]] = set()
         out: list[PayloadHit] = []
-        items = ev.collect(None)
+        items = ev.collect(corpus_dir)
         for mode in ev.MODES:
             ev.apply_mode(mode)
             for enrichment in ("clean", "disabled"):

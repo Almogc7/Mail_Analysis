@@ -4,6 +4,7 @@ from app import config as app_config
 from app.scoring.aggregate import category_coverage
 from app.scoring.config import ScoringConfig, severity_at_least
 from app.shared.matching import registrable_domain
+from app.verdict_labels import verdict_label
 
 _BUCKET_RANK = {"benign": 0, "suspicious": 1, "malicious": 2}
 
@@ -194,7 +195,7 @@ def apply_overrides(
         applied.append(
             AppliedOverride(
                 rule="floor_protects_verdict",
-                effect=f"verdict stays {bucket}",
+                effect=f"verdict stays {verdict_label(bucket)}",
                 reason=(
                     f"Overall confidence {confidence:.2f} is below {config.confidence_threshold}, which would normally "
                     "mean inconclusive, but a hard indicator (a floor trigger) fired. Low coverage of OTHER evidence "
@@ -211,7 +212,7 @@ def apply_overrides(
                     f"Overall confidence {confidence:.2f} is below threshold "
                     f"{config.confidence_threshold} with a non-trivial score "
                     f"({weighted_score:.1f}) -- evidence is too incomplete to trust a "
-                    f"{bucket} call."
+                    f"'{verdict_label(bucket)}' call."
                 ),
             )
         )

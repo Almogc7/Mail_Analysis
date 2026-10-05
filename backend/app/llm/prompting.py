@@ -3,6 +3,7 @@ import json
 import re
 
 from app.contracts.analysis import AnalysisResult
+from app.verdict_labels import verdict_label
 
 SYSTEM_PROMPT = """You are assisting a SOC analyst reviewing the output of an automated email-triage tool.
 A rule-based scoring engine has already analyzed this email across independent signal
@@ -111,10 +112,10 @@ def build_context(analysis_result: AnalysisResult, tokenizer: Tokenizer | None =
     lines: list[str] = []
 
     lines.append(
-        f"Verdict: {analysis_result.verdict} "
+        f"Verdict: {verdict_label(analysis_result.verdict)} "
         f"(score={analysis_result.score}/100, confidence={analysis_result.confidence:.2f})"
         if analysis_result.confidence is not None
-        else f"Verdict: {analysis_result.verdict} (score={analysis_result.score}/100)"
+        else f"Verdict: {verdict_label(analysis_result.verdict)} (score={analysis_result.score}/100)"
     )
     lines.append("")
 

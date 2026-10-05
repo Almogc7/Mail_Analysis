@@ -111,7 +111,7 @@ def test_an_unsupported_language_is_visible_and_reduces_coverage_without_scoring
     result = _analyze(_eml(TEXTS["german"]))
     finding = next(f for f in result.findings if f.title == "Content analysis does not cover this language")
     assert finding.severity == "info" and finding.weight == 0.0 and finding.evidence["language"] == "german"
-    assert "can never support a benign verdict" in finding.description
+    assert "can never support a 'No indicators found' verdict" in finding.description
     assert result.raw_data["script_coverage"] == UNSUPPORTED_COVERAGE and result.raw_data["language"]["status"] == "unsupported"
     assert category_coverage("content_analysis", result) == UNSUPPORTED_COVERAGE
 
