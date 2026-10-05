@@ -371,6 +371,8 @@ touches an external service (`enrichment`'s provider clients, `llm`'s Gemini cli
 an injectable client so tests run against stub responses shaped like real provider payloads,
 never live calls.
 
+The pre-commit hook's wording check scans the working tree (the static scope) and is a fast first filter only; **the pytest gate (`test_wording_enforced.py`, which also covers what the app prints at run time) is the complete check.** Every finding also carries a stable, content-free code naming its kind (`backend/app/finding_codes.py`); a test fails if a finding is built without one.
+
 **The centerpiece: real-world data surfaced a bug synthetic fixtures had been hiding.**
 Every `.eml` test fixture in this project was hand-built with clean, RFC-compliant headers.
 When a real (sanitized) `.msg` sample was finally added to close out a known fixture gap, it
