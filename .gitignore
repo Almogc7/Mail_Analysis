@@ -19,3 +19,4 @@ backend/brands.local.json
 backend/feedback.local.sqlite*
 backend/known_senders.local.json
 team-config/
+.claude/skills/
