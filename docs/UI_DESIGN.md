@@ -1,6 +1,7 @@
 # UI design system (proposal, text only)
 
-Status: proposal awaiting approval. Nothing in `frontend/` has been changed by this document. It defines the target look and the rules every later
+Status: proposal awaiting approval (revision 2: machine-token-only mono, forced-colors rules, neutral hover, explicit tint tokens, theme follows the OS,
+blockers inside the verdict slot, contrast checker). Nothing in `frontend/` has been changed by this document. It defines the target look and the rules every later
 frontend change must follow. It does not redesign the verdict card or the coverage panel: Phase B changes what they say, so this document only defines the
 tier styles and reserves their place in the layout.
 
@@ -35,10 +36,12 @@ This is an analyst workbench for reported emails. It is read by one person at a 
 
 ## 3. Colour tokens
 
-Dark is the default (the current look, and the usual setting for a queue worked all day). Light applies under `prefers-color-scheme: light`. There is no
-theme toggle in this proposal; one can be added later without changing the tokens. Set `color-scheme: dark light` so native controls follow.
+The theme follows the operating system setting (`prefers-color-scheme`). The dark tokens are declared on `:root`, so dark is also the fallback when the
+browser reports no preference. The light tokens are declared inside `@media (prefers-color-scheme: light) { :root { ... } }`. There is no theme toggle and
+no stored preference; a toggle can be added later without changing the tokens. Set `color-scheme: dark light` so native controls follow.
 
-All text-on-background pairs below were computed (WCAG relative luminance), not estimated.
+All text-on-background pairs below were computed (WCAG relative luminance), not estimated, and `scripts/check_contrast.py` re-checks them (section 10).
+Tints are written as explicit hex tokens, not computed in CSS with `color-mix()`, so the value that was checked is the value that ships.
 
 ### 3.1 Surfaces, text, lines
 
@@ -52,11 +55,12 @@ All text-on-background pairs below were computed (WCAG relative luminance), not 
 | `--text-secondary` | `#a3adb9` | `#4a5560` | 8.1:1 / 7.6:1 on panel |
 | `--text-muted` | `#8b96a3` | `#59636e` | 6.1:1 / 6.1:1 on panel, 5.5:1 / 5.2:1 on `--bg-muted` |
 | `--border` | `#2b3542` | `#d0d7de` | decorative panel edges only (not a required boundary) |
-| `--border-control` | `#6b7684` | `#8c959f` | edges of buttons, inputs, toggles: 3.96:1 / 3.04:1 on panel |
+| `--border-control` | `#6b7684` | `#848d97` | edges of buttons, inputs, toggles: 3.96:1 / 3.37:1 on panel, 4.19:1 / 3.16:1 on root |
 | `--focus` | `#4fe1ff` | `#0a5c86` | 11.8:1 / 7.3:1 on panel |
 
 Change from today: `--text-muted` was `#6b7684` (about 3.9:1 on the panel) and failed 4.5:1 for text. `#6b7684` survives only as the dark
-`--border-control`.
+`--border-control`. The first draft of the light `--border-control` (`#8c959f`) was 2.85:1 on the root surface; the contrast checker caught it and it is
+now `#848d97`.
 
 ### 3.2 Severity (finding level)
 
@@ -70,8 +74,22 @@ Used for text, the badge outline and the left bar of a finding. Always paired wi
 | low | `#5cc8f0` | `#0a5c86` | 9.6 / 7.3 | 7.1 / 5.8 |
 | info | `#a3adb9` | `#4a5560` | 8.1 / 7.6 | 6.2 / 6.1 |
 
-Tokens: `--sev-critical`, `--sev-high`, `--sev-medium`, `--sev-low`, `--sev-info`. Tint token pattern:
-`color-mix(in srgb, var(--sev-x) 15%, var(--bg-panel))`.
+Tokens: `--sev-critical`, `--sev-high`, `--sev-medium`, `--sev-low`, `--sev-info`, each with an explicit tint token (the colour at 15% over the panel,
+written out as hex; no `color-mix()`):
+
+| Tint token | Dark | Light |
+|---|---|---|
+| `--sev-critical-tint` | `#35222a` | `#f4dee0` |
+| `--sev-high-tint` | `#352726` | `#f2e2db` |
+| `--sev-medium-tint` | `#352d22` | `#ebe5d9` |
+| `--sev-low-tint` | `#1c303c` | `#dae7ed` |
+| `--sev-info-tint` | `#272c34` | `#e4e6e7` |
+
+Near-identical pair: Low and the Inconclusive tier (3.3) have almost the same luminance (dark: 0.499 and 0.428, 1.15:1 between them; light: 0.094 and
+0.087, 1.06:1). A reader cannot tell them apart by lightness, and in greyscale or with some colour-vision differences not by hue either. Rule: Low severity
+and the Inconclusive tier must never appear next to each other without their written labels ("LOW", "Inconclusive: analyst review"). The labels are never
+shortened to a symbol, never hidden behind a tooltip, and never dropped to save space. The border style (dotted bar versus dashed outline, section 8) is a
+second cue, not a replacement for the words.
 
 ### 3.3 Verdict tiers (styles defined now, content in Phase B)
 
@@ -82,15 +100,24 @@ Tokens: `--sev-critical`, `--sev-high`, `--sev-medium`, `--sev-low`, `--sev-info
 | Inconclusive: analyst review | `inconclusive` | `#7fb0ff` | `#1d4fa8` | 8.3 / 7.7 | 6.4 / 6.1 |
 | No indicators found | `benign` | `#a3adb9` | `#4a5560` | 8.1 / 7.6 | 6.2 / 6.1 |
 
-Tokens: `--verdict-malicious`, `--verdict-suspicious`, `--verdict-inconclusive`, `--verdict-none-found`. The last one is the same neutral grey as
-`--text-secondary` on purpose. The existing `--verdict-needs-review` and `--verdict-legit` tokens are retired; `--verdict-legit` in particular must not
+Tokens: `--verdict-malicious`, `--verdict-suspicious`, `--verdict-inconclusive`, `--verdict-none-found`, each with an explicit tint token. The last
+colour is the same neutral grey as `--text-secondary` on purpose.
+
+| Tint token | Dark | Light |
+|---|---|---|
+| `--verdict-malicious-tint` | `#35222a` | `#f4dee0` |
+| `--verdict-suspicious-tint` | `#352d22` | `#ebe5d9` |
+| `--verdict-inconclusive-tint` | `#222c3e` | `#dde5f2` |
+| `--verdict-none-found-tint` | `#272c34` | `#e4e6e7` |
+ The existing `--verdict-needs-review` and `--verdict-legit` tokens are retired; `--verdict-legit` in particular must not
 survive, because its green says "safe".
 
 ### 3.4 Other semantic tokens
 
 - `--notice` (unavailable, error, not looked up): reuse the medium amber from 3.2 for text and border, always with the words "Unavailable", "Error" or
   "Not looked up". Amber means "attention", not "bad".
-- `--info` (informational chip, trusted hop, link-like affordance): reuse `--focus` colour family (cyan dark, deep blue light).
+- Informational chip and trusted-hop marker: neutral (`--text-secondary` outline) plus the words ("info", "trusted receiver"). The focus colour is not reused
+  for them, so the cyan or deep blue of `--focus` means "keyboard focus is here" and nothing else.
 - Green is removed from the palette for status. Today `--accent-green` is used for "ok" module status, the LLM badge and the feedback-saved line. A module
   that ran without error gets neutral styling and the word "ran" (not "ok"), because a green "ok" next to "No indicators found" reads as a pass. The
   feedback-saved line becomes neutral text. The LLM opinion card gets a neutral raised surface, a dashed border and the label "AI opinion, not a verdict"
@@ -105,9 +132,18 @@ System fonts only. No `@font-face` pointing at the network, no `@import`.
 --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
 ```
 
-Rule: sans (`--font-ui`) for labels, headings and prose; mono (`--font-mono`) only for values taken from the message and for code-like blocks
-(addresses, hosts, hashes, header lines). The current app sets mono on `body`; the proposal moves mono to values. Reason: Hebrew and long prose are
-harder to read in a mono face, and mono for values keeps look-alike characters distinguishable. Font names already listed in `theme.css` that are not
+Rule: `--font-mono` is for machine tokens ONLY: email addresses, hostnames and domains, URLs (defanged), hashes, IP addresses, message and header
+identifiers, and raw header lines. Everything a person reads as language uses `--font-ui` with `dir="auto"`: the subject, display names, body text, link
+text shown to the reader, filenames shown as names, finding titles and descriptions, and all interface labels. Where a field holds both (a display name
+next to its address), each part gets its own element and its own font.
+
+Why: the monospace faces on the stack (Cascadia Mono, Consolas, and the generic `monospace`) have no complete Hebrew coverage. For Hebrew text the browser
+falls back to some other installed font glyph by glyph, which gives uneven widths, mismatched stroke weight and, in mixed Hebrew and Latin text, a
+ragged line that is harder to read and easier to misread. `--font-ui` lists Hebrew-capable system families (`Segoe UI`, `Noto Sans Hebrew`, `Arial
+Hebrew`, `Arial`) so the fallback is chosen on purpose. Machine tokens are almost always ASCII, so mono costs nothing there and keeps look-alike characters
+(`l`, `1`, `I`, `0`, `O`) distinguishable. `dir="auto"` stays on both kinds of element (an address is still message content).
+
+The current app sets mono on `body`; the proposal moves mono to machine-token elements only. Font names already listed in `theme.css` that are not
 bundled (`JetBrains Mono`, `Fira Code`) are dropped from the stack so the result is the same on every machine.
 
 | Token | Size | Line height | Weight | Use |
@@ -168,8 +204,15 @@ Order (this is the current order in `ResultsView.tsx`; it does not change):
 14. "Analyze another email".
 
 Reserved slots: slots 1 and 3 get a fixed container with the panel styles and the tier styles from section 8 and nothing else. Their inner content stays as
-it is today until Phase B. Open question for Phase B (not decided here): the neutral tier must always show its blockers, so Phase B may want the blockers
-inside slot 1 or slot 3 moved directly under the tier label instead of two panels down.
+it is today until Phase B.
+
+Decision (was an open question): the blockers block sits INSIDE the verdict slot (slot 1), directly under the tier label, above the reasons list. For every
+tier the order inside slot 1 is: tier label and score, blockers block, the "not a safety verdict" sentence (neutral tier only, in the same position for
+that tier), reasons, top drivers. The neutral tier therefore can never be seen without its blockers, however far down the page the reader scrolls. The
+coverage panel (slot 3) stays where it is as the full per-check list; slot 1 holds the blockers, meaning the checks that were not done or not conclusive
+and that limit what the tier means. Phase B decides the exact contents and wording of both, and how the two avoid repeating each other. This document only
+fixes the position: in the verdict container, right under the label, always rendered (with an explicit "none" line when there are no blockers, so its
+absence is never mistaken for a missing block).
 
 Inside a panel, multi-part content uses the existing responsive grid (`repeat(auto-fit, minmax(280px, 1fr))`), so wide screens use two or three columns
 without a separate layout mode. A side rail or tab layout was considered and rejected for now (section 11).
@@ -182,18 +225,23 @@ All components use tokens only (no raw hex in component rules).
   28px minimum height, a text caret ("+" or "-" as text, or a CSS-drawn chevron; no icon package, no image).
 - Panel header status chip: text label plus outline (see badge). Module that ran without error: neutral chip "ran". Module error: amber chip "error".
 - Row (list item): `--bg-panel-raised`, 1px `--border`, `--space-1` by `--space-3` padding, 8px gap between rows.
-- Evidence key/value: `dt` in `--text-muted`, `dd` in `--text-primary` and `--font-mono`, both `dir="auto"`, `overflow-wrap: anywhere`, `text-align: start`.
+- Evidence key/value: `dt` in `--text-muted` and `--font-ui`; `dd` in `--text-primary`, `--font-mono` when the value is a machine token and `--font-ui`
+  when it is human language (a subject, a display name, body text, link text shown to the reader). All `dd` have `dir="auto"`, `overflow-wrap: anywhere`,
+  `text-align: start`.
 - Badge: `--text-xs`, 600, uppercase for fixed words only (never uppercase message text), `--radius-sm`, 1px border in its colour, text in its colour on
   `--bg-panel`, `white-space: nowrap`. Always contains a word.
 - Buttons: neutral. Default: `--bg-muted`, 1px `--border-control`, `--text-primary`, 28px high. Primary (one per view, e.g. "Analyze"): `--text-primary` border
-  2px, bold label; no brand colour fill. Hover: border colour to `--focus`. Disabled: 60% opacity plus `not-allowed`, and the label text still readable at
+  2px, bold label; no brand colour fill. Hover (all buttons and toggles): the border goes from `--border-control` to `--text-secondary` and the
+  background from `--bg-muted` to `--bg-panel-raised`. No hue change, and the `--focus` colour is never used for hover, so a hovered control cannot be mistaken for a
+  keyboard-focused one. Disabled: 60% opacity plus `not-allowed`, and the label text still readable at
   4.5:1 or marked with `aria-disabled` and a visible reason.
 - Form controls (file input, textarea): `--bg-muted`, 1px `--border-control`, visible label above (never placeholder-only), error text next to the control.
-- Code and raw blocks: `--font-mono`, `--text-sm`, `--bg-muted`, 1px `--border`, `white-space: pre-wrap`, `overflow-wrap: anywhere`, max height with its own
+- Raw header blocks and other code-like blocks (machine text only; the message body is NOT one, it is human language and uses `--font-ui`, `--text-base`,
+  `white-space: pre-wrap`, `dir="auto"`): `--font-mono`, `--text-sm`, `--bg-muted`, 1px `--border`, `white-space: pre-wrap`, `overflow-wrap: anywhere`, max height with its own
   scroll, `tabindex="0"` so the scroll area is keyboard reachable, `dir="auto"` on content.
 - Table: header cells `--text-xs` uppercase `--text-secondary`, row separators `--border`, no zebra stripes, cell padding `--space-1` by `--space-2`.
 - Timeline (hops): 2px `--border` rail; node marker is a 8px dot plus the hop role in words ("origin", "trusted receiver"), never the dot colour alone.
-- Defanged values: shown in `--font-mono` with no underline, no link colour, no pointer cursor, so they cannot be mistaken for links. The third-party
+- Defanged values (machine tokens): shown in `--font-mono` with no underline, no link colour, no pointer cursor, so they cannot be mistaken for links. The third-party
   lookup links in the indicators panel are the only elements underlined, each followed by the visible words "opens third-party site".
 - Copy buttons: the "Copied" state is plain text next to the button in a `role="status"` element (announced once), no animation.
 - Focus (all interactive elements): `outline: 2px solid var(--focus); outline-offset: 2px;` via `:focus-visible`, never `outline: none` without replacement.
@@ -225,8 +273,8 @@ screen reader reads it. The bar uses `border-inline-start` so it sits on the cor
 | Tier | Visible label | Outline | Header band |
 |---|---|---|---|
 | Malicious | Malicious | 4px solid | filled: tier colour background, `--bg-root` text |
-| Suspicious | Suspicious | 3px solid | 15% tint, tier colour text |
-| Inconclusive: analyst review | Inconclusive: analyst review | 2px dashed | 15% tint, tier colour text |
+| Suspicious | Suspicious | 3px solid | tier tint token, tier colour text |
+| Inconclusive: analyst review | Inconclusive: analyst review | 2px dashed | tier tint token, tier colour text |
 | No indicators found | No indicators found | 1px dotted `--border-control` | none; `--bg-muted`, secondary text |
 
 The neutral tier has these extra rules, which are part of its style, not optional content:
@@ -236,6 +284,42 @@ The neutral tier has these extra rules, which are part of its style, not optiona
   in `--text-primary` (not muted), and so is the blockers block (what was not checked). The container has a reserved place for both so they cannot be
   dropped by a later change.
 - Never visually quieter than "Inconclusive": the neutral tier uses the same size and weight for its label, only the colour and band differ.
+
+### 8.3 Forced colors (Windows high contrast and similar modes)
+
+In `forced-colors: active` the browser replaces our colours with the user's system palette and drops background colours, so every tint, fill and hue in
+this document disappears. The marks that survive are the ones that do not depend on colour: the written labels, border style, border weight and the
+outline. That is why section 8 specifies marks of that kind, and the rules below keep them visible. Use system colour keywords only (no hex), never use
+`forced-color-adjust: none`, and keep the block at the end of the stylesheet that defines the component.
+
+```
+@media (forced-colors: active) {
+  /* Panels, rows, badges, inputs: keep a visible edge in a system colour. */
+  .panel, .row, .badge, .tier, textarea, input { border-color: CanvasText; }
+
+  /* Severity bars keep their width and style (4px solid, 3px solid, 3px dashed, 2px dotted, 1px solid); only the colour is forced. */
+  .finding[class*="sev-"] { border-inline-start-color: CanvasText; }
+  /* The filled critical badge loses its fill, so it becomes a double 4px frame; the other levels stay single-line outlines. */
+  .badge--critical { background: Canvas; color: CanvasText; border: 4px double CanvasText; }
+
+  /* Tiers: outline style and weight are kept; the filled Malicious band becomes a 4px double rule under the label. */
+  .tier { border-color: CanvasText; }
+  .tier--malicious .tier-band { background: Canvas; color: CanvasText; border-bottom: 4px double CanvasText; }
+
+  /* Timeline markers are background-only dots: give them a border so they still show. */
+  .hop::before { background: Canvas; border: 2px solid CanvasText; }
+
+  /* Focus ring: system highlight colour, thicker than any border, still offset (inside clipped headers use offset -3px). */
+  :focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+
+  /* Hover: width change only, no colour (a forced palette has no spare hue). Padding shrinks by 1px so nothing moves. */
+  button:hover:not(:disabled) { border-width: 2px; padding: calc(var(--space-2) - 1px) calc(var(--space-4) - 1px); }
+}
+```
+
+Disabled controls and the real lookup links take `GrayText` and `LinkText` from the browser; do not override them. The class names above are
+placeholders for whatever the components are called when this is implemented. The checker script cannot test forced colors; the manual check is in
+section 10.
 
 ## 9. Right-to-left and mixed text
 
@@ -249,7 +333,15 @@ The neutral tier has these extra rules, which are part of its style, not optiona
 
 ## 10. Accessibility checklist for every implementation step
 
-- Text 4.5:1, large text and UI boundaries 3:1 (tokens above are verified; recompute if a token changes).
+- Text 4.5:1, large text and UI boundaries 3:1 (tokens above are verified; recompute if a token changes). Run
+  `backend/.venv/Scripts/python.exe scripts/check_contrast.py`: it checks body, secondary and muted text on the panel, root, raised and muted surfaces,
+  every severity and tier colour on the panel and on its tint token, the filled-badge text, and the focus ring and control border at 3:1, in both themes.
+  It reads the tokens from the table at the top of the script until they exist in `frontend/src/theme.css`, then from `theme.css`.
+- Forced colors: with `forced-colors: active` (in a browser, Windows Settings, Accessibility, Contrast themes, or the DevTools "Emulate CSS media feature
+  forced-colors" switch) check that panel borders, severity bars and badges, tier outlines and the focus ring are all visible, that the tier and severity
+  labels are readable, and that no information was carried only by a background. The `@media (forced-colors: active)` rules in 8.3 are part of the
+  implementation of every component that has a mark.
+- Hover is never the focus colour: a hovered control and a keyboard-focused control must look different.
 - Every control reachable and operable by keyboard, in visual order; toggles are `<button>` elements with `aria-expanded`; no hover-only information.
 - `:focus-visible` ring on everything interactive, never fully hidden (no sticky overlay without `scroll-padding`).
 - Meaning is always also in words (tier label, severity label, "error", "ran", "not looked up").
@@ -285,7 +377,7 @@ Adopted:
 - Duration guidance: not one universal duration; here only a 100ms colour change on hover, removed under reduced motion.
 - Atomic `role="status"` message for async state, and no emoji as icons.
 - Stable keys in lists (already done in the code).
-- Mono for data and sans for labels (the idea behind the "Dashboard Data" pairing), implemented with system fonts only.
+- Mono for machine tokens and sans for everything a person reads (the idea behind the "Dashboard Data" pairing), implemented with system fonts only.
 - Light and dark both supported (the skill's style lists both).
 
 Rejected, with the reason:
@@ -297,7 +389,7 @@ Rejected, with the reason:
 - Google Fonts pairing (Fira Code and Fira Sans), its `@import url(https://fonts.googleapis.com ...)` and the other Google Fonts URLs shown: remote fonts
   are forbidden and the rendering-rules test fails on a remote `@import`. System stack instead.
 - "Terminal CLI Monospace" notes (one mono family for everything, sizes 12/14/16 only, weight 400 only, line height 1.2): weight 400 only removes the
-  hierarchy a dense page needs, and 1.2 line height is too tight for Hebrew. Mono is limited to values.
+  hierarchy a dense page needs, and 1.2 line height is too tight for Hebrew. Mono is limited to machine tokens.
 - Skill guideline "base 16px body, line height 1.5": too sparse for this density. Base is 14px with a 12px floor and a 1.35+ line height.
 - Skill suggestion of SVG icon sets (Heroicons, Lucide) and any Tailwind config lines: a new dependency, and Tailwind is not in this repo. Text labels and
   CSS-drawn shapes only.
@@ -314,6 +406,8 @@ section 5 is derived from the documented 8 to 32px range, not copied from a tool
 
 - Keep three stylesheets (`theme.css` tokens, `app.css` shell and summary, `workbench.css` evidence panels). Put every new token in `theme.css`. The
   existing test asserts `app.css` contains `.verdict-benign` and that at least three stylesheets exist and are not empty; do not rename or merge them.
+- When the tokens are added to `theme.css` (dark in `:root`, light in the `prefers-color-scheme: light` block, tints as hex), `scripts/check_contrast.py`
+  starts reading them from there automatically and the table at the top of the script is deleted. The checker is run by the pre-commit hook.
 - Introduce tokens first (theme.css), then migrate component rules to tokens one stylesheet at a time, running `npm test` and `npm run lint` after each.
 - Tier styles from section 8.2 are added as CSS classes now but are only wired into the verdict and coverage markup in Phase B.
 - Any new dependency, any theme toggle and any change to panel order needs approval first.
