@@ -4,6 +4,7 @@ from app.auth_check.spf_dkim_dmarc import check_auth_headers, evaluate_authentic
 from app.auth_check.spoofing import check_identity_mismatch
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding, ModuleResult
+from app.finding_codes import code as finding_code
 from app.parser.addresses import AMBIGUITY_PREFIX
 
 _FAIL_RESULTS = {"fail", "softfail", "permerror"}
@@ -44,6 +45,7 @@ def _auth_findings(auth: dict) -> list[Finding]:
                     module=MODULE_NAME,
                     severity="high" if result == "fail" else "medium",
                     title=f"{method.upper()} check failed",
+                    code=finding_code(f"AUTH_{method.upper()}_CHECK_FAILED"),
                     description=f"{method.upper()} authentication result was '{result}' (reported by a trusted receiver).",
                     evidence={"raw": entry["raw"], "domain": entry["domain"], "trust_basis": entry["trust_basis"]},
                     weight=25.0 if result == "fail" else 15.0,
@@ -55,6 +57,7 @@ def _auth_findings(auth: dict) -> list[Finding]:
                     module=MODULE_NAME,
                     severity="info",
                     title=f"{method.upper()} not evaluated",
+                    code=finding_code(f"AUTH_{method.upper()}_NOT_EVALUATED"),
                     description=_REASON_TEXT[entry["reason"]],
                     evidence={
                         "reason": entry["reason"],
@@ -70,6 +73,7 @@ def _auth_findings(auth: dict) -> list[Finding]:
                 module=MODULE_NAME,
                 severity="info",
                 title="SPF/DKIM/DMARC all passed",
+                code=finding_code("AUTH_ALL_METHODS_PASSED"),
                 description=(
                     "A trusted receiver reported SPF, DKIM and DMARC all passed. This authenticates the "
                     "sending infrastructure and domain; it says nothing about what the message contains."
@@ -93,6 +97,7 @@ def _auth_findings(auth: dict) -> list[Finding]:
                     module=MODULE_NAME,
                     severity="low",
                     title=f"{method.upper()} failure claimed by an untrusted source",
+                    code=finding_code(f"AUTH_{method.upper()}_FAILURE_CLAIMED_UNTRUSTED"),
                     description=(
                         f"A header from '{fails[0]['host']}' reports {method.upper()} '{fails[0]['result']}', but that "
                         "host is not a configured trusted receiver, so it is not treated as established. Scored as a "
@@ -112,6 +117,7 @@ def _auth_findings(auth: dict) -> list[Finding]:
                     module=MODULE_NAME,
                     severity="info",
                     title=f"Trusted {method.upper()} result sits below its receiving hop's Received line",
+                    code=finding_code(f"AUTH_{method.upper()}_TRUSTED_RESULT_BELOW_HOP"),
                     description=(
                         "The header normally appears above the Received line of the hop that added it. Here it is below, "
                         "so it was present before that hop handled the message. Exchange and some gateways reorder "
@@ -131,6 +137,7 @@ def _auth_findings(auth: dict) -> list[Finding]:
                 module=MODULE_NAME,
                 severity="info",
                 title="Authentication claims from untrusted sources were ignored",
+                code=finding_code("AUTH_UNTRUSTED_CLAIMS_IGNORED"),
                 description=(
                     f"{len(untrusted)} SPF/DKIM/DMARC claim(s) in the headers were not added by a configured "
                     "trusted receiver and have no effect on the verdict (a sender can write any such header)."
@@ -153,6 +160,7 @@ def _identity_findings(identity: dict) -> list[Finding]:
                 module=MODULE_NAME,
                 severity="low",
                 title="From / Return-Path domain mismatch",
+                code=finding_code("AUTH_IDENTITY_RETURN_PATH_MISMATCH"),
                 description=(
                     f"From domain '{rp['from_domain']}' differs from Return-Path domain "
                     f"'{rp['return_path_domain']}'. Common with legitimate ESPs — treat as a "
@@ -170,6 +178,7 @@ def _identity_findings(identity: dict) -> list[Finding]:
                 module=MODULE_NAME,
                 severity="medium",
                 title="From / Reply-To domain mismatch",
+                code=finding_code("AUTH_IDENTITY_REPLY_TO_MISMATCH"),
                 description=(
                     f"From domain '{rt['from_domain']}' differs from Reply-To domain "
                     f"'{rt['reply_to_domain']}'. Common phishing pattern to redirect replies."
@@ -188,6 +197,7 @@ def _identity_findings(identity: dict) -> list[Finding]:
                 module=MODULE_NAME,
                 severity="medium",
                 title=f"Possible display-name spoofing of '{spoof['claimed_brand']}'",
+                code=finding_code("AUTH_IDENTITY_DISPLAY_NAME_SPOOF"),
                 description=(
                     f"From display name contains the brand '{spoof['claimed_brand']}' as a whole word{evasion} "
                     f"but the sending domain '{spoof['actual_domain']}' is not one of that brand's known domains. "
@@ -205,6 +215,7 @@ def _identity_findings(identity: dict) -> list[Finding]:
                 module=MODULE_NAME,
                 severity="medium",
                 title=f"Display name resembles brand '{spoof['claimed_brand']}'",
+                code=finding_code("AUTH_IDENTITY_DISPLAY_NAME_FUZZY"),
                 description=(
                     f"From display name is one character away from the brand '{spoof['claimed_brand']}' "
                     f"and the sending domain '{spoof['actual_domain']}' is not one of its known domains. "
@@ -222,6 +233,7 @@ def _identity_findings(identity: dict) -> list[Finding]:
                 module=MODULE_NAME,
                 severity="medium",
                 title="Machine-provisioned sender claiming a brand",
+                code=finding_code("AUTH_IDENTITY_MACHINE_SENDER_BRAND"),
                 description=(
                     f"The {hosting['brand_source'].replace('_', ' ')} references '{hosting['brand']}', but the sender "
                     f"looks machine-provisioned: {'; '.join(hosting['indicators'])}. Mail sent from a hosting "
@@ -240,6 +252,7 @@ def _identity_findings(identity: dict) -> list[Finding]:
                 module=MODULE_NAME,
                 severity="low",
                 title="Message entered by local submission",
+                code=finding_code("AUTH_IDENTITY_LOCAL_SUBMISSION"),
                 description=(
                     "The first hop is a local submission (not authenticated SMTP): the message was injected by a process on "
                     f"'{local['hop']['by_host']}' rather than submitted by an authenticated mail client. Common for a website's "
@@ -258,6 +271,7 @@ def _identity_findings(identity: dict) -> list[Finding]:
                 module=MODULE_NAME,
                 severity="medium",
                 title="Brand display name on a free mailbox",
+                code=finding_code("AUTH_IDENTITY_FREE_MAILBOX_BRAND"),
                 description=(
                     f"The display name claims '{freemail['claimed_brand']}' but the sender is a free consumer mailbox "
                     f"('{freemail['actual_domain']}'), where anyone can choose any display name."
@@ -284,6 +298,7 @@ def _from_ambiguity_findings(parsed: ParsedEmail) -> list[Finding]:
             module=MODULE_NAME,
             severity="low",
             title="From header parse ambiguity",
+            code=finding_code("AUTH_FROM_HEADER_AMBIGUOUS"),
             description=(
                 "The From header is not a plain, unambiguous single 'Display <address>' (" + "; ".join(reasons) + "). "
                 f"The sender address used for checks is '{parsed.from_.address}'. Informational: this does not "

@@ -100,7 +100,6 @@ def test_the_contract_accepts_a_well_formed_code_and_rejects_a_malformed_one():
 
 # Files that still construct a Finding without a code. Each producer commit removes its files from this set; it ends empty.
 NOT_YET = {
-    "app/auth_check/__init__.py", "app/auth_check/alignment.py", "app/auth_check/claims.py",
     "app/enrichment/__init__.py", "app/content_analysis/__init__.py", "app/content_analysis/links.py",
 }
 

@@ -23,6 +23,7 @@ from typing import Any
 
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding
+from app.finding_codes import code as finding_code
 from app.shared.matching import registrable_domain
 
 MODULE_NAME = "auth_check"
@@ -87,6 +88,7 @@ def alignment_findings(alignment: dict[str, Any]) -> list[Finding]:
                     module=MODULE_NAME,
                     severity="info",
                     title="SPF passed and aligns with the From domain",
+                    code=finding_code("AUTH_ALIGN_SPF_ALIGNED"),
                     description=(
                         f"SPF authenticated the sending infrastructure only: the sending IP is authorised by "
                         f"'{env}' and the envelope domain equals the From domain ('{frm}'). This proves the sender "
@@ -103,6 +105,7 @@ def alignment_findings(alignment: dict[str, Any]) -> list[Finding]:
                     module=MODULE_NAME,
                     severity="info",
                     title="SPF passed for a different domain than From",
+                    code=finding_code("AUTH_ALIGN_SPF_OTHER_DOMAIN"),
                     description=(
                         f"SPF authenticated '{env}', which is not the From domain ('{frm}'), so it says nothing "
                         "about the visible sender. Normal for mail sent through an ESP; DMARC then relies on a "
@@ -120,6 +123,7 @@ def alignment_findings(alignment: dict[str, Any]) -> list[Finding]:
                     module=MODULE_NAME,
                     severity="info",
                     title="DKIM passed and aligns with the From domain",
+                    code=finding_code("AUTH_ALIGN_DKIM_ALIGNED"),
                     description=(
                         f"The message carries a valid DKIM signature from '{dkim['domain']}', the From domain's "
                         "registrable domain: it was signed with a key that domain publishes and not altered in "
@@ -135,6 +139,7 @@ def alignment_findings(alignment: dict[str, Any]) -> list[Finding]:
                     module=MODULE_NAME,
                     severity="info",
                     title="DKIM passed for a different domain than From",
+                    code=finding_code("AUTH_ALIGN_DKIM_OTHER_DOMAIN"),
                     description=(
                         f"The valid DKIM signature is from '{dkim['domain']}', not the From domain ('{frm}'): "
                         "the signer is a third party (often the ESP) and vouches for nothing about the From identity."
@@ -155,6 +160,7 @@ def alignment_findings(alignment: dict[str, Any]) -> list[Finding]:
                 module=MODULE_NAME,
                 severity="medium",
                 title="No authentication is aligned with the From domain",
+                code=finding_code("AUTH_ALIGN_NONE_ALIGNED"),
                 description=(
                     f"A trusted receiver evaluated SPF and DKIM, but neither authenticated the From domain "
                     f"('{frm}'): SPF covered '{env}'"

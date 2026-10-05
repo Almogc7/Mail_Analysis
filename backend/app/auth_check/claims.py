@@ -16,6 +16,7 @@ from app.content_analysis.links import _clickable_hosts, _host, _reg
 from app.content_analysis.text_utils import get_searchable_text
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding
+from app.finding_codes import code as finding_code
 from app.enrichment.policy import platform_of
 from app.parser.preprocess import clean_subject
 from app.shared.brands import KNOWN_BRANDS
@@ -169,6 +170,7 @@ def claim_findings(parsed: ParsedEmail, auth: dict[str, Any], alignment: dict[st
         findings.append(Finding(
             module=MODULE_NAME, severity="low", weight=8.0,
             title="Links and images belong to a different entity than the sender, and the message is unsigned",
+            code=finding_code("AUTH_CLAIM_ENTITY_MISMATCH_UNSIGNED"),
             description=(
                 f"{c2['occurrences']} of {c2['non_platform_hosts_total']} non-platform link and image hosts are on "
                 f"'{c2['domain']}', which has nothing to do with the sending domain '{c2['sender_domain']}', and the message "
@@ -181,6 +183,7 @@ def claim_findings(parsed: ParsedEmail, auth: dict[str, Any], alignment: dict[st
         findings.append(Finding(
             module=MODULE_NAME, severity="medium", weight=10.0,
             title="Links point at the entity the sender claims to be",
+            code=finding_code("AUTH_CLAIM_DECOY_LINKS"),
             description=(
                 f"The display name or subject names an entity whose own domain is linked ({names}), but the message was not "
                 f"sent from that entity's domain ('{c3['sender_domain']}'). Linking the real service lends a lure credibility "
@@ -191,6 +194,7 @@ def claim_findings(parsed: ParsedEmail, auth: dict[str, Any], alignment: dict[st
         findings.append(Finding(
             module=MODULE_NAME, severity="info", weight=3.0,
             title="Body mentions a known brand the sender does not own",
+            code=finding_code("AUTH_CLAIM_BODY_BRAND_MENTION"),
             description=(f"The body mentions {', '.join(mentions)}. Common in ordinary mail; it adds a little to the score and "
                          "never counts toward the corroboration floor."),
             evidence={"brands": mentions, "signal": "C1b"},
