@@ -1,7 +1,8 @@
 # Design v2: an evidence workbench for reported emails
 
-**Status: owner decisions D1 to D15 are recorded in section 10 (D1 to D12 on 2026-10-04, D13 to D15 on 2026-10-05); acceptance criteria (D8) are NOT yet approved. Phase A is being
-built; nothing from phases B to E is implemented.** Written 2026-10-04. Where section 10 differs from an earlier section, **section 10 wins**.
+**Status: owner decisions D1 to D15 are recorded in section 10 (D1 to D12 on 2026-10-04, D13 to D15 on 2026-10-05); acceptance criteria (D8) are NOT yet approved. Phase A is built;
+nothing from phases B to E is implemented. The "Review changes (2026-10-05)" list in section 10 revises sections 2, 3, 4, 6, 7 and 8 and awaits the owner's approval; each
+edit is also marked in place.** Written 2026-10-04. Where section 10 differs from an earlier section, **section 10 wins**.
 
 **Labelling rule.** The hold-out was spent on 2026-10-03 (`backend/tests/HOLDOUT_LOG.md`). Everything in this document that could change a
 verdict, a threshold or a signal is **"tuned after viewing hold-out"**: its design was informed by results the project has already seen
@@ -56,18 +57,48 @@ about what they refuse; they are weak about what `malicious` means. v2 fixes tha
 | Tier | Label shown | Meaning | Allowed to appear without |
 |---|---|---|---|
 | T1 | **Confirmed malicious** | Hard evidence (2.2): an independent authority or a deterministic technical fact, not a heuristic | at least one entry in `hard_evidence` |
-| T2 | **Suspicious** | Several independent weak signals agree, or one strong signal that is not proof | at least two corroborating reasons, each listed |
+| T2 | **Suspicious** | **At least two independent reasons, or one named strong signal** (2.1a). Not proof | at least two independent reasons, each listed, or one named strong signal |
 | T3 | **Needs analyst** | Not enough evidence either way. Sub-reason `signals_present` or `no_signals_insufficient_evidence`, plus a queue priority | nothing: it is the default |
 | T4 | **No indicators found** | Positive evidence (2.3) and nothing unchecked that matters. **Not a safety statement** | an empty `blockers` list |
 
-There is **no "safe", "clean", "legit" or "benign" label anywhere** in the API, the UI, the report draft, the exports or the logs (a lint
-test enforces it, criterion V1 in section 6.3). The internal literal `benign` is kept in the v1 field for compatibility only.
+**Labels.** The four labels in this table (Confirmed malicious, Suspicious, Needs analyst, No indicators found) are the **source of truth** for tier wording.
+`docs/UI_DESIGN.md` currently says "Malicious" and "Inconclusive: analyst review" for the first and third tier and **must be updated to match** when verdict v2
+is built. Only the tier labels change there: internal keys (`malicious`, `suspicious`, `inconclusive`, `benign`) and the colour tokens stay. *(Review change 8.)*
+
+**Wording rule (V1).** The words **safe, clean, legit, benign and harmless are banned as whole words** (case-insensitive, matched at word boundaries, so
+"safety" is not "safe") in every **user-visible string**: API labels and reasons, the UI (labels, titles, tooltips, accessible names), the report draft,
+the exports (copy and CSV) and log messages. A lint test enforces it. The exemptions are explicit and closed: *(Review change 1.)*
+
+* **The frozen v1 field.** The literal `benign` in the v1 `verdict` value and the internal keys and tokens that carry it (for example the `verdict-benign`
+  style hook and `types.ts` unions) are not user-visible and stay.
+* **Required negated disclaimers**, an allowlist of exact strings kept in one place and pinned by the test. Today's: "This is a statement about what was and was not
+  found, not a safety verdict"; "'no findings' is not evidence of safety"; "the lack of a strong finding is not evidence of safety"; "not proof of safety". Under the
+  whole-word rule "safety" is not the banned word "safe", so these would pass anyway; they are pinned by exact string so the test does not depend on that, and so that
+  a later disclaimer that does contain a banned word inside a negation ("does not mean the message is safe") can be added **only** by exact string, with its reason
+  logged in section 10.
+* **Third-party data shown as data.** Provider raw-data field names (for example the VirusTotal `harmless` count that the client passes through) appear only inside the
+  "Raw provider data" block, as the provider's own field names. They never appear in a label, a reason, a finding, the report draft or an export.
 
 Two rules that make the tiers trustworthy:
 
 * **A tier is only ever raised by evidence and only ever lowered by missing evidence.** T4 is lost by an unchecked high-risk surface; T1
   is never reached by accumulating heuristics.
 * **T3 is the honest default.** Everything the tool cannot support goes there, with the reason.
+
+### 2.1a T2: independent reasons, or one named strong signal *(Review change 2)*
+
+T2 requires **either** (a) **at least two independent reasons**, each listed in `reasons`, **or** (b) **one named strong signal**.
+
+* **Independent** means from different signal families (sender, link, claim, content, authentication, reputation: the tags the floors read and the page groups by).
+  Two findings in the same family are **one** reason.
+* **Strong signals** (a closed list; adding one needs an owner decision logged in section 10): **a trusted-receiver authentication failure**, that is an SPF,
+  DKIM or DMARC `fail` written by a receiver the owner configured as trusted (today's `auth_check_floor`). That is the only entry.
+* **Property test (criterion V12).** For every fixture, every Kvish mutation and every generated set of findings (all combinations of families and severities up to a
+  fixed size): a case is T2 if and only if its reasons contain two independent-family reasons or one named strong signal; a case with neither is T3 (`signals_present`),
+  never T2.
+* **Consequence for the mapping in 2.4** (a behaviour change, to be pre-registered with predicted rows before Phase B runs it): a weighted score of 35 to 69, the
+  two-high-content-findings floor (one family) and an enrichment floor that does not rest on H1 to H3 (reputation family only) **no longer give T2 on their own**; each
+  gives T2 only with a second independent reason, otherwise T3. Today each of them gives `suspicious`.
 
 ### 2.2 Hard evidence (T1)
 
@@ -77,11 +108,26 @@ any sample.
 | # | Hard evidence | Source | Available |
 |---|---|---|---|
 | H1 | The attachment's SHA-256 is a **known malware sample** (MalwareBazaar `matched`, status ok) | existing | now |
-| H2 | An indicator in the message (URL host, domain, IP or hash) **exactly matches ThreatFox with confidence at least 75** | existing | now |
-| H3 | **VirusTotal reports at least 10 engines malicious** for the attachment hash, or for a URL or domain taken from the message | existing | now |
+| H2 | A **link host, link URL or attachment hash** the recipient interacts with **exactly matches ThreatFox with confidence at least 75**, under the rules below | existing | now |
+| H3 | **VirusTotal reports at least 10 engines malicious** for an **attachment hash**, for a **URL taken from a link**, or for a **domain taken from a link** (domain only if it is not on the shared-platform list), under the rules below | existing | now |
 | H4 | A **landing page, resolved in a sandbox, contains a credential form** (password field) on a host unrelated to the claimed entity | redirect resolution + landing analysis | phase C, needs sandbox, off by default |
 | H5 | An attachment analysed **statically** shows an auto-executing macro that downloads or launches something, or a PDF with a launch/JavaScript action that opens a URL | static attachment analysis | phase C, offline |
 | H6 | An HTML attachment with a **password field that posts to a remote host**, or obfuscated script that rebuilds such a form | HTML-attachment analysis | phase C, offline |
+
+**Rules for H1 to H3 (D2 applies to H2 as well as H3; Review change 3).**
+
+1. **Only indicators the recipient interacts with count**: link hosts and link URLs, and attachment hashes. A **Received-hop address, a From or Reply-To domain, an image host
+   or any header-derived name never counts**, whatever a provider says about it.
+2. **An IP alone never counts**, for H2 and for H3 (including a link whose host is an IP).
+3. **A domain on the shared-platform list never counts** (a hit on a platform host says nothing about the page that was linked).
+4. **A shared-platform URL counts only on an exact URL match**: the provider matched the full URL, not the host. Lookups are hostname-only by default (a path or query is
+   sent only to a provider the owner opted in), so a shared-platform URL can reach T1 **only when that opt-in is on for that provider**; otherwise it cannot.
+5. **Evidence conflict.** Hard evidence on a registrable domain that is **on the known-sender list, or is the organisation's own domain**, gives **T2 with a visible
+   reason "evidence conflict"** (code `evidence_conflict`; the reasons list names both the evidence and the list), **never T1**. A supplier or the organisation itself
+   being flagged is more likely a provider error or a compromised account than a verdict the tool should state alone; the analyst decides. The organisation's own domains
+   are listed by the owner in untracked configuration (the known-sender file may carry them), never in a tracked file.
+6. **H0 uses the same lists.** H0's load-time rejection (a shared-platform host, a registrable domain on the known-sender list, the organisation's own domain, an
+   internal-looking name) is the same rule as items 3 and 5, applied before an entry can match.
 
 Not hard evidence, by definition: any authentication result (attackers authenticate their own domains), a display-name claim, a hosting
 sender, a tracker or redirector, hot-linked assets, a young domain, urgency language, a language the tool cannot read, the LLM's opinion.
@@ -103,28 +149,47 @@ T4 ("No indicators found") requires **all** of:
    an attachment of an active or container type (Office with macros, HTML, script, archive, disk image, PDF) that static analysis did not
    examine; an image attachment or inline image (a QR code could be inside) while QR decoding is off; a link shortener or redirector
    that was not resolved; a link hosted on a shared platform that was not looked at; an internal-looking host; a message in a language
-   the tool cannot read; a Received chain with no hop from a trusted receiver.
+   the tool cannot read; a Received chain with no hop from a trusted receiver. **Added by D4 and by the 2026-10-05 review (Review change 4):**
+   a password-protected archive; an HTML attachment (until analysed); **a parser failure, limit or timeout** on any part of the message (that part is "not checked", never
+   clean); a **nested message attachment** (.eml or .msg: the inner message is not analysed until it is examined as a message of its own); a **calendar invite** (.ics:
+   the location, description and links inside are not examined); an **encrypted or password-protected Office or PDF file**; and a **malformed or unparseable From header**
+   (`from_header_unparseable`: the sender identity cannot be established).
 
 Item 5 is the answer to the analyst's PNG-and-link mail: it would have been T3 with a visible blocker ("image attachment: not decoded").
 Every blocker names the way to clear it (turn a source on, or check by hand).
+
+**T4 is not relaxed for SPF-only mail** *(Review change 5)*. Where the trusted receiver evaluates SPF only (for example a gateway that writes only a `Received-SPF`
+header), T4 stays unreachable: item 1 needs a verified, aligned DKIM pass or a DMARC pass. SPF alignment is weaker than it looks, because shared ESP includes let one sending
+platform authorise many unrelated senders. The missing DKIM and DMARC evaluation is a **deployment issue** (the gateway must be configured to evaluate and write them),
+shown as a coverage item with its way to clear, not something the rule bends around.
 
 ### 2.4 How today's rules map to the tiers
 
 | Today (v1) | v2 tier | Notes |
 |---|---|---|
 | weighted score at least 70 (`malicious`) | T1 only if H1 to H3 hold; otherwise T2 | the main behaviour change |
-| `enrichment_floor` (provider score at least 70) | T1 if it rests on H1 to H3, else T2 | see 2.2 |
-| `auth_check_floor` (trusted-receiver SPF/DKIM/DMARC failure, severity high) | T2 | a real authentication failure is strong, not proof of malice |
-| `structural_corroboration_floor` (two families) | T2 | the reasons list names the families and signals |
-| `content_analysis_floor` (two high content findings) | T2 | |
+| `enrichment_floor` (provider score at least 70) | T1 if it rests on H1 to H3 (and 2.2 rules 1 to 5 hold), else T2 only with a second independent reason, else T3 | see 2.2 and 2.1a. **Changed 2026-10-05** |
+| `auth_check_floor` (trusted-receiver SPF/DKIM/DMARC failure, severity high) | T2 | the named strong signal (2.1a): one reason is enough |
+| `structural_corroboration_floor` (two families) | T2 | two independent reasons by construction; the reasons list names the families and signals |
+| `content_analysis_floor` (two high content findings) | T2 **only with a second independent reason**, else T3 | both findings are in the content family: one reason (2.1a). **Changed 2026-10-05** |
 | `content_only_ceiling` | caps at T2 | unchanged in spirit |
-| weighted score 35 to 69 | T2 | |
+| weighted score 35 to 69 | T2 **only with two independent reasons**, else T3 | **changed 2026-10-05** (2.1a) |
 | `low_confidence_inconclusive`, `no_positive_evidence_for_benign` | T3 | sub-reason kept; blockers listed |
 | `floor_protects_verdict` | keeps T2 or T1 | low coverage never erases a floor |
 | `benign` (v1) | T4 if no blocker, else T3 | |
 
 The v1 `verdict` field is unchanged in meaning for the tiers that exist in both models; where v2 demotes a v1 `malicious` to T2 the old field
 keeps its old value for compatibility and `verdict_v2` carries the new one (section 4).
+
+**Once `verdict_v2` is active, the UI shows only `verdict_v2`** *(Review change 6)*. A v1 `malicious` that v2 demotes is **never displayed**: not in the verdict card, not in
+the report draft, not in an export. The v1 `verdict` field stays in the API response, unchanged, for compatibility only, and is documented as not for display.
+**Test requirement (criterion V13):** a frontend test and a report test render a result whose v1 `verdict` is `malicious` and whose `verdict_v2.tier` is `suspicious`
+and assert that the page, the report draft and the CSV contain the v2 label and reasons and **do not contain the v1 verdict label or value**.
+
+**What is displayed instead of "Confidence"** *(Review change 7, D15)*. The 0.6 confidence gate stays an **internal rule** and is never displayed. The only coverage
+number on the page is **"Checks completed: N of M, K not checked"**, counted from the coverage report alone: M counts the coverage items that apply to this message and are
+not `by_design`, N those with status `checked`, K the rest (`not_checked` and `partly`); `by_design` items are listed separately and counted in none of the three. The exact
+counting rule is part of the Phase B pre-registration.
 
 ## 3. Coverage disclosure: checked, not checked, why
 
@@ -142,6 +207,14 @@ percentage. Each item is `{area, subject, status, reason, how_to_clear}`.
 | Attachments | hash computed | type identified | `content_never_opened` (by design), `static_analysis_off` |
 | Images and QR | listed | n/a | `images_not_examined`, `qr_not_decoded` (until a source is on) |
 | HTML body | text extracted | n/a | `not_rendered` (by design) |
+
+The coverage list replaces the percentage as the page's statement of completeness (D15, Review change 7): the page shows "Checks completed: N of M, K not checked"
+(counting rule in 2.4) and never the 0.6 confidence figure. Authentication coverage counts **only results written by a trusted receiver** (today it counts any
+authentication header that is present, including one the sender wrote); that change to the number behind the 0.6 gate is **its own commit**, after a document commit that
+lists the **predicted baseline row movements before the change is run** (the prediction is derived from the formula, not by running the change). Expected direction, to be
+turned into the row list: with no trusted receiver (STRICT) auth coverage falls from 1.0 to 0.4 for every row whose auth header is present, so confidence falls by 0.21
+(0.35 times 0.6), and a row that crosses the 0.6 gate without a floor protecting it moves toward `inconclusive`; with trusted receivers (CONFIGURED) only rows where a trusted
+receiver evaluated a method keep 1.0. Any row that moves and was not predicted stops the work and is reported.
 
 Display rules: "Checked (n) / Not checked (m)" next to the verdict; the not-checked items are expanded by default; each item that blocks
 T4 is marked as a blocker; `by_design` items are shown too (the analyst should see that the tool never opens attachments), but marked
@@ -178,7 +251,7 @@ evidence: {
 hunting: [{platform: "kql"|"splunk"|"generic", purpose: str, query: str}]                  # text templates, never executed
 attack: [{technique_id: str, name: str, because: [signal_code], confidence: "suggested"}]   # suggestions the analyst confirms
 report_draft: {markdown: str}                                                                # generated locally from the fields above
-decision: {disposition: "confirmed_phish"|"spam"|"benign"|"bec"|"other"|null, decided_at: str | null}
+decision: {disposition: "confirmed_phish"|"spam"|"benign"|"bec"|"other"|"unsure"|null, decided_at: str | null}   # editable once (D7)
 ```
 
 New endpoint, beside the existing feedback endpoint (which stays and keeps working):
@@ -194,7 +267,7 @@ are unchanged. `body.text_excerpt_chars` is a count: the body text is not added 
 
 ```text
 +----------------------------------------------------------------------------------------------------------+
-| VERDICT   [ Needs analyst: signals present ]  priority 26      confidence 0.59                           |
+| VERDICT   [ Needs analyst: signals present ]  priority 26      Checks completed: 7 of 13, 6 not checked  |
 | Why:  - Image attachment and a link on a shared platform                      (signal)                   |
 |       - No authentication result from a trusted receiver                      (gap)                      |
 | Blocks "No indicators found":  [image attachment not decoded]  [no trusted receiver]   how to clear: ...  |
@@ -224,7 +297,7 @@ are unchanged. `body.text_excerpt_chars` is a count: the body text is not added 
 | ATT&CK (suggested)   T1566.002 link / T1566.001 attachment / T1656 impersonation ...  because: <signals>   |
 | REPORT DRAFT   [editable markdown]  [copy]                                                               |
 | RAW HEADERS   (escaped text, collapsed by default)                                                       |
-| ANALYST DECISION   ( ) confirmed phish  ( ) spam  ( ) benign  ( ) BEC  ( ) other   [save]  note (local)  |
+| ANALYST DECISION   ( ) confirmed phish ( ) spam ( ) benign ( ) BEC ( ) other ( ) unsure  [save]  note    |
 +----------------------------------------------------------------------------------------------------------+
 ```
 
@@ -258,14 +331,18 @@ The 2026-10-03 hold-out (STRICT 6 of 75 flagged, 8.0% [3.7 to 16.4%]; CONFIGURED
 verdict model only**. It does not describe v2: the tiers, the hard-evidence rule and the blockers are new, the hold-out is spent, and "0
 missed" was by construction. No v1 number is carried over to v2.
 
+**The earlier split was probably optimistic** *(Review change 12)*. The tuning and hold-out sets were a random split **by file**. Near-duplicate siblings of one campaign (the
+same template, sender infrastructure and link domains) probably landed in both, so the agreement seen on the hold-out may have measured, in part, how well the rules recognise
+siblings of mail already seen. This was not measured; the v1 hold-out numbers are read with that caution, and nothing in v2 relies on them.
+
 ### 6.2 The feedback log gains a final disposition
 
 Additive migration of the `feedback` table (hashes, tiers, signal names and labels only):
 
 | Column | Type | Content |
 |---|---|---|
-| `disposition` | text, nullable | `confirmed_phish`, `spam`, `benign`, `bec`, `other` (set by the analyst, can be changed) |
-| `disposition_ts` | text | UTC time of the last change |
+| `disposition` | text, nullable | `confirmed_phish`, `spam`, `benign`, `bec`, `other`, `unsure` (set by the analyst after investigation, **editable once**: D7) |
+| `disposition_ts` | text | UTC time of the latest write (at most two writes ever) |
 | `verdict_tier` | text | `confirmed_malicious`, `suspicious`, `needs_analyst`, `no_indicators_found` |
 | `blocker_codes` | text (JSON list) | codes only, for example `qr_not_decoded` |
 | `sources_on` | text (JSON list) | which optional evidence sources were enabled for this analysis |
@@ -275,25 +352,69 @@ Rules: no subject, address, URL, host or body text is stored; the existing free-
 export and summary** (today it is part of the exported columns; changing that is section 8, decision 6). `agree/disagree` keeps working and is
 interpreted against the tier. Summaries report counts per tier by disposition with Wilson 95% intervals.
 
+**Proposal, pending owner approval: an optional `basis` field on a disposition** *(Review change 10)*. Why: an analyst who sees "Confirmed malicious" may label a case
+`confirmed_phish` because the tool said so, which would make the tool's own precision circular (automation bias). `basis` records what the label rested on, one of:
+`independent_source` (for example a report from a mail provider or the recipient), `gateway_verdict` (the organisation's gateway or mail-security service), `analyst_analysis`
+(the analyst's own investigation), `tool_tier_only` (nothing but the tool's tier). V7 is then reported **twice: with all cases and without the `tool_tier_only` cases.**
+**It is a proposal only: D7's stored-field list is unchanged until the owner approves it**, and nothing is built.
+
 ### 6.3 Proposed acceptance criteria (for the owner to approve before any measurement)
 
 Criteria are fixed here, before v2 exists. "Fresh sample" means a public-corpus sample drawn with a **new pre-registered seed from a snapshot
 dated after this document**, never looked at, run **once** after the v2 detection design is frozen (frozen by the hash of the commit that
 completes phase B). It restores blindness for v2 acceptance only; it does not make v2 design choices blind.
 
+**How a fresh sample is drawn** *(Review change 12)*. Before the draw: **de-duplicate by a normalised content hash** (body text with whitespace and case normalised, plus
+the attachment hashes), **cluster by sender registrable domain and by link registrable domains**, and **exclude every cluster in which any message was seen in tuning or in
+the hold-out**. The size left after exclusion is reported with the result.
+
+**Freeze scope** *(Review change 13)*. **One fresh sample per freeze.** **Each seed is pre-registered in this document, with its date, before it is used to draw.** Phase B
+is one freeze. **Every Phase C source changes detection and is its own freeze** with its own fresh sample; **each source writes its benign fixtures first**, and they must stay
+below T2, before any detection is added. A sample is never reused across freezes.
+
+*Edits of 2026-10-05 to this table (V1, V7, V8) and the new V12 to V17 are proposals inside decision D8, which stays pending until the owner approves it.*
+
 | ID | Criterion | Threshold | Data | Label |
 |---|---|---|---|---|
-| V1 | **Never "safe"**: no API, UI, report or log string contains safe, clean, legit or benign (except the frozen v1 field name) | 0 occurrences | static lint test | invariant |
+| V1 | **Never a positive-claim word**: no user-visible string (API labels and reasons, UI, report draft, exports, log messages) contains safe, clean, legit, benign or harmless as a whole word, except the allowlisted negated disclaimers, the frozen v1 field and its internal keys, and provider raw-data field names (2.1) | 0 occurrences outside the allowlist | static lint test over every such string | invariant |
 | V2 | **T4 never with a blocker** | 0 violations | property test over all fixtures, mutations and the fresh sample | invariant |
 | V3 | **T1 never without hard evidence** | 0 violations | same | invariant |
 | V4 | **Every analysis has a non-empty coverage report**; every `by_design` or missing item has a reason code | 100% | same | invariant |
 | V5 | **Internal addresses never reach a provider** | 0 requests | recording fake HTTP over the internal-address matrix (exists) | invariant |
 | V6 | **Phase A and D change no verdict**: per-sample verdict, score and priority identical to the committed baseline | 100% identical | tuning split and fixtures, STRICT and CONFIGURED, both enrichment modes | regression |
-| V7 | **T1 precision in the field** (only once enough dispositions exist) | lower Wilson 95% bound of `confirmed_phish + bec` among T1 cases at least 0.90, with at least 30 labelled T1 cases | analyst dispositions | tuned after viewing hold-out |
-| V8 | **T4 phish rate in the field** | report the upper Wilson 95% bound; **no pass/fail** below 100 labelled T4 cases | analyst dispositions | tuned after viewing hold-out |
+| V7 | **T1 precision in the field** (only once enough dispositions exist). Positives: `confirmed_phish` and `bec`. `spam` is **not** a positive. See the rules below the table | lower Wilson 95% bound of positives among labelled T1 cases **at least 0.90, with at least 50 labelled T1 cases** | analyst dispositions | tuned after viewing hold-out |
+| V8 | **T4 phish rate in the field**: descriptive, with a sentinel rule below the table | report the upper Wilson 95% bound of `confirmed_phish + bec` among labelled T4 cases; **no pass/fail at any count** | analyst dispositions | tuned after viewing hold-out |
 | V9 | **Disagree rate by tier** | report with intervals; no threshold | analyst feedback | descriptive |
 | V10 | **Recall on the fresh sample** | report flagged (T1 plus T2) with a Wilson interval, STRICT and CONFIGURED, T3 shown separately; **no target** | fresh sample, once | tuned after viewing hold-out |
 | V11 | **Priority sanity** | AUC and share above the benign median reported, labelled sanity only (the benign side is synthetic) | tuning plus fixtures | descriptive |
+| V12 | **T2 rule**: T2 if and only if two independent-family reasons or one named strong signal (2.1a) | 0 violations | property test over generated finding sets, all fixtures and all mutations | invariant |
+| V13 | **v2-only display**: with `verdict_v2` active, a v1 `malicious` that v2 demotes is never displayed (2.4) | 0 occurrences of the v1 label or value in the page, report draft or CSV | frontend and report tests with a demoted-case fixture | invariant |
+| V14 | **Every tier has a non-empty `reasons` list** (T4: the positive evidence, T3: at least a `gap` reason) | 0 violations | property test, same data as V2 | invariant |
+| V15 | **T1 carries `hard_evidence` entries, each with an `indicator` and a `source`** (extends V3) | 0 violations | same | invariant |
+| V16 | **A parser failure, limit or timeout never yields T4** (it is a blocker, 2.3) | 0 violations | fault-injection tests over every parser plus the property test | invariant |
+| V17 | **Logs, exports and the feedback log stay content-free, and the rendering rules are unchanged**: the existing tests (no markup rendering, no remote images, links defanged and not clickable, no content in logs or exports) stay green | 0 failures | the existing frontend rendering-rules test, the job-store and log tests, the feedback tests | invariant |
+
+**V7 rules** *(Review change 9; proposals inside D8)*. A 0.90 lower Wilson 95% bound needs **at least 35, 53, 69 and 84 labelled T1 cases for 0, 1, 2 and 3 errors**
+(an error is a T1 case labelled `spam`, `benign` or any non-positive; the figures are computed, not fitted). 30 cases with no error give only 0.8865, which is why 30 is not
+enough. With the 50-case minimum the cases needed are therefore **50 (0 errors), 53 (1), 69 (2), 84 (3)**.
+
+| Errors among labelled T1 cases | Cases needed for a lower bound of at least 0.90 | Lower bound at exactly 50 cases |
+|---|---|---|
+| 0 | 35 (the minimum of 50 applies) | 0.9286 |
+| 1 | 53 | 0.8950 (not met) |
+| 2 | 69 | 0.8654 (not met) |
+| 3 | 84 | 0.8378 (not met) |
+
+* **Positives are `confirmed_phish` and `bec`.** `spam` is **not** a positive: a T1 case labelled `spam` is an error (a spam message is not "confirmed malicious"), and so is
+  `benign`. Both stay in the denominator.
+* **`unsure` and `other` are excluded from the denominator.** Their counts are reported next to the result so the exclusion cannot hide a trend.
+* **H0 matches are reported separately** and are not in V7 (they are the organisation's own judgements: circular, as H0 says).
+* **If the bound is not met, keep collecting.** The thresholds, the hard-evidence rules and the 0.90 are **not changed afterwards** to make the bound pass.
+* If the `basis` proposal (6.2) is approved, V7 is reported with and without the `tool_tier_only` cases.
+
+**V8 sentinel rule.** Any T4 case later labelled `confirmed_phish` or `bec` is **reviewed immediately** (which blocker or evidence was missing), **logged in this document**
+with its reason, and **bumps `model_version`**. The upper Wilson 95% bound with **zero** phish among labelled T4 cases is **11.4% at 30 cases, 3.7% at 100 and 1.3% at 300**;
+the number is reported at whatever count exists, never as a pass.
 
 Real-world precision stays unmeasured until analysts supply dispositions; the tool says so in the README and in the report footer.
 
@@ -306,8 +427,8 @@ is announced first.
 | Phase | Goal | Files likely touched | Tests | Regression rule |
 |---|---|---|---|---|
 | **A. UI and schema** | `evidence` (hop timeline, links, attachments, body, images), `coverage_report`, `schema_version`; new page layout; decision endpoint and storage | `contracts/analysis.py`, new `app/evidence.py`, new `app/coverage.py`, `api/pipeline.py`, `api/routes.py`, `feedback.py`; frontend `types.ts`, `ResultsView.tsx`, new `CoveragePanel.tsx`, `EvidencePanel.tsx`, `HopTimeline.tsx`, `DecisionBar.tsx` | schema tests (old JSON still parses, new fields optional), coverage derivation tests for every reason code, frontend tests for old-shape and new-shape results | **must not change any verdict, score or priority** (V6); a committed baseline of per-sample verdicts for the tuning split and fixtures is added first, so the rule is a test |
-| **B. Verdict v2** | tiers, hard evidence, blockers, mapping table | `scoring/overrides.py`, `scoring/config.py`, new `scoring/tiers.py`, `contracts/scoring.py` | table-driven tests of the mapping (2.4), property tests V2 and V3, blocker tests per item in 2.3, before/after tier table on tuning and fixtures | **changes verdicts by design**; the only permitted changes are the documented ones (v1 `malicious` without hard evidence becomes T2; T4 with a blocker becomes T3); thresholds are a priori and **not** tuned on any sample; labelled tuned after viewing hold-out |
-| **C. Evidence sources** (one per sub-phase: lookalike, HTML attachment, static attachment, QR, RDAP, redirect and landing) | add evidence and signals | per source: a new module, `policy.py` where the network is used, `indicators.py`, `coverage.py`, config and README | offline fakes, privacy tests (what leaves the machine), a benign fixture set per source that must stay below T2, a mutation test where relevant | each source adds signals or hard evidence only through the tier rules in section 2; no weight is fitted; external and sandbox sources stay OFF; each change labelled tuned after viewing hold-out |
+| **B. Verdict v2** | tiers, hard evidence, blockers, mapping table | `scoring/overrides.py`, `scoring/config.py`, new `scoring/tiers.py`, `contracts/scoring.py` | table-driven tests of the mapping (2.4), property tests V2 and V3, blocker tests per item in 2.3, before/after tier table on tuning and fixtures | **changes verdicts by design**; the only permitted changes are the documented ones (v1 `malicious` without hard evidence becomes T2; T4 with a blocker becomes T3, including the blockers added on 2026-10-05; **a v1 `suspicious` without two independent reasons or a named strong signal becomes T3**, 2.1a); thresholds are a priori and **not** tuned on any sample; the predicted row movements are written down before the run (7, Review change 7); labelled tuned after viewing hold-out |
+| **C. Evidence sources** (one per sub-phase: lookalike, HTML attachment, static attachment, QR, RDAP, redirect and landing) | add evidence and signals | per source: a new module, `policy.py` where the network is used, `indicators.py`, `coverage.py`, config and README | offline fakes, privacy tests (what leaves the machine), **a benign fixture set per source, written first**, that must stay below T2, a mutation test where relevant | each source adds signals or hard evidence only through the tier rules in section 2; no weight is fitted; external and sandbox sources stay OFF; each change labelled tuned after viewing hold-out |
 | **D. Analyst outputs** | hunting templates, ATT&CK suggestions, report draft, defanged CSV and copy for every table | new `app/outputs.py`, `config` for template names, frontend `OutputsPanel.tsx`, `ReportDraft.tsx` | golden-text tests, defang tests, no-content tests (the report contains only fields already shown) | **must not change any verdict** (V6) |
 | **E. Calibration** | review field dispositions, adjust thresholds only by pre-registered rules | `scoring/config.py`, this document's log | the V7 to V11 reports, a versioned `model_version` bump | any change bumps the version and is logged here with its reason and the data that motivated it; a fresh sample is used once per freeze |
 
@@ -323,11 +444,11 @@ Numbered, each with my recommendation.
 | 1 | **Approve the four tiers and the exact wording**, including "No indicators found" with the blockers beside it | approve |
 | 2 | **H1 to H3 thresholds** (MalwareBazaar match; ThreatFox confidence at least 75; VirusTotal at least 10 engines) | approve as a priori values; no tuning |
 | 3 | **Demote v1 `malicious` without hard evidence to T2** (the only v1 behaviour that gets weaker) | approve |
-| 4 | **Blockers for T4** (2.3 item 5): which surfaces count, and whether an unread shared-platform link or a missing trusted receiver blocks T4 | approve the list in 2.3 |
+| 4 | **Blockers for T4** (2.3 item 5): which surfaces count, and whether an unread shared-platform link or a missing trusted receiver blocks T4 | approve the list in 2.3 as extended on 2026-10-05 |
 | 5 | **Keep the body text in the API response?** Today `parsed_email.body_text` is returned. Option: strip it and fetch on demand | strip by default |
 | 6 | **Free-text note in the feedback log**: exclude it from exports and summaries | exclude |
-| 7 | **Dispositions** (`confirmed_phish`, `spam`, `benign`, `bec`, `other`): the set and who records them | approve the set; the analyst who handled the case records it |
-| 8 | **Acceptance criteria V1 to V11** (6.3) and the fresh-sample protocol (new seed, run once after the freeze) | approve before any measurement |
+| 7 | **Dispositions** (`confirmed_phish`, `spam`, `benign`, `bec`, `other`, `unsure`; editable once): the set and who records them | approved as D7; the optional `basis` field (6.2) is a separate proposal |
+| 8 | **Acceptance criteria V1 to V17** (6.3) and the fresh-sample protocol (new seed, de-duplicated and clustered, one sample per freeze) | approve before any measurement (D8, pending) |
 | 9 | **Hunting query platforms and table names** (KQL for Defender or Sentinel, Splunk, generic) | KQL and generic first; your team supplies real table names in untracked config |
 | 10 | **Order of the evidence sources** in phase C | lookalike, HTML attachment, static attachment, QR, RDAP, redirect and landing |
 | 11 | **QR decoding dependency** (one small package, reads image pixels) | approve a pinned, wheel-only package |
@@ -388,7 +509,7 @@ rewrite, no `--final-holdout`, `backend/.env` is the owner's file.
 | D5 | **The message body text stays in the live response**, held **in memory only with a short time to live** (the job store expires; default 30 minutes). It is **never logged, persisted, exported, sent to any provider or sent to the LLM**, and is **rendered as plain text only**. In a future **shared-instance mode the body is stripped** from the response. | approved |
 | D6 | **The free-text note is excluded from every export and summary**, has a **length cap**, and the UI shows a **warning not to paste email content** into it. | approved |
 | D7 | **Dispositions: `confirmed_phish`, `spam`, `benign`, `bec`, `other`, `unsure`.** Recorded by the analyst **after investigation**, **editable once**. Stored fields only: **file hash, verdict (tier), signal names, label, timestamp** (the local note is separate and never exported, D6). | approved |
-| D8 | **Acceptance criteria (section 6.3) are NOT yet approved.** The owner is reviewing section 6. Rules that apply regardless, recorded now: criteria are **written and approved before any measurement**; the **fresh sample is drawn once, with a new seed, after the v2 freeze**; precision criteria are judged on **Wilson lower bounds**; the **minimum number of dispositions is fixed in advance** (in the approved criteria); **precision criteria are evaluated only on analyst dispositions**, never on a public corpus or on synthetic mail. | **pending** |
+| D8 | **Acceptance criteria (section 6.3) are NOT yet approved.** The owner is reviewing section 6. Rules that apply regardless, recorded now: criteria are **written and approved before any measurement**; the **fresh sample is drawn once, with a new seed, after the v2 freeze**; precision criteria are judged on **Wilson lower bounds**; the **minimum number of dispositions is fixed in advance** (in the approved criteria); **precision criteria are evaluated only on analyst dispositions**, never on a public corpus or on synthetic mail. The review of 2026-10-05 (below) proposes edits to V1, V7 and V8 and the new V12 to V17; they are part of what is pending. | **pending: not approved** |
 | D9 | **Hunting-query templates: a generic format first**, then KQL or SPL (the owner will say which). **Table and field names live in untracked configuration**; **no organisation names appear in any tracked file.** | approved |
 | D10 | **Evidence-source order approved** (lookalike, HTML attachment, static attachment, QR, RDAP, redirect and landing). **Attachment parsers run in a separate subprocess with a timeout, a memory limit and no network.** | approved |
 | D11 | **One pinned, wheel-only QR package, with hash pinning** (`pip --require-hashes`). Candidates and notes are below; the choice is the owner's. **Pillow decompression-bomb limits** apply to every image that is decoded. | candidates proposed |
@@ -396,6 +517,35 @@ rewrite, no `--final-holdout`, `backend/.env` is the owner's file.
 | D13 | **The single-sample Hebrew urgency phrase is removed from the shipped lexicon** ("valid for one month only", taken from the Kvish sample; removed 2026-10-05). **Logged as "tuned after viewing hold-out".** Reason: one sample's wording is not a lexicon entry, and the phrase also fired on a legitimate hand-written Hebrew newsletter (fixture 06). Measured effect, exactly **8 of 856 baseline rows**, all in the two as-is variants (the ablated variants already lacked it): Kvish score 20 to 18 and priority 48.5 to 45.3, **still suspicious**, signals unchanged; fixture 06 STRICT score 4 to 3 (still inconclusive); fixture 06 CONFIGURED with clean enrichment **inconclusive to benign** (it meets every benign condition: trusted, aligned DKIM and DMARC passes, its sender domain on the eval's known-sender list, no finding above info severity, confidence 1.0 with full enrichment coverage); with unknown enrichment it stays inconclusive and only the reason changes. No tuning-corpus row moved: tuning flagged 6/75 STRICT and 22/75 CONFIGURED, unchanged. The CONFIGURED eval trusts every hop by default and lists synthetic known senders, so fixture 06 becoming benign is a regression guard, not evidence about real mail. | applied |
 | D14 | **Lookup boundary: enrichment covers only link hosts and attachment hashes, by design.** The **sender domain and image hosts are never looked up automatically.** They are manual: every indicator already carries "Look up" links, and an **optional per-indicator lookup button** may be added later, **OFF by default**, with a visible warning that it **sends the hostname to a third-party provider** (named on the button). **The button is not built yet.** Reasons, so the boundary is a decision and not an accident of how the first version was scoped: a lookup tells the provider that this organisation received mail from that domain at that time, which reveals suppliers and correspondents; for a spoof of the organisation's own public domain it reveals that the organisation is being impersonated; tracker hostnames can carry per-recipient tokens; and the extra lookups would hit provider rate limits and the per-email cap. Any future change is logged here. | decision recorded, button not built |
 | D15 | **"Confidence: NN%" measures data coverage, not correctness.** It is the sum over the three modules of weight times coverage (authentication 0.35, enrichment 0.40, content 0.25) and is used only as a gate (below 0.6 a would-be benign or suspicious verdict becomes inconclusive). **Phase B replaces it with "Checks completed: N of M, K not checked"**, built from the coverage report. **Authentication coverage must count only results written by a trusted receiver** (today it counts any authentication header that is present, including one the sender wrote). That is a **behaviour change to be pre-registered in Phase B** before it is measured. Nothing changes now. | recorded, Phase B |
+
+### Review changes (2026-10-05)
+
+A review of this document, made before any Phase B work, revised the sections below. **Nothing here is implemented, and nothing here is approved until the owner says so;
+decision D8 (acceptance criteria) stays pending.** Each entry says what changed and why.
+
+| # | Where | What changed | Why |
+|---|---|---|---|
+| 1 | 2.1, V1 | Positive-claim words (safe, clean, legit, benign, harmless) are banned as whole words in every user-visible string, with a closed allowlist of exact negated disclaimers and exemptions for the frozen v1 field, its internal keys and provider raw-data field names | the old rule named four words and no scope; "harmless" is the same kind of claim; a disclaimer such as "not a safety verdict" must stay possible; the VirusTotal field is literally called `harmless` |
+| 2 | 2.1, new 2.1a, 2.4, V12 | T2 means two independent reasons or one named strong signal (a trusted-receiver authentication failure); a property test pins it; the 2.4 rows for the score band, the content floor and a non-hard enrichment floor become "T2 only with a second independent reason, else T3" | "several weak signals" was undefined, and one family repeating itself is one cause, not two; this **weakens three v1 `suspicious` routes** and is therefore a behaviour change to pre-register |
+| 3 | 2.2 | H2 and H3 follow D2: only link hosts, link URLs and attachment hashes count (never a Received-hop address, a header domain or an image host); an IP alone never counts; shared-platform domains never count; a shared-platform URL counts only on an exact URL match (possible only with the path and query opt-in); hard evidence on a known-sender or own domain gives T2 with an "evidence conflict" reason, never T1; H0's load-time rules use the same lists | H2 accepted any IP and any header-derived name; a flagged supplier or own domain is more often a provider error or a compromise than a verdict to state alone |
+| 4 | 2.3 | Blockers added: parser failure, limit or timeout; nested message attachments (.eml, .msg); calendar invites (.ics); encrypted or password-protected Office and PDF files; a malformed From header (and the D4 items are written into 2.3) | each is a surface the tool cannot read; calling it "no indicators found" would overclaim |
+| 5 | 2.3 | T4 is not relaxed for SPF-only mail; missing DKIM and DMARC evaluation is a deployment issue | shared ESP includes make SPF alignment weaker than it looks |
+| 6 | 2.4, V13 | With `verdict_v2` active the UI, report draft and exports show only v2; a demoted v1 `malicious` is never displayed; test required | a displayed v1 "Malicious" next to a v2 "Suspicious" would be two verdicts |
+| 7 | 2.4, 3, 4.2 | The page shows "Checks completed: N of M, K not checked" and never the 0.6 confidence figure (the gate stays internal); the trusted-receiver-only authentication coverage change is its own commit, after a document commit with the predicted baseline row movements | D15: confidence measures data coverage, not correctness; the formula change moves the number behind the gate, so its effect is predicted before it is run |
+| 8 | 2.1 | The four tier labels are the source of truth; `docs/UI_DESIGN.md` must be updated to match (tier labels only; internal keys and tokens stay) | UI_DESIGN.md still says "Malicious" and "Inconclusive: analyst review" |
+| 9 | 6.3, V7 | At least 50 labelled T1 cases (cases needed for a 0.90 lower bound: 35, 53, 69, 84 for 0 to 3 errors; 30 of 30 gives 0.8865); positives are `confirmed_phish` and `bec`; `spam` is not a positive; `unsure` and `other` leave the denominator with their counts reported; H0 matches are separate; if the bound is not met, keep collecting and never change the thresholds | 30 cases cannot support 0.90 even with no error |
+| 10 | 6.2 | **Proposal only:** an optional `basis` field on dispositions, with V7 reported with and without `tool_tier_only` cases. D7's stored-field list is unchanged until approved | automation bias: a label that rests only on the tool's tier makes its precision circular |
+| 11 | 6.3, V8 | V8 stays descriptive, with a sentinel rule (a T4 later labelled `confirmed_phish` or `bec` is reviewed at once, logged here and bumps `model_version`) and the zero-phish upper bounds (11.4% at 30, 3.7% at 100, 1.3% at 300) | the old text implied a pass or fail above 100 cases; the rare miss matters more than the rate |
+| 12 | 6.1, 6.3 | The earlier random split by file probably put near-duplicate campaign siblings in both tuning and hold-out, so the hold-out agreement may have been optimistic; a fresh sample is de-duplicated by a normalised content hash, clustered by sender and link registrable domains, and excludes every cluster seen in tuning or hold-out | siblings of one campaign are not independent samples |
+| 13 | 6.3, 7 | One fresh sample per freeze; each seed pre-registered before drawing; every Phase C source is its own freeze and writes its benign fixtures first | a sample reused across freezes stops being blind |
+| 14 | 6.3, V14 to V17 | New invariants: every tier has a non-empty `reasons` list; T1 has `hard_evidence` entries each with an `indicator` and a `source`; a parser failure never yields T4; logs, exports and the feedback log stay content-free and the rendering rules are unchanged (existing tests stay green) | each is a way the verdict could silently overclaim or leak |
+| 15 | 4.1, 6.2, 8 | Dispositions are editable **once** (D7), and `unsure` is in the set everywhere | 6.2 said "can be changed" and listed five values; D7 (section 10) says six and once |
+
+**Conflicts between these instructions and the earlier text, resolved as written above** (the owner may reverse any of them): the 2.4 mapping gave T2 to the score band, the content
+floor and a non-hard enrichment floor (now T3 without a second independent reason, entry 2); Phase B's "only permitted changes" listed two (now three, plus the extended blockers);
+D2's URL rule meets the hostname-only lookup policy (entry 3, rule 4); the VirusTotal `harmless` field meets the word ban (entry 1); V7's 30-case minimum, V8's "no pass/fail below
+100" and 6.2's five dispositions all differed from the new text; the wireframe showed a confidence figure (entry 7); and `docs/UI_DESIGN.md` uses different tier labels
+(entry 8). **Open, not decided here:** the numeric score shown beside the tier is a v1 value; Phase B must label it as an ordering aid or drop it, which is the owner's call.
 
 ### Items that stay OFF and unbuilt until the security team approves them
 
