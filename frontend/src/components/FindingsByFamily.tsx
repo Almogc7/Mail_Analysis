@@ -1,5 +1,6 @@
 import type { Finding } from '../types'
 import { FindingItem } from './FindingItem'
+import { lowerSeverityNote } from './findingRules'
 
 /**
  * The page groups findings by signal family, using the same tags the verdict floors read (evidence.family: sender, link, claim; set only on
@@ -47,6 +48,7 @@ export function FindingsByFamily({ findings }: { findings: Finding[] }) {
           : `Structural signals fired in: ${firedFloorFamilies.join(', ')}.`}{' '}
         Different families corroborate each other; one family alone never raises the verdict.
       </p>
+      {lowerSeverityNote(findings) && <p className="wb-note">{lowerSeverityNote(findings)}</p>}
       {FAMILIES.map(({ key, title, note }) => {
         const group = findings.filter((f) => familyOf(f) === key).sort((a, b) => rank(a) - rank(b))
         if (group.length === 0) return null

@@ -25,7 +25,8 @@ describe('email-derived text carries dir="auto"', () => {
   })
 
   it('finding title, description and evidence values', () => {
-    render(<FindingItem finding={makeFinding({ title: `${HEBREW} title`, description: `${HEBREW} description`, evidence: { subject: `${HEBREW} evidence` } })} />)
+    // A low-severity finding starts collapsed, so the click below opens it (a high one starts open: see findingCollapse.test.tsx).
+    render(<FindingItem finding={makeFinding({ severity: 'low', title: `${HEBREW} title`, description: `${HEBREW} description`, evidence: { subject: `${HEBREW} evidence` } })} />)
     fireEvent.click(screen.getByRole('button'))
     for (const part of ['title', 'description', 'evidence']) expect(dirOf(`${HEBREW} ${part}`)).toBe('auto')
   })

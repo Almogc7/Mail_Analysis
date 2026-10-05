@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ModuleResult } from '../types'
 import { FindingItem } from './FindingItem'
 import { EnrichmentRawData } from './EnrichmentRawData'
+import { lowerSeverityNote } from './findingRules'
 
 const MODULE_LABELS: Record<string, string> = {
   auth_check: 'Authentication & Identity',
@@ -23,7 +24,8 @@ export function ModulePanel({ result }: ModulePanelProps) {
     <section className={`module-panel${isError ? ' module-panel--error' : ''}`}>
       <button className="module-panel-header" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
         <span className="module-title">{label}</span>
-        <span className={`module-status module-status--${result.status}`}>{result.status}</span>
+        {/* Neutral "ran" for a module that finished (it says nothing about safety); "error" stays as is. */}
+        <span className={`module-status module-status--${result.status}`}>{result.status === 'ok' ? 'ran' : result.status}</span>
         <span className="expand-caret">{expanded ? '▾' : '▸'}</span>
       </button>
       {expanded && (
@@ -33,7 +35,10 @@ export function ModulePanel({ result }: ModulePanelProps) {
           ) : result.findings.length === 0 ? (
             <p className="module-clean">No findings.</p>
           ) : (
-            result.findings.map((finding, i) => <FindingItem finding={finding} key={i} />)
+            <>
+              {lowerSeverityNote(result.findings) && <p className="module-note">{lowerSeverityNote(result.findings)}</p>}
+              {result.findings.map((finding, i) => <FindingItem finding={finding} key={i} />)}
+            </>
           )}
           {result.module === 'enrichment' && result.raw_data && !isError && (
             <EnrichmentRawData rawData={result.raw_data} />

@@ -43,7 +43,9 @@ export function UploadView({ onSubmit, submitting, submitError }: UploadViewProp
       <h1>Mail Analysis</h1>
       <p className="subtitle">Upload a suspicious email (.eml or .msg) for triage.</p>
       <form onSubmit={handleSubmit}>
+        <label className="upload-label" htmlFor="email-file">Email file (.eml or .msg)</label>
         <input
+          id="email-file"
           ref={inputRef}
           type="file"
           accept=".eml,.msg"
