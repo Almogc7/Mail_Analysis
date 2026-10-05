@@ -2,8 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { defang, IndicatorsPanel, indicatorsToCsv, indicatorsToText } from './IndicatorsPanel'
 import { ResultsView } from './ResultsView'
-import { makeAnalysisResult, makeCoverageItem } from '../test/fixtures'
-import type { CoverageItem, Indicator, IndicatorPack } from '../types'
+import { makeAnalysisResult } from '../test/fixtures'
+import type { Indicator, IndicatorPack } from '../types'
 
 function indicator(overrides: Partial<Indicator> = {}): Indicator {
   return {
