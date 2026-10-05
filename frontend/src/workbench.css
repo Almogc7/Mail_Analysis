@@ -108,6 +108,11 @@
 .wb-btn:focus-visible,
 .wb-nav :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
+/* Jump row: a compact line of buttons under the verdict. A heading that took focus from it gets the same ring as any focused control. */
+.wb-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-family: var(--font-ui); font-size: var(--text-sm); }
+.wb-nav-label { font-size: var(--text-xs); line-height: var(--leading-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); }
+.results-view h2[tabindex="-1"]:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
+
 /* Collapsible headers: a real button inside the heading, aria-expanded on the button, the count in its text. */
 .wb-title--toggle { margin: 0; }
 .wb-btn.wb-disclosure {
@@ -171,6 +176,6 @@
   .hop::before { background: Canvas; border: 2px solid CanvasText; }
   .hop--origin::before { border-radius: 0; }
   .wb-panel button, .wb-btn { border-color: ButtonBorder; }
-  .wb-panel :focus-visible, .wb-btn:focus-visible, .wb-nav :focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+  .wb-panel :focus-visible, .wb-btn:focus-visible, .wb-nav :focus-visible, .results-view h2[tabindex="-1"]:focus { outline: 3px solid Highlight; outline-offset: 2px; }
   .wb-panel button:hover:not(:disabled), .wb-btn:hover:not(:disabled) { border-width: 2px; padding: 0 calc(var(--space-3) - 1px); }
 }

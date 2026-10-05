@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import type { AnalysisResult } from '../types'
 import { SummaryCard } from './SummaryCard'
 import { ModuleDetailSection } from './ModuleDetailSection'
@@ -12,6 +13,8 @@ import { BodyPanel } from './BodyPanel'
 import { ImagesPanel } from './ImagesPanel'
 import { RawHeadersPanel } from './RawHeadersPanel'
 import { FindingsByFamily } from './FindingsByFamily'
+import { JumpNav } from './JumpNav'
+import { JUMP_TARGETS, jumpToPanel } from './jumpToPanel'
 
 const MODULE_ORDER = ['auth_check', 'enrichment', 'content_analysis']
 
@@ -23,7 +26,7 @@ interface ResultsViewProps {
 }
 
 /**
- * Page order (docs/DESIGN_V2.md, phase A): verdict and reasons, findings by signal family, coverage, sender and path, links, attachments, body, images, indicators,
+ * Page order (docs/DESIGN_V2.md, phase A): verdict and reasons, a row of jump buttons, findings by signal family, coverage, sender and path, links, attachments, body, images, indicators,
  * the per-module detail, raw headers, the LLM opinion, feedback. The evidence panels appear only when the backend sent an evidence block, so an
  * older result still renders as before.
  */
@@ -32,10 +35,32 @@ export function ResultsView({ result, onReset, jobId }: ResultsViewProps) {
     (a, b) => MODULE_ORDER.indexOf(a.module) - MODULE_ORDER.indexOf(b.module),
   )
   const evidence = result.evidence
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [rawHeadersOpen, setRawHeadersOpen] = useState(false)
+
+  // The jump row lists only the panels this result actually renders (the same conditions the panels below use).
+  const indicators = result.indicators
+  const present: Record<string, boolean> = {
+    'Findings by family': result.findings.length > 0,
+    Coverage: !!result.coverage_report,
+    'Sender and authentication': !!evidence,
+    Links: !!evidence,
+    Attachments: !!evidence,
+    Body: !!evidence,
+    Indicators: !!indicators && (indicators.indicators.length > 0 || (indicators.hidden_by_config_count ?? 0) > 0),
+    'Raw headers': !!evidence,
+  }
+  const jumpTargets = JUMP_TARGETS.filter((t) => present[t.panel])
+  const jump = (panel: string) => {
+    if (panel === 'Raw headers') setRawHeadersOpen(true)  // a panel that is collapsed is opened on arrival
+    if (rootRef.current) jumpToPanel(rootRef.current, panel)
+  }
 
   return (
-    <div className="results-view">
+    <div className="results-view" ref={rootRef}>
       <SummaryCard result={result} />
+
+      <JumpNav targets={jumpTargets} onJump={(t) => jump(t.panel)} />
 
       <FindingsByFamily findings={result.findings} />
 
@@ -55,7 +80,7 @@ export function ResultsView({ result, onReset, jobId }: ResultsViewProps) {
 
       <ModuleDetailSection modules={orderedModules} />
 
-      {evidence && <RawHeadersPanel headers={result.parsed_email.headers} />}
+      {evidence && <RawHeadersPanel headers={result.parsed_email.headers} open={rawHeadersOpen} onOpenChange={setRawHeadersOpen} />}
 
       {result.llm_opinion && <LlmOpinionCard opinion={result.llm_opinion} />}
 
