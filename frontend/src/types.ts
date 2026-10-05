@@ -70,6 +70,8 @@ export interface Finding {
   description: string
   evidence: Record<string, unknown>
   weight: number
+  /** A stable, content-free identifier of the KIND of finding (backend app/finding_codes.py). Not shown anywhere yet. */
+  code?: string | null
 }
 
 export interface ModuleResult {

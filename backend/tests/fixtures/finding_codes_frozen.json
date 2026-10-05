@@ -1,0 +1,235 @@
+{
+  "_comment": "Frozen finding codes (docs/DESIGN_V2.md D22). Later data (feedback, dispositions, reason classes) references these codes, so a code is never renamed or reused: a changed meaning is a NEW code and the old registry entry stays with retired=true and a note. This file pins every code with its module, family and signal; the tests fail if the registry and this file differ, so adding a code is a deliberate edit of both in one commit.",
+  "codes": {
+    "AUTH_ALIGN_DKIM_ALIGNED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_ALIGN_DKIM_OTHER_DOMAIN": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_ALIGN_NONE_ALIGNED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_ALIGN_SPF_ALIGNED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_ALIGN_SPF_OTHER_DOMAIN": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_ALL_METHODS_PASSED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_CLAIM_BODY_BRAND_MENTION": {
+      "module": "auth_check",
+      "family": null,
+      "signal": "C1b"
+    },
+    "AUTH_CLAIM_DECOY_LINKS": {
+      "module": "auth_check",
+      "family": "claim",
+      "signal": "C3"
+    },
+    "AUTH_CLAIM_ENTITY_MISMATCH_UNSIGNED": {
+      "module": "auth_check",
+      "family": "claim",
+      "signal": "C2"
+    },
+    "AUTH_DKIM_CHECK_FAILED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_DKIM_FAILURE_CLAIMED_UNTRUSTED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_DKIM_NOT_EVALUATED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_DKIM_TRUSTED_RESULT_BELOW_HOP": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_DMARC_CHECK_FAILED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_DMARC_FAILURE_CLAIMED_UNTRUSTED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_DMARC_NOT_EVALUATED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_DMARC_TRUSTED_RESULT_BELOW_HOP": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_FROM_HEADER_AMBIGUOUS": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_IDENTITY_DISPLAY_NAME_FUZZY": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_IDENTITY_DISPLAY_NAME_SPOOF": {
+      "module": "auth_check",
+      "family": "claim",
+      "signal": "C1"
+    },
+    "AUTH_IDENTITY_FREE_MAILBOX_BRAND": {
+      "module": "auth_check",
+      "family": "sender",
+      "signal": "S3"
+    },
+    "AUTH_IDENTITY_LOCAL_SUBMISSION": {
+      "module": "auth_check",
+      "family": "sender",
+      "signal": "S2"
+    },
+    "AUTH_IDENTITY_MACHINE_SENDER_BRAND": {
+      "module": "auth_check",
+      "family": "sender",
+      "signal": "S1"
+    },
+    "AUTH_IDENTITY_REPLY_TO_MISMATCH": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_IDENTITY_RETURN_PATH_MISMATCH": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_SPF_CHECK_FAILED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_SPF_FAILURE_CLAIMED_UNTRUSTED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_SPF_NOT_EVALUATED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_SPF_TRUSTED_RESULT_BELOW_HOP": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "AUTH_UNTRUSTED_CLAIMS_IGNORED": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
+    "CONTENT_BRAND_LINK_MISMATCH": {
+      "module": "content_analysis",
+      "family": null,
+      "signal": null
+    },
+    "CONTENT_GREETING_PERSONAL_CLAIM": {
+      "module": "content_analysis",
+      "family": null,
+      "signal": null
+    },
+    "CONTENT_LANGUAGE_NO_TEXT": {
+      "module": "content_analysis",
+      "family": null,
+      "signal": null
+    },
+    "CONTENT_LANGUAGE_UNDETERMINED": {
+      "module": "content_analysis",
+      "family": null,
+      "signal": null
+    },
+    "CONTENT_LANGUAGE_UNSUPPORTED": {
+      "module": "content_analysis",
+      "family": null,
+      "signal": null
+    },
+    "CONTENT_LINK_HOTLINKED_ASSETS": {
+      "module": "content_analysis",
+      "family": "link",
+      "signal": "L2"
+    },
+    "CONTENT_LINK_REDIRECTOR": {
+      "module": "content_analysis",
+      "family": "link",
+      "signal": "L3"
+    },
+    "CONTENT_LINK_TRACKER_PLATFORM_MISMATCH": {
+      "module": "content_analysis",
+      "family": "link",
+      "signal": "L1"
+    },
+    "CONTENT_URGENCY_LANGUAGE": {
+      "module": "content_analysis",
+      "family": null,
+      "signal": null
+    },
+    "ENRICH_INCOMPLETE_INTERNAL_HOST": {
+      "module": "enrichment",
+      "family": null,
+      "signal": null
+    },
+    "ENRICH_INCOMPLETE_PROVIDER_NO_RESULT": {
+      "module": "enrichment",
+      "family": null,
+      "signal": null
+    },
+    "ENRICH_INCOMPLETE_SHARED_PLATFORM": {
+      "module": "enrichment",
+      "family": null,
+      "signal": null
+    },
+    "ENRICH_PROVIDERS_NO_USABLE_ANSWER": {
+      "module": "enrichment",
+      "family": null,
+      "signal": null
+    },
+    "ENRICH_REPUTATION_HASH_KNOWN_MALICIOUS": {
+      "module": "enrichment",
+      "family": null,
+      "signal": null
+    },
+    "ENRICH_REPUTATION_HOST_SUSPICIOUS": {
+      "module": "enrichment",
+      "family": null,
+      "signal": null
+    },
+    "ENRICH_SKIPPED_PER_EMAIL_LIMIT": {
+      "module": "enrichment",
+      "family": null,
+      "signal": null
+    }
+  }
+}
