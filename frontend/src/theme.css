@@ -1,46 +1,102 @@
+/* Design tokens from docs/UI_DESIGN.md (revision 2). Dark values are on :root, so dark is also the fallback when the browser reports no
+   preference; light values are in the prefers-color-scheme: light block at the END of this file. scripts/check_contrast.py reads this file:
+   keep one "--name: #rrggbb;" per line and keep the light block last, written exactly "@media (prefers-color-scheme: light) {". */
 :root {
-  color-scheme: dark;
+  color-scheme: dark light;
 
-  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, Consolas, monospace;
+  /* Fonts: system fonts only, nothing is fetched. --font-mono is for machine tokens, --font-ui for everything a person reads. */
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Hebrew', 'Arial Hebrew', Arial, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
 
+  /* Surfaces, text, lines */
   --bg-root: #0b0e13;
   --bg-panel: #11151c;
   --bg-panel-raised: #171c25;
   --bg-muted: #1a1f29;
-  --border: #232b36;
-  --border-muted: #1b212a;
-
   --text-primary: #e6edf3;
-  --text-secondary: #9aa5b1;
-  --text-muted: #6b7684;
+  --text-secondary: #a3adb9;
+  --text-muted: #8b96a3;
+  --border: #2b3542;
+  --border-control: #6b7684;
+  --focus: #4fe1ff;
 
-  --accent-green: #39ff88;
-  --accent-cyan: #4fe1ff;
-  --accent-red: #ff5c6c;
-  --accent-amber: #ffb347;
+  /* Severity colours and their tints (the colour at 15% over the panel, written out) */
+  --sev-critical: #ff6b78;
+  --sev-high: #ff8f60;
+  --sev-medium: #ffb347;
+  --sev-low: #5cc8f0;
+  --sev-info: #a3adb9;
+  --sev-critical-tint: #35222a;
+  --sev-high-tint: #352726;
+  --sev-medium-tint: #352d22;
+  --sev-low-tint: #1c303c;
+  --sev-info-tint: #272c34;
 
-  --verdict-malicious: #ff5c6c;
+  /* Verdict tiers and their tints. none-found is neutral grey on purpose: no green. */
+  --verdict-malicious: #ff6b78;
   --verdict-suspicious: #ffb347;
-  --verdict-needs-review: #4fe1ff;
-  --verdict-legit: #39ff88;
+  --verdict-inconclusive: #7fb0ff;
+  --verdict-none-found: #a3adb9;
+  --verdict-malicious-tint: #35222a;
+  --verdict-suspicious-tint: #352d22;
+  --verdict-inconclusive-tint: #222c3e;
+  --verdict-none-found-tint: #272c34;
 
-  --severity-critical: #ff5c6c;
-  --severity-high: #ff8a5c;
-  --severity-medium: #ffb347;
-  --severity-low: #4fe1ff;
-  --severity-info: #6b7684;
+  --notice: var(--sev-medium);
 
-  --llm-bg: #10241a;
-  --llm-border: #1e4531;
+  /* Type scale: size and line height */
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --leading-xs: 1.35;
+  --leading-sm: 1.4;
+  --leading-base: 1.45;
+  --leading-md: 1.4;
+  --leading-lg: 1.3;
+  --leading-xl: 1.25;
 
+  /* Spacing and radius */
+  --space-0: 2px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
+  --radius: 4px;
+  --radius-sm: 2px;
 
-  --radius: 6px;
+  /* legacy: retire during migration */
+  --border-muted: #1b212a;
+  /* legacy: retire during migration */
+  --accent-green: #39ff88;
+  /* legacy: retire during migration */
+  --accent-cyan: #4fe1ff;
+  /* legacy: retire during migration */
+  --accent-red: #ff5c6c;
+  /* legacy: retire during migration */
+  --accent-amber: #ffb347;
+  /* legacy: retire during migration */
+  --verdict-needs-review: #4fe1ff;
+  /* legacy: retire during migration */
+  --verdict-legit: #39ff88;
+  /* legacy: retire during migration */
+  --severity-critical: #ff5c6c;
+  /* legacy: retire during migration */
+  --severity-high: #ff8a5c;
+  /* legacy: retire during migration */
+  --severity-medium: #ffb347;
+  /* legacy: retire during migration */
+  --severity-low: #4fe1ff;
+  /* legacy: retire during migration */
+  --severity-info: #6b7684;
+  /* legacy: retire during migration */
+  --llm-bg: #10241a;
+  /* legacy: retire during migration */
+  --llm-border: #1e4531;
 }
 
 * {
@@ -52,4 +108,56 @@ body {
   background: var(--bg-root);
   color: var(--text-primary);
   font-family: var(--font-mono);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-root: #f6f8fa;
+    --bg-panel: #ffffff;
+    --bg-panel-raised: #f0f3f6;
+    --bg-muted: #e8ecf0;
+    --text-primary: #1f2328;
+    --text-secondary: #4a5560;
+    --text-muted: #59636e;
+    --border: #d0d7de;
+    --border-control: #848d97;
+    --focus: #0a5c86;
+
+    --sev-critical: #b3202e;
+    --sev-high: #a8400f;
+    --sev-medium: #7a4f00;
+    --sev-low: #0a5c86;
+    --sev-info: #4a5560;
+    --sev-critical-tint: #f4dee0;
+    --sev-high-tint: #f2e2db;
+    --sev-medium-tint: #ebe5d9;
+    --sev-low-tint: #dae7ed;
+    --sev-info-tint: #e4e6e7;
+
+    --verdict-malicious: #b3202e;
+    --verdict-suspicious: #7a4f00;
+    --verdict-inconclusive: #1d4fa8;
+    --verdict-none-found: #4a5560;
+    --verdict-malicious-tint: #f4dee0;
+    --verdict-suspicious-tint: #ebe5d9;
+    --verdict-inconclusive-tint: #dde5f2;
+    --verdict-none-found-tint: #e4e6e7;
+
+    /* legacy: retire during migration. The neon dark values are unreadable on light surfaces, so in light mode only,
+       the legacy names point at the light design tokens. */
+    --border-muted: var(--border);
+    --accent-green: var(--text-secondary);
+    --accent-cyan: var(--focus);
+    --accent-red: var(--sev-critical);
+    --accent-amber: var(--sev-medium);
+    --verdict-needs-review: var(--verdict-inconclusive);
+    --verdict-legit: var(--verdict-none-found);
+    --severity-critical: var(--sev-critical);
+    --severity-high: var(--sev-high);
+    --severity-medium: var(--sev-medium);
+    --severity-low: var(--sev-low);
+    --severity-info: var(--sev-info);
+    --llm-bg: var(--bg-panel-raised);
+    --llm-border: var(--border);
+  }
 }
