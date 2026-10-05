@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 """Contrast guard for the colour tokens in docs/UI_DESIGN.md (WCAG 2.x relative luminance).
 
-Asserts, for both the dark and the light theme:
+Reads the tokens from frontend/src/theme.css (dark in :root, light inside "@media (prefers-color-scheme: light) {")
+and asserts, for both themes:
   - body, secondary and muted text >= 4.5:1 on the panel, root, raised and muted surfaces
   - every severity and verdict-tier colour >= 4.5:1 on the panel and on its own tint token
   - the text of a filled badge or band (--bg-root on the critical and malicious colours) >= 4.5:1
   - the focus ring and the control border >= 3:1 on the panel and the root surface (the surfaces they sit on)
 
-On failure it prints each failing pair with both colours and the ratio, and exits 1.
+It fails with a readable message listing every failing pair, and also when theme.css lacks a required token. There is no
+built-in fallback table: a token that is not in theme.css is an error.
 
-Token source: frontend/src/theme.css when it already defines every token below (dark in :root, light inside
-@media (prefers-color-scheme: light)); otherwise the TOKENS table below.
-TODO: the new tokens are not implemented in theme.css yet. When they are, this script switches to theme.css by itself;
-delete the TOKENS table at that point.
+Format expected in theme.css: one "--name: #rrggbb;" declaration per token; CSS comments are ignored; the light block is
+written exactly "@media (prefers-color-scheme: light) {".
 
-Usage:  check_contrast.py              check the tokens (theme.css if complete, else the table)
-        check_contrast.py --table      force the table
+Usage:  check_contrast.py              check frontend/src/theme.css
 """
 from __future__ import annotations
 
@@ -36,34 +35,6 @@ REQUIRED = (
     + [f"sev-{s}" for s in SEVERITIES] + [f"sev-{s}-tint" for s in SEVERITIES]
     + [f"verdict-{t}" for t in TIERS] + [f"verdict-{t}-tint" for t in TIERS]
 )
-
-# Same values as docs/UI_DESIGN.md. Tints are the 15% mix of the colour over the panel, written out as hex.
-TOKENS: dict[str, dict[str, str]] = {
-    "dark": {
-        "bg-root": "#0b0e13", "bg-panel": "#11151c", "bg-panel-raised": "#171c25", "bg-muted": "#1a1f29",
-        "text-primary": "#e6edf3", "text-secondary": "#a3adb9", "text-muted": "#8b96a3",
-        "border-control": "#6b7684", "focus": "#4fe1ff",
-        "sev-critical": "#ff6b78", "sev-high": "#ff8f60", "sev-medium": "#ffb347", "sev-low": "#5cc8f0", "sev-info": "#a3adb9",
-        "sev-critical-tint": "#35222a", "sev-high-tint": "#352726", "sev-medium-tint": "#352d22",
-        "sev-low-tint": "#1c303c", "sev-info-tint": "#272c34",
-        "verdict-malicious": "#ff6b78", "verdict-suspicious": "#ffb347", "verdict-inconclusive": "#7fb0ff",
-        "verdict-none-found": "#a3adb9",
-        "verdict-malicious-tint": "#35222a", "verdict-suspicious-tint": "#352d22", "verdict-inconclusive-tint": "#222c3e",
-        "verdict-none-found-tint": "#272c34",
-    },
-    "light": {
-        "bg-root": "#f6f8fa", "bg-panel": "#ffffff", "bg-panel-raised": "#f0f3f6", "bg-muted": "#e8ecf0",
-        "text-primary": "#1f2328", "text-secondary": "#4a5560", "text-muted": "#59636e",
-        "border-control": "#848d97", "focus": "#0a5c86",
-        "sev-critical": "#b3202e", "sev-high": "#a8400f", "sev-medium": "#7a4f00", "sev-low": "#0a5c86", "sev-info": "#4a5560",
-        "sev-critical-tint": "#f4dee0", "sev-high-tint": "#f2e2db", "sev-medium-tint": "#ebe5d9",
-        "sev-low-tint": "#dae7ed", "sev-info-tint": "#e4e6e7",
-        "verdict-malicious": "#b3202e", "verdict-suspicious": "#7a4f00", "verdict-inconclusive": "#1d4fa8",
-        "verdict-none-found": "#4a5560",
-        "verdict-malicious-tint": "#f4dee0", "verdict-suspicious-tint": "#ebe5d9", "verdict-inconclusive-tint": "#dde5f2",
-        "verdict-none-found-tint": "#e4e6e7",
-    },
-}
 
 
 def _channel(c: int) -> float:
@@ -116,37 +87,63 @@ def check(themes: dict[str, dict[str, str]]) -> tuple[int, list[str]]:
 
 
 _DECL = re.compile(r"--([\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;")
-_LIGHT_BLOCK = re.compile(r"@media\s*\(\s*prefers-color-scheme\s*:\s*light\s*\)\s*\{(.*)\}", re.S)
+_COMMENT = re.compile(r"/[*].*?[*]/", re.S)
+_LIGHT_OPEN = "@media (prefers-color-scheme: light) {"
 
 
-def parse_theme_css(text: str) -> dict[str, dict[str, str]] | None:
-    """Dark tokens from the top-level rules, light tokens from the prefers-color-scheme: light block.
-    Returns None unless both themes define every required token."""
-    m = _LIGHT_BLOCK.search(text)
-    light = dict(_DECL.findall(m.group(1))) if m else {}
-    dark = dict(_DECL.findall(text[:m.start()] + text[m.end():] if m else text))
-    if all(name in theme for theme in (dark, light) for name in REQUIRED):
-        return {"dark": dark, "light": light}
-    return None
+def _light_block(text: str) -> tuple[int, int] | None:
+    """(start, end) of the light @media block, matched by braces. None when absent."""
+    start = text.find(_LIGHT_OPEN)
+    if start < 0:
+        return None
+    depth = 0
+    for i in range(start + len(_LIGHT_OPEN) - 1, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return start, i + 1
+    return start, len(text)
 
 
-def load_tokens(css_path: Path = THEME_CSS, force_table: bool = False) -> tuple[str, dict[str, dict[str, str]]]:
-    if not force_table and css_path.is_file():
-        parsed = parse_theme_css(css_path.read_text(encoding="utf-8"))
-        if parsed:
-            return str(css_path.relative_to(ROOT)) if css_path.is_relative_to(ROOT) else str(css_path), parsed
-    return "TOKENS table in scripts/check_contrast.py (theme.css does not define the new tokens yet)", TOKENS
+def parse_theme_css(text: str) -> dict[str, dict[str, str]]:
+    """Dark tokens from outside the light block, light tokens from inside it. Comments are ignored."""
+    text = _COMMENT.sub("", text)
+    block = _light_block(text)
+    if block is None:
+        return {"dark": dict(_DECL.findall(text)), "light": {}}
+    start, end = block
+    return {"dark": dict(_DECL.findall(text[:start] + text[end:])), "light": dict(_DECL.findall(text[start:end]))}
+
+
+def missing_tokens(themes: dict[str, dict[str, str]]) -> list[str]:
+    return [f"[{theme}] --{name}" for theme in ("dark", "light") for name in REQUIRED if name not in themes.get(theme, {})]
+
+
+def load_tokens(css_path: Path = THEME_CSS) -> dict[str, dict[str, str]]:
+    return parse_theme_css(css_path.read_text(encoding="utf-8"))
 
 
 def main(argv: list[str]) -> int:
-    source, themes = load_tokens(force_table="--table" in argv)
+    name = str(THEME_CSS.relative_to(ROOT)).replace("\\", "/")
+    if not THEME_CSS.is_file():
+        print(f"check_contrast: FAILED ({name} not found)", file=sys.stderr)
+        return 1
+    themes = load_tokens(THEME_CSS)
+    missing = missing_tokens(themes)
+    if missing:
+        print(f"check_contrast: FAILED ({name} is missing {len(missing)} required token(s))", file=sys.stderr)
+        for m in missing:
+            print("  - missing " + m, file=sys.stderr)
+        return 1
     checked, failures = check(themes)
     if failures:
-        print(f"check_contrast: FAILED ({len(failures)} failing, source: {source})", file=sys.stderr)
+        print(f"check_contrast: FAILED ({len(failures)} failing, source: {name})", file=sys.stderr)
         for f in failures:
             print("  - " + f, file=sys.stderr)
         return 1
-    print(f"check_contrast: OK ({checked} pairs, source: {source})")
+    print(f"check_contrast: OK ({checked} pairs, source: {name})")
     return 0
 
 

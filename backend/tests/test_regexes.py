@@ -111,6 +111,11 @@ REGISTRY = [
         ("e.g. word and 15.2.1748.24", []), ("one-label", [])]),
     (_P._INTERNAL_NAME_RE.pattern, 0, [
         ("MAILGW-NODE7 and ABC-12", ["MAILGW-NODE7", "ABC-12"]), ("abc-DEF and X-YY and Plain-Name", [])]),
+    # scripts/check_contrast.py: a colour token declaration in theme.css
+    (r"--([\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;", 0, [
+        ("--bg-root: #0b0e13;", [("bg-root", "#0b0e13")]), ("--x:#FFFFFF ;", [("x", "#FFFFFF")]),
+        ("--a: #111111; --b: #222222;", [("a", "#111111"), ("b", "#222222")]),
+        ("--x: #fff;", []), ("--x: var(--y);", []), ("color: #0b0e13;", []), ("--x: #0b0e1;", [])]),
 ]
 
 REGISTRY_BY_PATTERN = {pat: flags for pat, flags, _ in REGISTRY}
