@@ -1,7 +1,8 @@
 # UI design system (proposal, text only)
 
-Status: proposal awaiting approval (revision 2: machine-token-only mono, forced-colors rules, neutral hover, explicit tint tokens, theme follows the OS,
-blockers inside the verdict slot, contrast checker). Nothing in `frontend/` has been changed by this document. It defines the target look and the rules every later
+Status: proposal awaiting approval (revision 2: machine-token-only mono, forced-colors rules, neutral hover, explicit tint tokens,
+blockers inside the verdict slot, contrast checker; then dark-only with an opt-in light theme until components migrate). The tokens are in
+`frontend/src/theme.css`; no component rule has been migrated yet. It defines the target look and the rules every later
 frontend change must follow. It does not redesign the verdict card or the coverage panel: Phase B changes what they say, so this document only defines the
 tier styles and reserves their place in the layout.
 
@@ -36,9 +37,15 @@ This is an analyst workbench for reported emails. It is read by one person at a 
 
 ## 3. Colour tokens
 
-The theme follows the operating system setting (`prefers-color-scheme`). The dark tokens are declared on `:root`, so dark is also the fallback when the
-browser reports no preference. The light tokens are declared inside `@media (prefers-color-scheme: light) { :root { ... } }`. There is no theme toggle and
-no stored preference; a toggle can be added later without changing the tokens. Set `color-scheme: dark light` so native controls follow.
+Dark-only for now. The dark tokens are declared on `:root` with `color-scheme: dark`, and every user gets them whatever the operating system setting
+is. The light tokens exist and are checked, but they are opt-in: they are declared inside `:root[data-theme="light"] { color-scheme: light; ... }`, and
+nothing sets `data-theme` yet. Reason: the component stylesheets still hardcode dark colours, so an automatic light theme made the page white around dark
+components and looked broken. Light stays opt-in until every component rule uses tokens.
+
+Target end state, at the end of the component migration: the theme follows the operating system setting again (`prefers-color-scheme`, with dark as the
+fallback when the browser reports no preference), or a toggle is added, and `color-scheme: dark light` is set so native controls follow. Both need
+approval first (section 12). The legacy-to-token mapping for the old neon colours lives only inside the opt-in light block and is deleted with the legacy
+tokens.
 
 All text-on-background pairs below were computed (WCAG relative luminance), not estimated, and `scripts/check_contrast.py` re-checks them (section 10).
 Tints are written as explicit hex tokens, not computed in CSS with `color-mix()`, so the value that was checked is the value that ships.
@@ -406,8 +413,11 @@ section 5 is derived from the documented 8 to 32px range, not copied from a tool
 
 - Keep three stylesheets (`theme.css` tokens, `app.css` shell and summary, `workbench.css` evidence panels). Put every new token in `theme.css`. The
   existing test asserts `app.css` contains `.verdict-benign` and that at least three stylesheets exist and are not empty; do not rename or merge them.
-- When the tokens are added to `theme.css` (dark in `:root`, light in the `prefers-color-scheme: light` block, tints as hex), `scripts/check_contrast.py`
-  starts reading them from there automatically and the table at the top of the script is deleted. The checker is run by the pre-commit hook.
+- The tokens are in `theme.css` (dark in `:root`, light in `:root[data-theme="light"]`, tints as hex). `scripts/check_contrast.py` reads them from there
+  and fails if the light block or any required token is missing, so light is checked even though nothing applies it. The checker runs in the pre-commit
+  hook. Keep the light block last in the file, written exactly `:root[data-theme="light"] {`.
+- Last migration step: re-enable `prefers-color-scheme` (or add a toggle that sets `data-theme`), switch `color-scheme` to `dark light`, update the
+  checker's block selector if the light rule moves, and delete the legacy tokens.
 - Introduce tokens first (theme.css), then migrate component rules to tokens one stylesheet at a time, running `npm test` and `npm run lint` after each.
 - Tier styles from section 8.2 are added as CSS classes now but are only wired into the verdict and coverage markup in Phase B.
 - Any new dependency, any theme toggle and any change to panel order needs approval first.
