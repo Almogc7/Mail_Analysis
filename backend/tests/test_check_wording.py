@@ -124,9 +124,69 @@ def test_an_allowlisted_negated_disclaimer_passes_by_exact_string_only():
     assert cw.static_hits([cw.StringRef("f", 1, "api text (description)", "  " + text.replace(" ", "   ") + " ")], allowed) == []  # whitespace is normalised
 
 
-def test_the_shipped_allowlist_is_valid_json_and_empty_until_the_cleanup_decides():
+def test_the_shipped_allowlist_has_no_disclaimers_and_one_product_name_with_a_recorded_reason():
     data = json.loads((ROOT / "scripts" / "wording_allowlist.json").read_text(encoding="utf-8"))
     assert data["allowed_exact_strings"] == [] and cw.load_allowlist() == frozenset()
+    assert [e["name"] for e in data["third_party_product_names"]] == ["Microsoft Safe Links"]
+    assert all(e["reason"].strip() for e in data["third_party_product_names"])  # no entry without its reason
+    assert cw.load_product_names() == ("Microsoft Safe Links",)
+
+
+# ---- third-party product names: the exact phrase, wherever it appears -------------------------------------------------------------
+
+PRODUCTS = ("Microsoft Safe Links",)
+
+
+def test_a_product_name_is_ignored_inside_a_longer_string_and_nothing_else_is():
+    assert cw.find_banned(cw.strip_product_names("Hosted on Microsoft Safe Links.", PRODUCTS)) == []
+    sentence = "'x' is on Microsoft Safe Links (link wrapper), a shared platform."
+    assert cw.find_banned(cw.strip_product_names(sentence, PRODUCTS)) == []
+    # another banned word in the same string is still reported
+    assert cw.find_banned(cw.strip_product_names("Hosted on Microsoft Safe Links, and it is not clean.", PRODUCTS)) == ["clean"]
+    assert cw.find_banned(cw.strip_product_names("Hosted on Microsoft Safe Links, and it is safe.", PRODUCTS)) == ["safe"]
+
+
+def test_the_product_name_must_match_exactly_case_included_and_as_a_whole_phrase():
+    for near_miss in ("microsoft safe links", "Microsoft safe Links", "Microsoft Safe Link", "Microsoft Safe Linksx", "Safe Links", "Acme Safe Links"):
+        assert cw.find_banned(cw.strip_product_names(f"Hosted on {near_miss}.", PRODUCTS)) == ["safe"], near_miss
+
+
+def test_a_product_name_passes_in_static_text_the_payload_and_the_prompt_but_the_same_word_elsewhere_fails():
+    ref = cw.StringRef("backend/app/enrichment/shared_platforms.json", 1, "data file (name)", "Microsoft Safe Links")
+    assert cw.static_hits([ref], frozenset(), PRODUCTS) == []
+    assert len(cw.static_hits([cw.StringRef("f", 1, "api text (description)", "It is a safe link.")], frozenset(), PRODUCTS)) == 1
+    p = payload(findings=[{"title": "t", "description": "'x' is on Microsoft Safe Links (link wrapper).", "evidence": {"platform": "Microsoft Safe Links"}}],
+                indicators={"indicators": [{"value": "x", "note": "Hosted on Microsoft Safe Links."}]})
+    assert cw.scan_payload(p, frozenset(), PRODUCTS) == []
+    assert [h.word for h in cw.scan_payload(payload(findings=[{"title": "A safe link", "description": "d", "evidence": {}}]), frozenset(), PRODUCTS)] == ["safe"]
+    assert cw.scan_prompt("[enrichment/info] 'x' is on Microsoft Safe Links", frozenset(), PRODUCTS) == []
+    assert [h.word for h in cw.scan_prompt("[enrichment/info] a safe host", frozenset(), PRODUCTS)] == ["safe"]
+
+
+def test_without_the_allowlist_entry_the_product_name_is_a_hit():
+    assert [h.word for h in cw.scan_payload(payload(indicators={"indicators": [{"value": "x", "note": "Hosted on Microsoft Safe Links."}]}), frozenset(), ())] == ["safe"]
+
+
+# ---- data files: only the fields that surface are wording ---------------------------------------------------------------------------
+
+def test_a_data_file_is_scanned_for_the_display_fields_of_its_entries_and_not_for_its_own_comment_fields(tmp_path):
+    path = tmp_path / "platforms.json"
+    path.write_text(json.dumps({
+        "version": 1,
+        "note": "A comment for maintainers: a lookup says nothing about whether a link is safe, so it is not reported as clean.",
+        "platforms": [{"name": "Acme Safe Links", "kind": "link_wrapper", "note": "It is a clean redirector.", "domains": ["safe.example", "clean.example"]}],
+    }), encoding="utf-8")
+    refs = cw.json_string_refs(path, "backend/app/x.json")
+    assert sorted((r.kind, r.text) for r in refs) == [("data file (name)", "Acme Safe Links"), ("data file (note)", "It is a clean redirector.")]
+    assert all(r.in_scope for r in refs)  # the top-level comment and the domain lists are not scanned at all
+
+
+def test_the_real_platforms_file_has_no_hit_and_its_comment_is_not_even_informational():
+    refs, _ = cw.static_backend(ROOT)
+    platform_refs = [r for r in refs if r.file.endswith("shared_platforms.json")]
+    assert platform_refs and all(r.kind.startswith("data file") for r in platform_refs)
+    assert not any("note" in r.kind and r.text.startswith("Shared platforms:") for r in platform_refs)  # the maintainers' comment is not a scanned string
+    assert [h for h in cw.static_hits(refs, cw.load_allowlist(), cw.load_product_names()) if h.where.endswith("shared_platforms.json:1")] == []
 
 
 def test_a_missing_allowlist_file_means_no_exemptions(tmp_path):
@@ -171,7 +231,7 @@ def test_an_application_note_next_to_message_content_still_fails():
 
 
 def test_a_finding_evidence_value_is_reported_withheld_because_it_may_hold_message_text():
-    hits = cw.scan_payload(payload(findings=[{"title": "t", "description": "d", "evidence": {"platform": "Microsoft Safe Links", "k": "ok"}}]))
+    hits = cw.scan_payload(payload(findings=[{"title": "t", "description": "d", "evidence": {"platform": "Acme Safe Links", "k": "ok"}}]))
     assert [(h.kind, h.word, h.text) for h in hits] == [("finding evidence value (withheld)", "safe", "")]
 
 

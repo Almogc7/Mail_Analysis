@@ -1,4 +1,10 @@
 {
-  "_comment": "Required negated disclaimers that may contain a banned word, by EXACT string (whitespace is normalised before comparing). One entry needs a reason. Adding an entry is an owner-approved change logged in docs/DESIGN_V2.md section 10 (D18, section 2.1). Empty on purpose until the wording cleanup decides which disclaimers, if any, must keep a banned word inside a negation.",
-  "allowed_exact_strings": []
+  "_comment": "Exemptions from the V1 word ban (docs/DESIGN_V2.md section 2.1). Every entry needs a reason; adding one is an owner-approved change logged in section 10. 'allowed_exact_strings' are required negated disclaimers matched as a WHOLE string (whitespace normalised); it is empty because the wording cleanup rewrote the disclaimers instead. 'third_party_product_names' are a third party's proper nouns that contain a banned word: the exact phrase (case-sensitive, whole phrase) is ignored wherever it appears, and any other banned word in the same string is still reported.",
+  "allowed_exact_strings": [],
+  "third_party_product_names": [
+    {
+      "name": "Microsoft Safe Links",
+      "reason": "The name of Microsoft's link-rewriting service, shown because it is the platform a link is hosted on (shared_platforms.json). It is a third party's product name, not the app's own wording, so renaming it would misname the product the analyst is looking at."
+    }
+  ]
 }

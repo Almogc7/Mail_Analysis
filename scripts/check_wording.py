@@ -23,6 +23,8 @@ Exemptions, explicit and closed:
   * the frozen v1 `verdict` value and internal keys, tokens, CSS hooks and type unions (single-word strings, className-style attributes, type positions,
     property names): not user-visible. Single-word banned tokens are COUNTED and listed, never silently dropped;
   * required negated disclaimers, by exact string, in scripts/wording_allowlist.json (empty today);
+  * third-party product names, by exact string (scripts/wording_allowlist.json, each with a reason): the phrase is ignored wherever it appears, any other banned word in the
+    same string is still reported. V1 covers the app's own strings; LLM-generated text appears only inside the card labelled "AI opinion, not a verdict" and is exempt;
   * provider raw-data field names ONLY inside the raw-data block (module_results[*].raw_data): the same word in a label, reason or finding fails;
   * message content (parsed_email and the indicator, link, attachment, image and hop fields that hold message text).
 """
@@ -92,6 +94,25 @@ def is_allowed(text: str, allowed: frozenset[str]) -> bool:
 
 def _has_space(text: str) -> bool:
     return any(c.isspace() for c in text.strip())
+
+
+def load_product_names(path: Path = ALLOWLIST) -> tuple[str, ...]:
+    """Third-party product names allowed to contain a banned word, as exact strings (case-sensitive, whole phrase)."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return ()
+    names = []
+    for entry in data.get("third_party_product_names", []):
+        names.append(entry["name"] if isinstance(entry, dict) else str(entry))
+    return tuple(names)
+
+
+def strip_product_names(text: str, products: tuple[str, ...] | None = None) -> str:
+    """`text` with every allowlisted product name replaced by a space, so only the app's own words are checked."""
+    for name in load_product_names() if products is None else products:
+        text = re.sub("(?<![A-Za-z0-9_])" + re.escape(name) + "(?![A-Za-z0-9_])", " ", text)
+    return text
 
 
 def is_prose(text: str) -> bool:
@@ -212,25 +233,29 @@ def static_backend(root: Path = ROOT) -> tuple[list[StringRef], list[StringRef]]
     return refs, tokens
 
 
+DATA_DISPLAY_FIELDS = ("name", "label", "title", "note", "description")
+
+
 def json_string_refs(path: Path, rel: str) -> list[StringRef]:
-    """Prose strings in a backend data file (for example the display name of a shared platform). Domain lists and other single tokens are not wording."""
+    """The strings of a backend data file that SURFACE in the app: the display fields (name, note, ...) of the entries in its lists, for example the display name of
+    a shared platform. Domain lists, other tokens and the file's own top-level comment fields are not wording."""
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return []
     refs: list[StringRef] = []
 
-    def walk(obj, key: str) -> None:
+    def walk(obj, key: str, in_list: bool) -> None:
         if isinstance(obj, dict):
             for k, v in obj.items():
-                walk(v, str(k))
+                walk(v, str(k), in_list)
         elif isinstance(obj, list):
             for v in obj:
-                walk(v, key)
-        elif isinstance(obj, str) and key != "domains" and is_prose(obj):
-            refs.append(StringRef(rel, 1, f"data file ({key})", obj, key in ("name", "label", "title")))
+                walk(v, key, True)
+        elif isinstance(obj, str) and in_list and key in DATA_DISPLAY_FIELDS and is_prose(obj):
+            refs.append(StringRef(rel, 1, f"data file ({key})", obj, True))
 
-    walk(data, "")
+    walk(data, "", False)  # a string outside a list entry (the file's own note or comment) is documentation, not something the app shows
     return refs
 
 
@@ -286,10 +311,11 @@ class PayloadHit:
     text: str  # a masked template, or '' when withheld
 
 
-def scan_payload(payload, allowed: frozenset[str] = frozenset()) -> list[PayloadHit]:
+def scan_payload(payload, allowed: frozenset[str] = frozenset(), products: tuple[str, ...] | None = None) -> list[PayloadHit]:
     """Scan a JSON-like analysis payload. Values AND field names are checked, except in message-content paths and inside the raw-data block (where a
     provider's own field names, for example VirusTotal's `harmless` count, are exempt). The frozen v1 `verdict` value is exempt."""
     hits: list[PayloadHit] = []
+    products = load_product_names() if products is None else products
 
     def walk(obj, path: str) -> None:
         npath = _norm_path(path)
@@ -311,7 +337,7 @@ def scan_payload(payload, allowed: frozenset[str] = frozenset()) -> list[Payload
                 return
             if is_allowed(obj, allowed):
                 return
-            for word in dict.fromkeys(find_banned(obj)):
+            for word in dict.fromkeys(find_banned(strip_product_names(obj, products))):
                 if EVIDENCE_VALUE.match(npath):
                     hits.append(PayloadHit(npath, "finding evidence value (withheld)", word, ""))
                 else:
@@ -321,18 +347,18 @@ def scan_payload(payload, allowed: frozenset[str] = frozenset()) -> list[Payload
     return hits
 
 
-def scan_prompt(prompt: str, allowed: frozenset[str] = frozenset()) -> list[PayloadHit]:
+def scan_prompt(prompt: str, allowed: frozenset[str] = frozenset(), products: tuple[str, ...] | None = None) -> list[PayloadHit]:
     """The text sent to the LLM. It has NO exemption: the raw v1 value `benign` must never be in it (the verdict goes through verdict_label)."""
     hits: list[PayloadHit] = []
     for line in prompt.splitlines():
         if is_allowed(line, allowed):
             continue
-        for word in dict.fromkeys(find_banned(line)):
+        for word in dict.fromkeys(find_banned(strip_product_names(line, products))):
             hits.append(PayloadHit("llm_prompt", "llm prompt", word, mask_template(line, word)))
     return hits
 
 
-def runtime_hits(allowed: frozenset[str] = frozenset(), corpus_dir: Path | None = None) -> list[PayloadHit]:
+def runtime_hits(allowed: frozenset[str] = frozenset(), corpus_dir: Path | None = None, products: tuple[str, ...] | None = None) -> list[PayloadHit]:
     """The pipeline over the fixtures and the TUNING corpus (never the hold-out), four ways (STRICT and CONFIGURED, clean and unknown enrichment).
     `corpus_dir` replaces the local tuning corpus (a test passes an empty folder to scan the committed fixtures only)."""
     import logging
@@ -361,7 +387,7 @@ def runtime_hits(allowed: frozenset[str] = frozenset(), corpus_dir: Path | None 
                     evidence = build_evidence(res.parsed_email, res.module_results, pack)
                     coverage = build_coverage_report(res.parsed_email, res.module_results, evidence)
                     full = res.model_copy(update={"indicators": visible_pack(pack), "evidence": evidence, "coverage_report": coverage})
-                    for hit in scan_payload(full.model_dump(mode="json"), allowed) + scan_prompt(build_prompt(full), allowed):
+                    for hit in scan_payload(full.model_dump(mode="json"), allowed, products) + scan_prompt(build_prompt(full), allowed, products):
                         key = (hit.path, hit.kind, hit.word, window_around(hit.text, hit.word, 3) if hit.text else "")
                         if key not in seen:
                             seen.add(key)
@@ -478,12 +504,12 @@ def possible_hits(refs: list[StringRef]) -> list[StringRef]:
     return [r for r in refs if r.kind == "f-string interpolates a verdict value" and r.in_scope]
 
 
-def static_hits(refs: list[StringRef], allowed: frozenset[str]) -> list[Hit]:
+def static_hits(refs: list[StringRef], allowed: frozenset[str], products: tuple[str, ...] | None = None) -> list[Hit]:
     hits: list[Hit] = []
     for ref in refs:
         if not ref.in_scope or is_allowed(ref.text, allowed) or ref.kind == "f-string interpolates a verdict value":
             continue
-        for word in dict.fromkeys(find_banned(ref.text)):
+        for word in dict.fromkeys(find_banned(strip_product_names(ref.text, products))):
             proposal, basis = propose(normalise(ref.text))
             hits.append(Hit("static", f"{ref.file}:{ref.line}", ref.kind, word, normalise(ref.text), proposal, basis))
     return hits
@@ -564,6 +590,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT, runtime: bool | None 
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     allowed = load_allowlist()
+    products = load_product_names()
     warnings: list[str] = []
 
     be_refs, be_tokens = static_backend(root)
@@ -571,13 +598,13 @@ def main(argv: list[str] | None = None, root: Path = ROOT, runtime: bool | None 
     if warn:
         warnings.append(warn)
     refs, tokens = be_refs + fe_refs, be_tokens + fe_tokens
-    static = static_hits(refs, allowed)
-    informational = [r for r in refs if not r.in_scope and find_banned(r.text) and not is_allowed(r.text, allowed)]
+    static = static_hits(refs, allowed, products)
+    informational = [r for r in refs if not r.in_scope and find_banned(strip_product_names(r.text, products)) and not is_allowed(r.text, allowed)]
 
     do_runtime = (not args.static) if runtime is None else runtime
     rt: list[Hit] = []
     if do_runtime:
-        rt = runtime_to_hits(runtime_hits(allowed), static)
+        rt = runtime_to_hits(runtime_hits(allowed, products=products), static)
     if not args.no_tests:
         find_tests(root, static + rt)
     print_report(static, rt, informational, tokens, warnings, possible_hits(refs))
