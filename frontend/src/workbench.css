@@ -86,7 +86,8 @@
 
 /* Buttons inside workbench panels: neutral, 28px high, never narrower than 24px. Hover changes the border to --text-secondary and the
    background to --bg-panel-raised, with no hue change: the focus colour is reserved for keyboard focus. */
-.wb-panel button {
+.wb-panel button,
+.wb-btn {
   min-height: 28px;
   min-width: 24px;
   padding: 0 var(--space-3);
@@ -99,9 +100,36 @@
   cursor: pointer;
   transition: border-color 100ms, background-color 100ms;
 }
-.wb-panel button:hover:not(:disabled) { border-color: var(--text-secondary); background: var(--bg-panel-raised); }
-.wb-panel button:disabled { opacity: 0.6; cursor: not-allowed; }
-.wb-panel :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wb-panel button:hover:not(:disabled),
+.wb-btn:hover:not(:disabled) { border-color: var(--text-secondary); background: var(--bg-panel-raised); }
+.wb-panel button:disabled,
+.wb-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.wb-panel :focus-visible,
+.wb-btn:focus-visible,
+.wb-nav :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Collapsible headers: a real button inside the heading, aria-expanded on the button, the count in its text. */
+.wb-title--toggle { margin: 0; }
+.wb-btn.wb-disclosure {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  justify-content: flex-start;
+  text-align: start;
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+.wb-caret { font-family: var(--font-ui); }
+/* A section without its own card: a header button, then the content. */
+.wb-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+}
 .wb-toggle { align-self: flex-start; }
 .wb-copy-state { color: var(--text-secondary); font-size: var(--text-sm); margin-inline-start: var(--space-2); }
 
@@ -131,7 +159,7 @@
 .hop--trusted::before { background: var(--text-secondary); }
 
 @media (prefers-reduced-motion: reduce) {
-  .wb-panel button { transition: none; }
+  .wb-panel button, .wb-btn { transition: none; }
 }
 
 /* Forced colors (Windows high contrast): backgrounds and hues are replaced by the system palette, so every mark here is carried by borders,
@@ -142,7 +170,7 @@
   .hop-list { border-inline-start-color: CanvasText; }
   .hop::before { background: Canvas; border: 2px solid CanvasText; }
   .hop--origin::before { border-radius: 0; }
-  .wb-panel button { border-color: ButtonBorder; }
-  .wb-panel :focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
-  .wb-panel button:hover:not(:disabled) { border-width: 2px; padding: 0 calc(var(--space-3) - 1px); }
+  .wb-panel button, .wb-btn { border-color: ButtonBorder; }
+  .wb-panel :focus-visible, .wb-btn:focus-visible, .wb-nav :focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+  .wb-panel button:hover:not(:disabled), .wb-btn:hover:not(:disabled) { border-width: 2px; padding: 0 calc(var(--space-3) - 1px); }
 }

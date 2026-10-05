@@ -1,6 +1,6 @@
 import type { AnalysisResult } from '../types'
 import { SummaryCard } from './SummaryCard'
-import { ModulePanel } from './ModulePanel'
+import { ModuleDetailSection } from './ModuleDetailSection'
 import { LlmOpinionCard } from './LlmOpinionCard'
 import { FeedbackBar } from './FeedbackBar'
 import { IndicatorsPanel } from './IndicatorsPanel'
@@ -53,12 +53,7 @@ export function ResultsView({ result, onReset, jobId }: ResultsViewProps) {
 
       <IndicatorsPanel pack={result.indicators} />
 
-      <h2 className="wb-title">Detail by module</h2>
-      <div className="module-panels">
-        {orderedModules.map((m) => (
-          <ModulePanel result={m} key={m.module} />
-        ))}
-      </div>
+      <ModuleDetailSection modules={orderedModules} />
 
       {evidence && <RawHeadersPanel headers={result.parsed_email.headers} />}
 

@@ -39,11 +39,14 @@ describe('BodyPanel', () => {
   })
 })
 
+const openImages = () => fireEvent.click(screen.getByRole('button', { name: /^Images \(\d+\)$/ }))
+
 describe('ImagesPanel', () => {
   it('lists images without drawing any, and says QR codes are not decoded', () => {
     const { container } = render(
       <ImagesPanel images={[{ source: 'html', host: 'track.example.org', url_defanged: 'hxxps://track[.]example[.]org/p.gif', filename: null, size_bytes: null, decoded: null }]} />,
     )
+    openImages()
     expect(container.querySelector('img, picture, canvas, svg, [src]')).toBeNull()
     expect(screen.getByText('hxxps://track[.]example[.]org/p.gif')).toBeInTheDocument()
     expect(screen.getByText(/QR codes in images are not decoded yet/i)).toBeInTheDocument()
@@ -52,12 +55,14 @@ describe('ImagesPanel', () => {
 
   it('renders an attached image by filename, as text', () => {
     const { container } = render(<ImagesPanel images={[{ source: 'attachment', host: null, url_defanged: null, filename: HOSTILE, size_bytes: 10, decoded: null }]} />)
+    openImages()
     expect(container.querySelector('img, script, b')).toBeNull()
     expect(container.textContent).toContain(HOSTILE)
   })
 
   it('says so when there are none', () => {
     render(<ImagesPanel images={[]} />)
+    openImages()
     expect(screen.getByText('No images found.')).toBeInTheDocument()
   })
 })

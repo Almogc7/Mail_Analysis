@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { ResultsView } from './ResultsView'
 import { makeAnalysisResult, makeCoverageItem, makeEvidence, makeModuleResult } from '../test/fixtures'
@@ -27,6 +27,7 @@ describe('ResultsView', () => {
       ],
     })
     render(<ResultsView result={result} onReset={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Detail by module/ }))
 
     expect(screen.getByText(/this check could not run: boom/i)).toBeInTheDocument()
     expect(screen.getAllByText('No findings.')).toHaveLength(2)

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { FindingsByFamily, familyOf } from './FindingsByFamily'
 import { ResultsView } from './ResultsView'
@@ -101,7 +101,8 @@ describe('ResultsView keeps the per-module detail next to the family view', () =
       evidence: undefined,
     })
     render(<ResultsView result={result} onReset={vi.fn()} />)
-    expect(screen.getByRole('heading', { name: 'Detail by module' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^Detail by module/ })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^Detail by module/ }))  // the module detail is collapsed by default
     expect(screen.getByRole('region', { name: 'Findings by family' })).toBeInTheDocument()
     expect(screen.getAllByText('SPF check failed')).toHaveLength(2) // once in the family view, once in its module
     const family = screen.getByRole('region', { name: 'Findings by family' })

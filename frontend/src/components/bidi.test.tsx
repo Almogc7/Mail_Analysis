@@ -61,6 +61,7 @@ describe('email-derived text carries dir="auto"', () => {
     expect(dirOf(`${HEBREW}.pdf`)).toBe('auto')
     unmount()
     render(<ImagesPanel images={[{ source: 'attachment', host: null, url_defanged: null, filename: `${HEBREW}.png`, size_bytes: 1, decoded: null }]} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Images (1)' }))  // the images panel is collapsed by default
     expect(dirOf(`${HEBREW}.png`)).toBe('auto')
   })
 
@@ -99,6 +100,7 @@ describe('email-derived text carries dir="auto"', () => {
 
     const images = render(<ImagesPanel images={[{ source: 'attachment', host: null, url_defanged: null, filename: `${HEBREW}.png`, size_bytes: 1, decoded: null },
       { source: 'html', host: 'x.example', url_defanged: 'hxxps://x[.]example/i.png', filename: null, size_bytes: null, decoded: null }]} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Images (2)' }))
     expect(screen.getByText(`${HEBREW}.png`)).toHaveClass('wb-text')
     expect(screen.getByText('hxxps://x[.]example/i.png')).toHaveClass('wb-mono')
     images.unmount()
