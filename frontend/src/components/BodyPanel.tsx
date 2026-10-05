@@ -28,7 +28,7 @@ export function BodyPanel({ body, text }: { body: BodyInfo; text: string | null 
       </button>
       {open &&
         (text ? (
-          <pre className="wb-pre" aria-label="Body text" dir="auto">{text}</pre>
+          <pre className="wb-pre wb-pre--text" tabIndex={0} aria-label="Body text" dir="auto">{text}</pre>
         ) : (
           <p className="wb-note">{body.has_html ? 'This message has only an HTML part. It is not rendered here.' : 'This message has no body text.'}</p>
         ))}

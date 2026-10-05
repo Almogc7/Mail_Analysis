@@ -15,7 +15,7 @@ export function RawHeadersPanel({ headers }: { headers: HeaderField[] }) {
         </button>
         <CopyButton text={text} label="Copy headers" />
       </div>
-      {open && (headers.length === 0 ? <p className="wb-note">No headers.</p> : <pre className="wb-pre" aria-label="Header text" dir="auto">{text}</pre>)}
+      {open && (headers.length === 0 ? <p className="wb-note">No headers.</p> : <pre className="wb-pre" tabIndex={0} aria-label="Header text" dir="auto">{text}</pre>)}
     </section>
   )
 }

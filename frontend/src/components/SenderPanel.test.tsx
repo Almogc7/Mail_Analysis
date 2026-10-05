@@ -16,7 +16,10 @@ describe('SenderPanel', () => {
   it('shows From, Reply-To and Return-Path, and says "none" rather than leaving a gap', () => {
     const ev = makeEvidence()
     render(<SenderPanel sender={ev.sender} hops={[]} />)
-    expect(screen.getByText('Alice <alice@example.com>')).toBeInTheDocument()
+    // The display name (human language) and the address (machine token) are separate elements; the cell still reads as one value.
+    expect(screen.getByText((_, el) => el?.tagName === 'TD' && el.textContent === 'Alice <alice@example.com>')).toBeInTheDocument()
+    expect(screen.getByText('Alice')).toHaveClass('wb-text')
+    expect(screen.getByText('<alice@example.com>')).toHaveClass('wb-mono')
     expect(screen.getAllByText('none')).toHaveLength(2)
   })
 

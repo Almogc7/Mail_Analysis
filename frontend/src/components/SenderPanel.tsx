@@ -1,9 +1,15 @@
 import { useState } from 'react'
 import type { AuthRow, EmailAddress, HopEntry, SenderEvidence } from '../types'
 
-function addr(a: EmailAddress | null): string {
-  if (!a || !a.address) return 'none'
-  return a.display_name ? `${a.display_name} <${a.address}>` : a.address
+/** A display name is human language (UI font); the address is a machine token (mono). Each gets its own element and its own dir="auto". */
+function Addr({ a }: { a: EmailAddress | null }) {
+  if (!a || !a.address) return <>none</>
+  return (
+    <>
+      {a.display_name && <><span className="wb-text" dir="auto">{a.display_name}</span>{' '}</>}
+      <span className="wb-mono" dir="auto">{a.display_name ? `<${a.address}>` : a.address}</span>
+    </>
+  )
 }
 
 function delay(seconds: number | null): string | null {
@@ -99,9 +105,9 @@ export function SenderPanel({ sender, hops }: { sender: SenderEvidence; hops: Ho
           <h3 className="wb-subtitle">Addresses</h3>
           <table className="wb-table">
             <tbody>
-              <tr><th scope="row">From</th><td className="wb-mono" dir="auto">{addr(sender.from_address)}</td></tr>
-              <tr><th scope="row">Reply-To</th><td className="wb-mono" dir="auto">{addr(sender.reply_to)}</td></tr>
-              <tr><th scope="row">Return-Path</th><td className="wb-mono" dir="auto">{addr(sender.return_path)}</td></tr>
+              <tr><th scope="row">From</th><td dir="auto"><Addr a={sender.from_address} /></td></tr>
+              <tr><th scope="row">Reply-To</th><td dir="auto"><Addr a={sender.reply_to} /></td></tr>
+              <tr><th scope="row">Return-Path</th><td dir="auto"><Addr a={sender.return_path} /></td></tr>
             </tbody>
           </table>
           {sender.mismatches.length > 0 && (

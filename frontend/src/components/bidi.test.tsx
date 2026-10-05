@@ -38,7 +38,10 @@ describe('email-derived text carries dir="auto"', () => {
       timestamp: null, delay_seconds_from_previous: null, clock_skew: false, trusted_receiver: false, is_origin: true }
     render(<SenderPanel sender={ev.sender} hops={[hop]} />)
     fireEvent.click(screen.getByRole('button', { name: /show path/i }))
-    expect(dirOf(new RegExp(HEBREW + ' <a@example.com>'))).toBe('auto')
+    const fromCell = screen.getByText((_, el) => el?.tagName === 'TD' && el.textContent === `${HEBREW} <a@example.com>`)
+    expect(fromCell).toHaveAttribute('dir', 'auto')
+    expect(dirOf(HEBREW)).toBe('auto')
+    expect(dirOf('<a@example.com>')).toBe('auto')
     expect(dirOf(`${HEBREW} mismatch`)).toBe('auto')
     expect(dirOf(/host-שרת\.example/)).toBe('auto')
   })
@@ -69,6 +72,47 @@ describe('email-derived text carries dir="auto"', () => {
     render(<RawHeadersPanel headers={[{ name: 'Subject', value: HEBREW }]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Show headers' }))
     expect(screen.getByLabelText('Header text')).toHaveAttribute('dir', 'auto')
+  })
+
+  // Human-language Hebrew uses the UI font (the mono faces have no complete Hebrew coverage); machine tokens stay mono. Each keeps dir="auto".
+  it('Hebrew human-language text is on the UI font class and machine tokens on the mono class', () => {
+    const ev = makeEvidence()
+    ev.sender.from_address = { display_name: HEBREW, address: 'a@example.com', domain: 'example.com' }
+    const sender = render(<SenderPanel sender={ev.sender} hops={[]} />)
+    expect(screen.getByText(HEBREW)).toHaveClass('wb-text')
+    expect(screen.getByText('<a@example.com>')).toHaveClass('wb-mono')
+    sender.unmount()
+
+    const link: LinkEntry = { url: 'https://x.example/a', url_defanged: 'hxxps://x[.]example/a', host: 'x.example', registrable_domain: 'x.example', display_text: HEBREW, kind: 'direct',
+      platform: null, anchor_mismatch: false, occurrences: 1, sources: ['html'], status: 'unknown' }
+    const links = render(<LinksPanel links={[link]} />)
+    expect(screen.getByText(HEBREW)).toHaveClass('wb-text')
+    expect(screen.getByText('hxxps://x[.]example/a')).toHaveClass('wb-mono')
+    links.unmount()
+
+    const att: AttachmentEntry = { filename: `${HEBREW}.pdf`, declared_type: 'application/pdf', detected_type: null, extension: 'pdf', size_bytes: 1, sha256: 'a'.repeat(64),
+      risk_class: 'document', active_content: false, double_extension: false, static_analysis: null }
+    const attachments = render(<AttachmentsPanel attachments={[att]} />)
+    expect(screen.getByText(`${HEBREW}.pdf`)).toHaveClass('wb-text')
+    expect(screen.getByText('a'.repeat(64))).toHaveClass('wb-mono')
+    attachments.unmount()
+
+    const images = render(<ImagesPanel images={[{ source: 'attachment', host: null, url_defanged: null, filename: `${HEBREW}.png`, size_bytes: 1, decoded: null },
+      { source: 'html', host: 'x.example', url_defanged: 'hxxps://x[.]example/i.png', filename: null, size_bytes: null, decoded: null }]} />)
+    expect(screen.getByText(`${HEBREW}.png`)).toHaveClass('wb-text')
+    expect(screen.getByText('hxxps://x[.]example/i.png')).toHaveClass('wb-mono')
+    images.unmount()
+
+    const body = render(<BodyPanel body={makeEvidence().body} text={HEBREW} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Show body text' }))
+    expect(screen.getByLabelText('Body text')).toHaveClass('wb-pre--text')
+    expect(screen.getByLabelText('Body text')).toHaveAttribute('tabindex', '0')
+    body.unmount()
+
+    render(<RawHeadersPanel headers={[{ name: 'Subject', value: HEBREW }]} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Show headers' }))
+    expect(screen.getByLabelText('Header text')).not.toHaveClass('wb-pre--text')
+    expect(screen.getByLabelText('Header text')).toHaveAttribute('tabindex', '0')
   })
 
   it('an indicator value and its file name, and a coverage subject', () => {

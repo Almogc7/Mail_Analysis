@@ -44,7 +44,7 @@ export function LinksPanel({ links }: { links: LinkEntry[] }) {
                 {l.anchor_mismatch && <span className="wb-badge wb-badge--warn">shown text names a different place</span>}{' '}
                 {l.occurrences > 1 && <span className="wb-badge">seen {l.occurrences} times</span>}
               </div>
-              {l.display_text && <div className="wb-small">Shown to the reader as: <span className="wb-mono" dir="auto">{l.display_text}</span></div>}
+              {l.display_text && <div className="wb-small">Shown to the reader as: <span className="wb-text" dir="auto">{l.display_text}</span></div>}
               {l.sources.length > 0 && <div className="wb-small">Found in: {l.sources.join(', ')}</div>}
             </li>
           ))}

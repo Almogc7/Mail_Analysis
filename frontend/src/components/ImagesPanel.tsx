@@ -14,7 +14,7 @@ export function ImagesPanel({ images }: { images: ImageEntry[] }) {
             <li key={i} className="wb-row">
               <div className="wb-row-main">
                 <span className="wb-badge">{img.source === 'html' ? 'remote image in the HTML' : 'attached image'}</span>
-                <span className="wb-mono" dir="auto">{img.url_defanged ?? img.filename ?? '(unnamed)'}</span>
+                <span className={img.url_defanged ? 'wb-mono' : 'wb-text'} dir="auto">{img.url_defanged ?? img.filename ?? '(unnamed)'}</span>
               </div>
               <div className="wb-small">
                 {[img.host ? `host ${img.host}` : null, img.size_bytes !== null ? `${img.size_bytes} bytes` : null, img.decoded === null ? 'not decoded' : `${img.decoded.length} code(s) decoded`]

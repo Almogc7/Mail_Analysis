@@ -20,7 +20,7 @@ export function AttachmentsPanel({ attachments }: { attachments: AttachmentEntry
           {attachments.map((a, i) => (
             <li key={i} className={`wb-row${a.active_content || a.double_extension ? ' wb-row--notice' : ''}`}>
               <div className="wb-row-main">
-                <strong className="wb-mono" dir="auto">{a.filename ?? '(no filename)'}</strong>
+                <strong className="wb-text" dir="auto">{a.filename ?? '(no filename)'}</strong>
                 <span className="wb-badge">{a.risk_class.replaceAll('_', ' ')}</span>
                 {a.active_content && <span className="wb-badge wb-badge--warn">can run or contain code</span>}
                 {a.double_extension && <span className="wb-badge wb-badge--warn">double extension</span>}
