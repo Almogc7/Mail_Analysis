@@ -1,27 +1,148 @@
-/* Workbench panels (docs/DESIGN_V2.md, phase A). Everything here is for text shown as TEXT: nothing renders HTML, loads an image or makes a link
-   clickable. Long indicators wrap instead of overflowing. Neutral colours only for "no indicators found": no green, no check mark. */
-.wb-panel { display: flex; flex-direction: column; gap: var(--space-3); }
-.wb-title { margin: 0; font-size: 1.05em; }
-.wb-lead { margin: 0; color: var(--text-secondary); font-size: 0.9em; }
-.wb-note { color: var(--text-secondary); font-size: 0.85em; margin: 0; }
+/* Workbench panels (docs/UI_DESIGN.md). Everything here is for text shown as TEXT: nothing renders HTML, loads an image or makes a link
+   clickable. Long indicators wrap instead of overflowing. Neutral colours only for "no indicators found": no green, no check mark.
+   Colours come from the tokens in theme.css only (no hex, rgb() or hsl() here, no color-mix()); a test enforces that.
+   Machine tokens (addresses, hosts, URLs, hashes, IPs, raw header lines) use .wb-mono; human-language text uses .wb-text or the panel's UI font. */
+
+/* .wb-panel is always combined with .view-card (app.css, loaded later), so the doubled selector wins the padding. */
+.wb-panel.view-card { padding: var(--space-3); }
+.wb-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+}
+.wb-title { margin: 0; font-family: var(--font-ui); font-size: var(--text-md); line-height: var(--leading-md); font-weight: 600; }
+.wb-lead { margin: 0; color: var(--text-secondary); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.wb-note { color: var(--text-secondary); font-size: var(--text-sm); line-height: var(--leading-sm); margin: 0; }
 .wb-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4); }
-.wb-subtitle { margin: 0 0 var(--space-2); font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); }
+.wb-subtitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
 .wb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.wb-row { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-2) var(--space-3); background: var(--bg-panel-raised); }
-.wb-row--notice { border-color: var(--accent-amber); }
+.wb-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-3);
+  background: var(--bg-panel-raised);
+  text-align: start;
+}
+/* Attention: amber border plus a wider edge on the reading-start side, so it is not colour alone; the words are in the badges. */
+.wb-row--notice { border-color: var(--notice); border-inline-start-width: 3px; }
 .wb-row-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); }
-.wb-mono { font-family: var(--font-mono); word-break: break-all; overflow-wrap: anywhere; }
-.wb-small { font-size: 0.85em; color: var(--text-secondary); margin-top: var(--space-1); }
-.wb-badge { font-size: 0.75em; padding: 0 var(--space-2); border-radius: var(--radius); border: 1px solid var(--border); color: var(--text-secondary); white-space: nowrap; }
-.wb-badge--warn { border-color: var(--accent-amber); color: var(--accent-amber); }
-.wb-badge--info { border-color: var(--accent-cyan); color: var(--accent-cyan); }
-.wb-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-.wb-table th, .wb-table td { text-align: left; padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--border-muted); vertical-align: top; }
-.wb-pre { margin: 0; padding: var(--space-3); background: var(--bg-muted); border: 1px solid var(--border); border-radius: var(--radius); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24rem; overflow: auto; font-family: var(--font-mono); font-size: 0.85em; }
+
+/* Machine tokens in mono; human-language values in the UI font. Neither is ever styled as a link (no underline, no link colour). */
+.wb-mono { font-family: var(--font-mono); font-size: var(--text-sm); word-break: break-all; overflow-wrap: anywhere; }
+.wb-text { font-family: var(--font-ui); overflow-wrap: anywhere; }
+.wb-small { font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-secondary); margin-top: var(--space-1); }
+
+.wb-badge {
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: 600;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-control);
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.wb-badge--warn { border-color: var(--notice); color: var(--notice); }
+.wb-badge--info { border-color: var(--text-secondary); }
+
+.wb-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); line-height: var(--leading-sm); }
+.wb-table th, .wb-table td {
+  text-align: start;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.wb-table th { font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); }
+
+/* Raw header block: machine text, mono. The body text uses .wb-pre--text (human language). tabindex="0" on the element makes the scroll area reachable. */
+.wb-pre {
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 24rem;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  text-align: start;
+}
+.wb-pre--text { font-family: var(--font-ui); font-size: var(--text-base); line-height: var(--leading-base); }
+
+/* Buttons inside workbench panels: neutral, 28px high, never narrower than 24px. Hover changes the border to --text-secondary and the
+   background to --bg-panel-raised, with no hue change: the focus colour is reserved for keyboard focus. */
+.wb-panel button {
+  min-height: 28px;
+  min-width: 24px;
+  padding: 0 var(--space-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 100ms, background-color 100ms;
+}
+.wb-panel button:hover:not(:disabled) { border-color: var(--text-secondary); background: var(--bg-panel-raised); }
+.wb-panel button:disabled { opacity: 0.6; cursor: not-allowed; }
+.wb-panel :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .wb-toggle { align-self: flex-start; }
-.wb-copy-state { color: var(--text-secondary); font-size: 0.8em; margin-left: var(--space-2); }
-.hop-list { list-style: none; margin: 0; padding: 0 0 0 var(--space-3); border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: var(--space-3); }
-.hop { position: relative; padding-left: var(--space-3); }
-.hop::before { content: ''; position: absolute; left: calc(-1 * var(--space-3) - 5px); top: 0.5em; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
-.hop--origin::before { background: var(--accent-amber); }
-.hop--trusted::before { background: var(--accent-cyan); }
+.wb-copy-state { color: var(--text-secondary); font-size: var(--text-sm); margin-inline-start: var(--space-2); }
+
+/* Hop timeline: a rail on the reading-start side and an 8px marker. The role is always also written (badges), never the marker alone. */
+.hop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  padding-inline-start: var(--space-3);
+  border-inline-start: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.hop { position: relative; padding-inline-start: var(--space-3); }
+.hop::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--space-3) - 5px);
+  top: 0.5em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+.hop--origin::before { background: var(--notice); border-radius: 0; }
+.hop--trusted::before { background: var(--text-secondary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-panel button { transition: none; }
+}
+
+/* Forced colors (Windows high contrast): backgrounds and hues are replaced by the system palette, so every mark here is carried by borders,
+   border width and style, the focus outline and the written labels. System colour keywords only. */
+@media (forced-colors: active) {
+  .wb-panel.view-card, .wb-row, .wb-badge, .wb-pre, .wb-table th, .wb-table td { border-color: CanvasText; }
+  .wb-row--notice { border-inline-start-width: 4px; }
+  .hop-list { border-inline-start-color: CanvasText; }
+  .hop::before { background: Canvas; border: 2px solid CanvasText; }
+  .hop--origin::before { border-radius: 0; }
+  .wb-panel button { border-color: ButtonBorder; }
+  .wb-panel :focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+  .wb-panel button:hover:not(:disabled) { border-width: 2px; padding: 0 calc(var(--space-3) - 1px); }
+}
