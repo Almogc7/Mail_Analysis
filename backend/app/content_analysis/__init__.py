@@ -4,6 +4,7 @@ from app.content_analysis.text_utils import LanguageInfo, detect_language, get_s
 from app.content_analysis.urgency import detect_urgency
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding, ModuleResult
+from app.finding_codes import code as finding_code
 
 MODULE_NAME = "content_analysis"
 
@@ -37,6 +38,7 @@ def _urgency_finding(matches: list[str]) -> Finding:
         module=MODULE_NAME,
         severity=_urgency_severity(len(matches)),
         title="Urgency/pressure language detected",
+        code=finding_code("CONTENT_URGENCY_LANGUAGE"),
         description=f"Matched {len(matches)} urgency/pressure phrase(s): {', '.join(matches)}.",
         evidence={"matched_phrases": matches},
         weight=min(5.0 * len(matches), 25.0),
@@ -50,6 +52,7 @@ def _brand_impersonation_finding(mismatches: list[dict]) -> Finding:
         module=MODULE_NAME,
         severity="high",
         title=f"Body content claims to be '{first['brand']}' but a linked URL doesn't match its domain",
+        code=finding_code("CONTENT_BRAND_LINK_MISMATCH"),
         description=(
             f"Body mentions brand(s) [{brands}], but a link displaying "
             f"'{first['anchor_text']}' actually points to '{first['domain']}'."
@@ -72,6 +75,7 @@ def _greeting_mismatch_finding(greeting: str, urgency_matches: list[str]) -> Fin
         module=MODULE_NAME,
         severity="medium",
         title="Generic greeting combined with personalized account claim",
+        code=finding_code("CONTENT_GREETING_PERSONAL_CLAIM"),
         description=(
             f"Email opens with a generic greeting ('{greeting}') but claims personalized/"
             f"account-specific action is needed: {', '.join(urgency_matches)}."
@@ -101,6 +105,14 @@ _LANGUAGE_FINDINGS = {
 }
 
 
+# The finding code of each language status (one code per kind; see app/finding_codes.py).
+_LANGUAGE_CODES = {
+    "unsupported": "CONTENT_LANGUAGE_UNSUPPORTED",
+    "none": "CONTENT_LANGUAGE_NO_TEXT",
+    "undetermined": "CONTENT_LANGUAGE_UNDETERMINED",
+}
+
+
 def _language_finding(language: LanguageInfo) -> Finding | None:
     template = _LANGUAGE_FINDINGS.get(language.status)
     if template is None:
@@ -110,6 +122,7 @@ def _language_finding(language: LanguageInfo) -> Finding | None:
         module=MODULE_NAME,
         severity="info",
         title=title,
+        code=finding_code(_LANGUAGE_CODES[language.status]),
         description=description.format(language=language.language, reason=language.reason),
         evidence=language.as_dict(),
         weight=0.0,

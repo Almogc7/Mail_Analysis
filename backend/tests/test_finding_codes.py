@@ -98,12 +98,6 @@ def test_the_contract_accepts_a_well_formed_code_and_rejects_a_malformed_one():
 
 # ---- the producers ----------------------------------------------------------------------------------------------------------------------
 
-# Files that still construct a Finding without a code. Each producer commit removes its files from this set; it ends empty.
-NOT_YET = {
-    "app/content_analysis/__init__.py", "app/content_analysis/links.py",
-}
-
-
 def _construction_sites_without_a_code():
     """{relative file: [line, ...]} of every Finding(...) call in backend/app that does not pass `code=`."""
     missing: dict[str, list[int]] = {}
@@ -118,9 +112,5 @@ def _construction_sites_without_a_code():
     return missing
 
 
-def test_every_finding_construction_site_passes_a_code_except_the_files_not_yet_converted():
-    missing = _construction_sites_without_a_code()
-    unexpected = {f: lines for f, lines in missing.items() if f not in NOT_YET}
-    assert unexpected == {}, f"a Finding is built without code=: {unexpected}"
-    converted_but_listed = sorted(f for f in NOT_YET if f not in missing)
-    assert converted_but_listed == [], f"these files are fully converted: remove them from NOT_YET: {converted_but_listed}"
+def test_every_finding_construction_site_passes_a_code():
+    assert _construction_sites_without_a_code() == {}, "a Finding is built without code= (a new kind of finding needs a registry entry and a code first)"

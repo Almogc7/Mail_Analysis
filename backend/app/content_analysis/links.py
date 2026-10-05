@@ -12,6 +12,7 @@ from urllib.parse import parse_qsl, urlsplit
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding
 from app.enrichment.policy import platform_of
+from app.finding_codes import code as finding_code
 from app.parser.preprocess import clean_subject
 from app.shared.matching import registrable_domain
 
@@ -193,8 +194,12 @@ def redirector_links(parsed: ParsedEmail) -> dict | None:
     return {"shorteners": sorted(shorteners), "open_redirect_hosts": sorted(redirects)}
 
 
+# The finding code of each link signal (one code per kind; see app/finding_codes.py).
+_CODES = {"L1": "CONTENT_LINK_TRACKER_PLATFORM_MISMATCH", "L2": "CONTENT_LINK_HOTLINKED_ASSETS", "L3": "CONTENT_LINK_REDIRECTOR"}
+
+
 def _finding(signal: str, severity: str, weight: float, title: str, description: str, evidence: dict) -> Finding:
-    return Finding(module=MODULE_NAME, severity=severity, title=title, description=description, weight=weight,
+    return Finding(module=MODULE_NAME, severity=severity, title=title, description=description, weight=weight, code=finding_code(_CODES[signal]),
                    evidence={**evidence, "structural": True, "family": FAMILY, "signal": signal})
 
 
