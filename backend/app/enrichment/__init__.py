@@ -4,6 +4,7 @@ from typing import Any
 from app.config import MAX_HASHES_TO_ENRICH, MAX_URLS_TO_ENRICH
 from app.contracts.email import ParsedEmail
 from app.contracts.findings import Finding, ModuleResult
+from app.finding_codes import code as finding_code
 from app.enrichment import providers as provider_package  # not "providers": functions below have a local of that name
 from app.enrichment.policy import (
     EnrichmentPolicy,
@@ -84,6 +85,7 @@ def _skip_finding(ioc_kind: str, ioc_value: str, priority: int | None = None, re
         module=MODULE_NAME,
         severity="low",
         title=f"Not enriched: per-email limit reached ({ioc_kind})",
+        code=finding_code("ENRICH_SKIPPED_PER_EMAIL_LIMIT"),
         description=(
             f"{ioc_kind.capitalize()} '{ioc_value}' was not looked up because this email exceeded the per-email "
             f"enrichment limit; the riskiest indicators are looked up first.{detail} It is UNKNOWN (no answer), which is not the same as 'nothing found'."
@@ -103,6 +105,7 @@ def _incomplete_findings(ioc_value: str, provider_results: dict[str, dict[str, A
                     module=MODULE_NAME,
                     severity="info",
                     title=f"Enrichment incomplete for {ioc_value}",
+                    code=finding_code("ENRICH_INCOMPLETE_PROVIDER_NO_RESULT"),
                     description=(
                         f"{provider} returned no usable result (status: {status}). This IOC is UNKNOWN on that "
                         "source -- absence of a detection is not evidence that nothing is wrong with it."
@@ -119,6 +122,7 @@ def _internal_finding(host: str) -> Finding:
         module=MODULE_NAME,
         severity="info",
         title=f"Enrichment incomplete for {host}",
+        code=finding_code("ENRICH_INCOMPLETE_INTERNAL_HOST"),
         description=(
             f"'{host}' looks internal (no public DNS name or a private/loopback address), so it was never "
             "sent to any external service. It is UNKNOWN (no answer), which is not the same as 'nothing found'."
@@ -134,6 +138,7 @@ def _uninformative_finding(key: str, platform) -> Finding:
         severity="info",
         # Same title prefix as other gaps so scoring coverage counts it: no reputation evidence exists.
         title=f"Enrichment incomplete for {key}",
+        code=finding_code("ENRICH_INCOMPLETE_SHARED_PLATFORM"),
         description=(
             f"'{key}' is on {platform.name} ({platform.kind.replace('_', ' ')}), a shared platform: its domains are "
             "reputable but host or relay content anyone can create, so a reputation lookup cannot separate a "
@@ -255,6 +260,7 @@ def run_enrichment(
                     module=MODULE_NAME,
                     severity=_severity_for_score(score),
                     title=f"Suspicious {label}: {key}",
+                    code=finding_code("ENRICH_REPUTATION_HOST_SUSPICIOUS"),
                     description="; ".join(c["label"] for c in components) or "No specific signal breakdown.",
                     evidence={"components": components, "ioc_value": key},
                     weight=float(score),
@@ -276,6 +282,7 @@ def run_enrichment(
                     module=MODULE_NAME,
                     severity=_severity_for_score(score),
                     title=f"Known-malicious attachment hash: {filename or sha256}",
+                    code=finding_code("ENRICH_REPUTATION_HASH_KNOWN_MALICIOUS"),
                     description="; ".join(c["label"] for c in components) or "No specific signal breakdown.",
                     evidence={"components": components, "ioc_value": sha256, "filename": filename},
                     weight=float(score),
@@ -297,6 +304,7 @@ def run_enrichment(
                 module=MODULE_NAME,
                 severity="info",
                 title="Some enrichment providers did not give a usable answer",
+                code=finding_code("ENRICH_PROVIDERS_NO_USABLE_ANSWER"),
                 description=(
                     "Affected indicators are UNKNOWN (no answer), which is not the same as 'nothing found' (" + "; ".join(parts) + "). "
                     "Check provider API keys, ENRICHMENT_DISABLED_PROVIDERS, rate limits and connectivity."
