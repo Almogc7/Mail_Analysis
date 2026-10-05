@@ -1,8 +1,8 @@
-/* Design tokens from docs/UI_DESIGN.md (revision 2). Dark values are on :root, so dark is also the fallback when the browser reports no
-   preference; light values are in the prefers-color-scheme: light block at the END of this file. scripts/check_contrast.py reads this file:
-   keep one "--name: #rrggbb;" per line and keep the light block last, written exactly "@media (prefers-color-scheme: light) {". */
+/* Design tokens from docs/UI_DESIGN.md. The app is dark-only for now: dark values are on :root and light values are opt-in through
+   :root[data-theme="light"] at the END of this file (nothing sets data-theme yet). scripts/check_contrast.py reads this file: keep one
+   "--name: #rrggbb;" per line and keep the light block last, written exactly ':root[data-theme="light"] {'. */
 :root {
-  color-scheme: dark light;
+  color-scheme: dark;
 
   /* Fonts: system fonts only, nothing is fetched. --font-mono is for machine tokens, --font-ui for everything a person reads. */
   --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Hebrew', 'Arial Hebrew', Arial, sans-serif;
@@ -110,54 +110,55 @@ body {
   font-family: var(--font-mono);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg-root: #f6f8fa;
-    --bg-panel: #ffffff;
-    --bg-panel-raised: #f0f3f6;
-    --bg-muted: #e8ecf0;
-    --text-primary: #1f2328;
-    --text-secondary: #4a5560;
-    --text-muted: #59636e;
-    --border: #d0d7de;
-    --border-control: #848d97;
-    --focus: #0a5c86;
+/* Opt-in light theme. Components still hardcode dark colours, so light is not applied automatically.
+   re-enable prefers-color-scheme (or add a toggle) at the end of the component migration */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg-root: #f6f8fa;
+  --bg-panel: #ffffff;
+  --bg-panel-raised: #f0f3f6;
+  --bg-muted: #e8ecf0;
+  --text-primary: #1f2328;
+  --text-secondary: #4a5560;
+  --text-muted: #59636e;
+  --border: #d0d7de;
+  --border-control: #848d97;
+  --focus: #0a5c86;
 
-    --sev-critical: #b3202e;
-    --sev-high: #a8400f;
-    --sev-medium: #7a4f00;
-    --sev-low: #0a5c86;
-    --sev-info: #4a5560;
-    --sev-critical-tint: #f4dee0;
-    --sev-high-tint: #f2e2db;
-    --sev-medium-tint: #ebe5d9;
-    --sev-low-tint: #dae7ed;
-    --sev-info-tint: #e4e6e7;
+  --sev-critical: #b3202e;
+  --sev-high: #a8400f;
+  --sev-medium: #7a4f00;
+  --sev-low: #0a5c86;
+  --sev-info: #4a5560;
+  --sev-critical-tint: #f4dee0;
+  --sev-high-tint: #f2e2db;
+  --sev-medium-tint: #ebe5d9;
+  --sev-low-tint: #dae7ed;
+  --sev-info-tint: #e4e6e7;
 
-    --verdict-malicious: #b3202e;
-    --verdict-suspicious: #7a4f00;
-    --verdict-inconclusive: #1d4fa8;
-    --verdict-none-found: #4a5560;
-    --verdict-malicious-tint: #f4dee0;
-    --verdict-suspicious-tint: #ebe5d9;
-    --verdict-inconclusive-tint: #dde5f2;
-    --verdict-none-found-tint: #e4e6e7;
+  --verdict-malicious: #b3202e;
+  --verdict-suspicious: #7a4f00;
+  --verdict-inconclusive: #1d4fa8;
+  --verdict-none-found: #4a5560;
+  --verdict-malicious-tint: #f4dee0;
+  --verdict-suspicious-tint: #ebe5d9;
+  --verdict-inconclusive-tint: #dde5f2;
+  --verdict-none-found-tint: #e4e6e7;
 
-    /* legacy: retire during migration. The neon dark values are unreadable on light surfaces, so in light mode only,
-       the legacy names point at the light design tokens. */
-    --border-muted: var(--border);
-    --accent-green: var(--text-secondary);
-    --accent-cyan: var(--focus);
-    --accent-red: var(--sev-critical);
-    --accent-amber: var(--sev-medium);
-    --verdict-needs-review: var(--verdict-inconclusive);
-    --verdict-legit: var(--verdict-none-found);
-    --severity-critical: var(--sev-critical);
-    --severity-high: var(--sev-high);
-    --severity-medium: var(--sev-medium);
-    --severity-low: var(--sev-low);
-    --severity-info: var(--sev-info);
-    --llm-bg: var(--bg-panel-raised);
-    --llm-border: var(--border);
-  }
+  /* legacy: retire during migration. The neon dark values are unreadable on light surfaces, so in light mode only,
+     the legacy names point at the light design tokens. */
+  --border-muted: var(--border);
+  --accent-green: var(--text-secondary);
+  --accent-cyan: var(--focus);
+  --accent-red: var(--sev-critical);
+  --accent-amber: var(--sev-medium);
+  --verdict-needs-review: var(--verdict-inconclusive);
+  --verdict-legit: var(--verdict-none-found);
+  --severity-critical: var(--sev-critical);
+  --severity-high: var(--sev-high);
+  --severity-medium: var(--sev-medium);
+  --severity-low: var(--sev-low);
+  --severity-info: var(--sev-info);
+  --llm-bg: var(--bg-panel-raised);
+  --llm-border: var(--border);
 }

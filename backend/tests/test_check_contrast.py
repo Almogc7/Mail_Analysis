@@ -17,7 +17,7 @@ REAL = cc.load_tokens()  # parsed from the real frontend/src/theme.css
 def _css(tokens, comment=""):
     def block(t):
         return "".join(f"  --{k}: {v};\n" for k, v in t.items())
-    return f"{comment}:root {{\n{block(tokens['dark'])}}}\n@media (prefers-color-scheme: light) {{\n  :root {{\n{block(tokens['light'])}  }}\n}}\n"
+    return f"{comment}:root {{\n{block(tokens['dark'])}}}\n:root[data-theme=\"light\"] {{\n{block(tokens['light'])}}}\n"
 
 
 def test_ratio_matches_known_values():
@@ -96,7 +96,7 @@ def test_parser_round_trips_the_real_tokens(tmp_path):
 
 
 def test_comments_are_ignored_even_when_they_quote_the_light_block_opening():
-    comment = '/* the light block is written exactly "@media (prefers-color-scheme: light) {" and --fake: #123456; */\n'
+    comment = '/* the light block is written exactly \':root[data-theme="light"] {\' and --fake: #123456; */\n'
     parsed = cc.parse_theme_css(_css(REAL, comment))
     assert parsed["dark"] == REAL["dark"] and "fake" not in parsed["dark"] and "fake" not in parsed["light"]
 
@@ -105,6 +105,28 @@ def test_a_rule_after_the_light_block_does_not_leak_into_it():
     css = _css(REAL) + "@media print { :root { --extra: #000000; } }\n"
     parsed = cc.parse_theme_css(css)
     assert "extra" in parsed["dark"] and "extra" not in parsed["light"]
+
+
+def test_theme_css_is_dark_only_with_an_opt_in_light_block():
+    css = cc.THEME_CSS.read_text(encoding="utf-8")
+    assert "color-scheme: dark;" in css and "color-scheme: dark light" not in css
+    assert ':root[data-theme="light"] {' in css and "color-scheme: light;" in css
+    assert "prefers-color-scheme: light)" not in css  # nothing switches to light automatically
+    assert "data-theme" not in "".join(p.read_text(encoding="utf-8") for p in cc.THEME_CSS.parent.rglob("*.tsx"))  # nothing sets it yet
+
+
+def test_a_missing_light_block_fails_the_check(monkeypatch, tmp_path, capsys):
+    only_dark = ":root {\n" + "".join(f"  --{k}: {v};\n" for k, v in REAL["dark"].items()) + "}\n"
+    assert cc.parse_theme_css(only_dark)["light"] == {}
+    assert _main_with_css(monkeypatch, tmp_path, only_dark) == 1
+    err = capsys.readouterr().err
+    assert "FAILED" in err and "missing [light] --bg-root" in err and "missing [light] --focus" in err
+    assert "[dark]" not in err
+
+
+def test_the_old_media_query_block_is_no_longer_read_as_the_light_theme():
+    css = _css(REAL).replace(':root[data-theme="light"] {', "@media (prefers-color-scheme: light) {")
+    assert cc.parse_theme_css(css)["light"] == {}
 
 
 def test_non_hex_values_are_not_tokens():

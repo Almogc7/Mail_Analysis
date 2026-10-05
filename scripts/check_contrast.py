@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Contrast guard for the colour tokens in docs/UI_DESIGN.md (WCAG 2.x relative luminance).
 
-Reads the tokens from frontend/src/theme.css (dark in :root, light inside "@media (prefers-color-scheme: light) {")
+Reads the tokens from frontend/src/theme.css (dark in :root, light inside the opt-in rule ':root[data-theme="light"] {')
 and asserts, for both themes:
   - body, secondary and muted text >= 4.5:1 on the panel, root, raised and muted surfaces
   - every severity and verdict-tier colour >= 4.5:1 on the panel and on its own tint token
@@ -12,7 +12,7 @@ It fails with a readable message listing every failing pair, and also when theme
 built-in fallback table: a token that is not in theme.css is an error.
 
 Format expected in theme.css: one "--name: #rrggbb;" declaration per token; CSS comments are ignored; the light block is
-written exactly "@media (prefers-color-scheme: light) {".
+written exactly ':root[data-theme="light"] {'. A missing light block fails the check (every light token is then reported missing).
 
 Usage:  check_contrast.py              check frontend/src/theme.css
 """
@@ -88,11 +88,11 @@ def check(themes: dict[str, dict[str, str]]) -> tuple[int, list[str]]:
 
 _DECL = re.compile(r"--([\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;")
 _COMMENT = re.compile(r"/[*].*?[*]/", re.S)
-_LIGHT_OPEN = "@media (prefers-color-scheme: light) {"
+_LIGHT_OPEN = ':root[data-theme="light"] {'
 
 
 def _light_block(text: str) -> tuple[int, int] | None:
-    """(start, end) of the light @media block, matched by braces. None when absent."""
+    """(start, end) of the light opt-in rule, matched by braces. None when absent."""
     start = text.find(_LIGHT_OPEN)
     if start < 0:
         return None
