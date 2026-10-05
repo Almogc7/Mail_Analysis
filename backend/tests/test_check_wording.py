@@ -343,12 +343,16 @@ def test_strict_mode_exits_nonzero_only_when_a_hit_exists(tmp_path, capsys):
     app.mkdir(parents=True)
     (app / "x.py").write_text('def f():\n    return Finding(description="This is not a clean header.")\n', encoding="utf-8")
     assert cw.main(["--static", "--no-tests", "--strict"], root=tmp_path) == 1
+    out = capsys.readouterr().out
+    assert "STRICT (any hit below fails)" in out and "REPORT ONLY" not in out  # the header does not claim nothing fails when it does
     (app / "x.py").write_text('def f():\n    return Finding(description="This is a malformed header.")\n', encoding="utf-8")
     assert cw.main(["--static", "--no-tests", "--strict"], root=tmp_path) == 0
     assert cw.main(["--static", "--no-tests"], root=tmp_path) == 0
     capsys.readouterr()
 
 
-def test_the_lint_is_not_wired_into_the_pre_commit_hook():
+def test_the_hook_runs_the_strict_static_scan_only_and_never_the_runtime_scan():
     hook = (ROOT / ".githooks" / "pre-commit").read_text(encoding="utf-8")
-    assert "check_wording" not in hook
+    command = next(line for line in hook.splitlines() if line.startswith("wording=") )
+    assert "check_wording.py" in command and "--static" in command and "--strict" in command and "--no-tests" in command
+    assert command.count("check_wording.py") == 1 and "runtime" not in command.lower()  # the runtime scan belongs to the pytest suite

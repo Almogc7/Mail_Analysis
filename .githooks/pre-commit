@@ -3,7 +3,10 @@
 # Blocks commits that contain (1) internal strings / unapproved IPs / real-looking emails in test
 # fixtures (scripts/check_fixtures.py) or (2) stray control characters in any text file
 # (scripts/check_control_chars.py) or (3) colour tokens below the contrast minimums of docs/UI_DESIGN.md
-# (scripts/check_contrast.py). All checks always run so one failure never hides another.
+# (scripts/check_contrast.py) or (4) a banned positive-claim word in user-visible text, V1 of docs/DESIGN_V2.md
+# (scripts/check_wording.py --static --strict: the backend and the frontend SOURCE, scanned in the working tree; the runtime scan over the
+# fixtures and the tuning corpus runs in the pytest suite, backend/tests/test_wording_enforced.py, not here).
+# All checks always run so one failure never hides another.
 root="$(git rev-parse --show-toplevel)"
 py="$root/backend/.venv/Scripts/python.exe"
 [ -x "$py" ] || py="$root/backend/.venv/bin/python"
@@ -12,4 +15,5 @@ status=0
 "$py" "$root/scripts/check_fixtures.py" --staged || status=1
 "$py" "$root/scripts/check_control_chars.py" --staged || status=1
 "$py" "$root/scripts/check_contrast.py" || status=1
+wording="$("$py" "$root/scripts/check_wording.py" --static --no-tests --strict 2>&1)" && echo "check_wording: OK" || { echo "$wording"; echo "check_wording: FAILED (V1: a banned word in user-visible text; see the report above)"; status=1; }
 exit $status

@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""V1 word-ban lint, REPORT-ONLY (docs/DESIGN_V2.md section 2.1, criterion V1).
+"""V1 word-ban lint (docs/DESIGN_V2.md section 2.1, criterion V1).
 
 The words safe, clean, legit, benign and harmless are banned as WHOLE words (case-insensitive; "safety" is not "safe") in every user-visible string.
-This script finds them and proposes a replacement. It does NOT fail anything by default, it is NOT run by the pre-commit hook, and no test asserts
-that the repository has zero hits: it exists so the wording cleanup commit can be written from a complete list, and so V1 can be switched on later.
+This script finds them and proposes a replacement. By default it only REPORTS (exit 0). V1 is ENFORCED in two places, both with --strict: the pre-commit
+hook runs the static scan (backend and frontend source), and backend/tests/test_wording_enforced.py runs the runtime scan over the fixtures and, when it
+exists, the local tuning corpus (never the hold-out).
 
     scripts/check_wording.py                 report: static scan (backend and frontend source) plus runtime scan (fixtures and the tuning corpus)
     scripts/check_wording.py --static        static scan only (fast; no pipeline run)
     scripts/check_wording.py --json OUT      also write the hits as JSON
-    scripts/check_wording.py --strict        exit 1 if any hit exists (for the day V1 is enabled; never used by the hook today)
+    scripts/check_wording.py --strict        exit 1 if any hit exists (used by the pre-commit hook with --static, and by the pytest gate)
 
 Two sources of strings, so nothing is missed:
   * STATIC: every string literal in the backend that reads as user-visible text (finding titles and descriptions, coverage and indicator text, log
@@ -16,8 +17,8 @@ Two sources of strings, so nothing is missed:
     with the TypeScript compiler API through scripts/wording_frontend_strings.mjs (JSX text, title, aria-label, placeholder, alt, label, console
     messages, prose string literals). This finds templates that no fixture triggers.
   * RUNTIME: the pipeline over the fixtures and the TUNING corpus only (the hold-out is never read), scanning the produced fields: findings, applied
-    overrides, coverage, indicators, the evidence block and the LLM prompt. A hit that sits in a value that may carry message text is printed as its
-    template (quoted parts masked) or withheld.
+    overrides, coverage, indicators, the evidence block and the LLM prompt. The report NEVER prints a runtime sentence (it was produced from a message and may
+    contain message text): a hit is shown with the application's own static template that it matches, or with no text at all.
 
 Exemptions, explicit and closed:
   * the frozen v1 `verdict` value and internal keys, tokens, CSS hooks and type unions (single-word strings, className-style attributes, type positions,
@@ -358,9 +359,28 @@ def scan_prompt(prompt: str, allowed: frozenset[str] = frozenset(), products: tu
     return hits
 
 
-def runtime_hits(allowed: frozenset[str] = frozenset(), corpus_dir: Path | None = None, products: tuple[str, ...] | None = None) -> list[PayloadHit]:
-    """The pipeline over the fixtures and the TUNING corpus (never the hold-out), four ways (STRICT and CONFIGURED, clean and unknown enrichment).
-    `corpus_dir` replaces the local tuning corpus (a test passes an empty folder to scan the committed fixtures only)."""
+def analysis_payload(path: Path, enrichment: str) -> tuple[dict, str]:
+    """(the analysis of one message as the API returns it, the text sent to the language model): findings, overrides, coverage, indicators and the evidence block,
+    plus the prompt. The trust mode is whatever tests.eval.apply_mode last set."""
+    from app.coverage import build_coverage_report
+    from app.evidence import build_evidence
+    from app.indicators import build_indicator_pack, visible_pack
+    from app.llm.prompting import build_prompt
+    from tests import eval as ev
+
+    res = ev.analyze(path, enrichment)
+    pack = build_indicator_pack(res.parsed_email, res.module_results)
+    evidence = build_evidence(res.parsed_email, res.module_results, pack)
+    coverage = build_coverage_report(res.parsed_email, res.module_results, evidence)
+    full = res.model_copy(update={"indicators": visible_pack(pack), "evidence": evidence, "coverage_report": coverage})
+    return full.model_dump(mode="json"), build_prompt(full)
+
+
+def runtime_hits(allowed: frozenset[str] = frozenset(), corpus_dir: Path | None = None, products: tuple[str, ...] | None = None,
+                 only_sources: frozenset[str] | None = None) -> list[PayloadHit]:
+    """The pipeline over the fixtures and the TUNING corpus (never the hold-out: tests.eval.collect does not collect it), four ways (STRICT and CONFIGURED, clean and
+    unknown enrichment). `corpus_dir` replaces the local tuning corpus (a test passes an empty folder to scan the committed fixtures only); `only_sources` keeps only
+    the samples of those sources (for example {"tuning_corpus"})."""
     import logging
 
     backend = ROOT / "backend"
@@ -369,25 +389,17 @@ def runtime_hits(allowed: frozenset[str] = frozenset(), corpus_dir: Path | None 
     sys.path.insert(0, str(backend))
     logging.getLogger("app").setLevel(logging.ERROR)
     try:
-        from app.coverage import build_coverage_report
-        from app.evidence import build_evidence
-        from app.indicators import build_indicator_pack, visible_pack
-        from app.llm.prompting import build_prompt
         from tests import eval as ev
 
         seen: set[tuple[str, str, str, str]] = set()
         out: list[PayloadHit] = []
-        items = ev.collect(corpus_dir)
+        items = [i for i in ev.collect(corpus_dir) if only_sources is None or i[2] in only_sources]
         for mode in ev.MODES:
             ev.apply_mode(mode)
             for enrichment in ("clean", "disabled"):
                 for path, _label, _source in items:
-                    res = ev.analyze(path, enrichment)
-                    pack = build_indicator_pack(res.parsed_email, res.module_results)
-                    evidence = build_evidence(res.parsed_email, res.module_results, pack)
-                    coverage = build_coverage_report(res.parsed_email, res.module_results, evidence)
-                    full = res.model_copy(update={"indicators": visible_pack(pack), "evidence": evidence, "coverage_report": coverage})
-                    for hit in scan_payload(full.model_dump(mode="json"), allowed, products) + scan_prompt(build_prompt(full), allowed, products):
+                    payload_, prompt = analysis_payload(path, enrichment)
+                    for hit in scan_payload(payload_, allowed, products) + scan_prompt(prompt, allowed, products):
                         key = (hit.path, hit.kind, hit.word, window_around(hit.text, hit.word, 3) if hit.text else "")
                         if key not in seen:
                             seen.add(key)
@@ -516,24 +528,30 @@ def static_hits(refs: list[StringRef], allowed: frozenset[str], products: tuple[
 
 
 def runtime_to_hits(payload_hits: list[PayloadHit], static: list[Hit]) -> list[Hit]:
-    static_squashed = [_squash(h.text) for h in static]
+    """Runtime hits for the report. NEVER the runtime sentence: it was produced from a real message and may contain message text even where quoted parts were masked.
+    A hit is shown with the application's own STATIC template that it matches (and where that template is), or with no text at all when no static template matches
+    (an interpolated sentence: the f-string section lists its source)."""
+    static_squashed = [(_squash(h.text), h) for h in static]
     out: list[Hit] = []
     for p in payload_hits:
-        hit = Hit("runtime", p.path, p.kind, p.word, p.text)
+        hit = Hit("runtime", p.path, p.kind, p.word, "")
         if p.text:
-            hit.proposal, hit.basis = propose(p.text)
             window = window_around(p.text, p.word, 1, 0)
-            hit.also_static = any(window in s for s in static_squashed)
+            match = next((h for squashed, h in static_squashed if window in squashed), None)
+            if match is not None:
+                hit.also_static = True
+                hit.text, hit.proposal, hit.basis = match.text, match.proposal, match.basis
+                hit.where = f"{p.path} (template at {match.where})"
         out.append(hit)
     return out
 
 
 def print_report(static: list[Hit], runtime: list[Hit], informational: list[StringRef], tokens: list[StringRef], warnings: list[str],
-                 possible: list[StringRef] | None = None, out=None) -> None:
+                 possible: list[StringRef] | None = None, out=None, strict: bool = False) -> None:
     possible = possible or []
     out = out or sys.stdout  # resolved at call time, so a captured or reconfigured stdout is honoured
     p = lambda s="": print(s, file=out)
-    p("V1 word-ban lint: REPORT ONLY (nothing is changed, nothing fails)")
+    p("V1 word-ban lint: STRICT (any hit below fails)" if strict else "V1 word-ban lint: REPORT ONLY (nothing is changed, nothing fails)")
     p("Banned as whole words: " + ", ".join(BANNED) + "  ('safety' is not 'safe').")
     for w in warnings:
         p("WARNING: " + w)
@@ -561,7 +579,7 @@ def print_report(static: list[Hit], runtime: list[Hit], informational: list[Stri
             p(f"      template: {h.text}")
             p(f"      proposed: {h.proposal}   [{h.basis}]")
         else:
-            p("      (value withheld: it may contain message text)")
+            p("      (sentence withheld: it was produced from a message and may contain message text; no static template matches, see section 1b)")
         if h.tests:
             p("      may be asserted by (loose match, verify): " + ", ".join(h.tests))
     p()
@@ -607,7 +625,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT, runtime: bool | None 
         rt = runtime_to_hits(runtime_hits(allowed, products=products), static)
     if not args.no_tests:
         find_tests(root, static + rt)
-    print_report(static, rt, informational, tokens, warnings, possible_hits(refs))
+    print_report(static, rt, informational, tokens, warnings, possible_hits(refs), strict=args.strict)
     if args.json:
         Path(args.json).write_text(json.dumps({"static": [asdict(h) for h in static], "runtime": [asdict(h) for h in rt],
                                                "informational": [asdict(r) for r in informational], "exempt_tokens": [asdict(t) for t in tokens]},
