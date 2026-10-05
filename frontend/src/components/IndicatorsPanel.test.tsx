@@ -2,8 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { defang, IndicatorsPanel, indicatorsToCsv, indicatorsToText } from './IndicatorsPanel'
 import { ResultsView } from './ResultsView'
-import { makeAnalysisResult } from '../test/fixtures'
-import type { Indicator, IndicatorPack } from '../types'
+import { makeAnalysisResult, makeCoverageItem } from '../test/fixtures'
+import type { CoverageItem, Indicator, IndicatorPack } from '../types'
 
 function indicator(overrides: Partial<Indicator> = {}): Indicator {
   return {
@@ -24,6 +24,9 @@ function indicator(overrides: Partial<Indicator> = {}): Indicator {
 function pack(items: Indicator[]): IndicatorPack {
   return { indicators: items, counts: {}, manual_check_count: items.filter((i) => i.manual_check).length }
 }
+
+// The rows that say "Nothing found (not proof of safety)" sit in one collapsed group; its header is a button.
+const openQuiet = () => fireEvent.click(screen.getByRole('button', { name: /with nothing found \(not proof of safety\)$/ }))
 
 describe('defang / export helpers', () => {
   it('defangs domains, ips and emails but never hashes', () => {
@@ -66,7 +69,9 @@ describe('IndicatorsPanel', () => {
     expect(screen.getByText(/adds nothing to the verdict/i)).toBeInTheDocument()
     expect(screen.getByText('1')).toBeInTheDocument()
     expect(screen.getByText('Unknown: check by hand')).toBeInTheDocument()
-    expect(screen.getByText('Nothing found (not proof of safety)')).toBeInTheDocument()
+    expect(screen.queryByText('Nothing found (not proof of safety)')).toBeNull()  // folded into the collapsed group
+    openQuiet()
+    expect(screen.getByText('Nothing found (not proof of safety)')).toBeInTheDocument()  // the wording stays on the row inside
   })
 
   it('shows a shared-platform link and an unseen hash as things to check, never as clean', () => {
@@ -87,6 +92,7 @@ describe('IndicatorsPanel', () => {
 
   it('opens pivot links in a new tab without leaking the opener', () => {
     render(<IndicatorsPanel pack={pack([indicator()])} />)
+    openQuiet()
     const link = screen.getByRole('link', { name: 'VirusTotal' })
     expect(link).toHaveAttribute('href', 'https://www.virustotal.com/gui/domain/evil.example.org')
     expect(link).toHaveAttribute('target', '_blank')
@@ -96,9 +102,11 @@ describe('IndicatorsPanel', () => {
 
   it('can show only the manual checks', () => {
     render(<IndicatorsPanel pack={pack([indicator({ value: 'clean.example.org' }), indicator({ value: 'check.example.org', status: 'unknown', manual_check: true })])} />)
+    openQuiet()
     expect(screen.getByText('clean.example.org')).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText(/only manual checks/i))
     expect(screen.queryByText('clean.example.org')).toBeNull()
+    expect(screen.queryByRole('button', { name: /with nothing found/ })).toBeNull()  // nothing left to fold away
     expect(screen.getByText('check.example.org')).toBeInTheDocument()
   })
 
@@ -132,6 +140,7 @@ describe('IndicatorsPanel: indicators hidden by local config are counted, never 
   it('says how many were hidden and shows none of them', () => {
     const { container } = render(<IndicatorsPanel pack={{ ...pack([indicator()]), hidden_by_config_count: 2 }} />)
     expect(screen.getByText(/2 indicators hidden by local config/)).toBeInTheDocument()
+    openQuiet()
     expect(container.textContent).toContain('evil.example.org')
   })
 

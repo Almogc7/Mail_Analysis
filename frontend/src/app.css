@@ -352,8 +352,11 @@ button:hover:not(:disabled) {
 .indicators-group h3 { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin: var(--space-3) 0 var(--space-1); }
 .indicator-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .indicator { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-2) var(--space-3); }
-.indicator--provider_hit { border-color: var(--verdict-malicious); }
-.indicator--unknown, .indicator--shared_platform, .indicator--not_looked_up { border-color: var(--accent-amber); }
+.indicator--provider_hit { border-color: var(--sev-critical); }
+/* Amber only where the gap blocks "No indicators found" (shared platforms, internal names); unknown and not-looked-up rows stay plain and say so in words. */
+.indicator--blocks { border-color: var(--notice); border-inline-start-width: 3px; }
+.indicators-group .indicators-quiet-heading { margin: var(--space-3) 0 var(--space-2); font-size: var(--text-sm); text-transform: none; letter-spacing: 0; color: var(--text-primary); }
+.indicators-quiet-heading .wb-disclosure { font-size: var(--text-sm); }
 .indicator-main { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .indicator-value { word-break: break-all; }
 .indicator-status { font-size: 0.8em; padding: 0 var(--space-2); border-radius: var(--radius); border: 1px solid var(--border); }

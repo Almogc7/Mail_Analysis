@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { Indicator, IndicatorPack, IndicatorStatus } from '../types'
+import type { CoverageItem, Indicator, IndicatorPack, IndicatorStatus } from '../types'
+import { blocksNoIndicators, notLookedUpByDesign } from './indicatorRules'
 
 const STATUS_LABELS: Record<IndicatorStatus, string> = {
   provider_hit: 'A source reported something',
@@ -69,13 +70,90 @@ function downloadCsv(csv: string) {
   URL.revokeObjectURL(url)
 }
 
-export function IndicatorsPanel({ pack }: { pack: IndicatorPack | null | undefined }) {
+interface RowProps {
+  indicator: Indicator
+  coverage: CoverageItem[] | null | undefined
+  onCopy: (label: string, text: string) => void
+}
+
+function IndicatorRow({ indicator: i, coverage, onCopy }: RowProps) {
+  const blocks = blocksNoIndicators(i, coverage)
+  const byDesign = notLookedUpByDesign(i, coverage)
+  const statusLabel = byDesign ? 'Not looked up (by design)' : STATUS_LABELS[i.status]
+  return (
+    <li className={`indicator indicator--${i.gateway ? 'gateway' : i.status}${blocks ? ' indicator--blocks' : ''}`}>
+      <div className="indicator-main">
+        <code className="indicator-value" dir="auto">{i.value}</code>
+        {i.filename && <span className="indicator-file" dir="auto"> ({i.filename})</span>}
+        {i.gateway ? (
+          <span className="indicator-status indicator-status--gateway">your gateway</span>
+        ) : (
+          statusLabel && <span className={`indicator-status indicator-status--${i.status}`}>{statusLabel}</span>
+        )}
+        <button className="indicator-copy" onClick={() => onCopy(i.value, i.value)} aria-label={`Copy ${i.value}`}>
+          Copy
+        </button>
+      </div>
+      <div className="indicator-seen">
+        Seen as: {i.seen_in.join('; ')}
+        {i.count > 1 ? ` (${i.count} times)` : ''}
+      </div>
+      {i.gateway ? (
+        <div className="indicator-note">The address of a server you trust: it wrote the trusted authentication result for this message. Nothing to check by hand.</div>
+      ) : (
+        i.note && <div className="indicator-note">{i.note}</div>
+      )}
+      {Object.keys(i.providers).length > 0 && (
+        <div className="indicator-providers">
+          {Object.entries(i.providers).map(([name, state]) => `${name}: ${state}`).join(' · ')}
+        </div>
+      )}
+      {i.pivots.length > 0 && (
+        <div className="indicator-pivots">
+          Look up:{' '}
+          {i.pivots.map((p) => (
+            <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer">
+              {p.name}
+            </a>
+          ))}
+        </div>
+      )}
+    </li>
+  )
+}
+
+function KindGroups({ items, coverage, onCopy }: { items: Indicator[]; coverage: CoverageItem[] | null | undefined; onCopy: RowProps['onCopy'] }) {
+  return (
+    <>
+      {KIND_ORDER.map((kind) => {
+        const group = items.filter((i) => i.kind === kind)
+        if (group.length === 0) return null
+        return (
+          <div key={kind} className="indicators-group">
+            <h3>{KIND_LABELS[kind]} ({group.length})</h3>
+            <ul className="indicator-list">
+              {group.map((i) => (
+                <IndicatorRow key={`${i.kind}:${i.value}`} indicator={i} coverage={coverage} onCopy={onCopy} />
+              ))}
+            </ul>
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
+export function IndicatorsPanel({ pack, coverage }: { pack: IndicatorPack | null | undefined; coverage?: CoverageItem[] | null }) {
   const [onlyManual, setOnlyManual] = useState(false)
+  const [quietOpen, setQuietOpen] = useState(false)
   const [message, setMessage] = useState('')
   const hiddenCount = pack?.hidden_by_config_count ?? 0
   if (!pack || (pack.indicators.length === 0 && hiddenCount === 0)) return null
 
+  // The copy and CSV exports use `shown`, never what is on screen, so folding the "nothing found" rows away cannot drop one from an export.
   const shown = pack.indicators.filter((i) => !onlyManual || i.manual_check)
+  const quiet = shown.filter((i) => i.status === 'nothing_found')
+  const rest = shown.filter((i) => i.status !== 'nothing_found')
   const run = async (label: string, text: string) => setMessage((await copy(text)) ? `${label}: copied` : `${label}: copy failed`)
 
   return (
@@ -103,57 +181,19 @@ export function IndicatorsPanel({ pack }: { pack: IndicatorPack | null | undefin
         <span className="indicators-message" role="status">{message}</span>
       </div>
 
-      {KIND_ORDER.map((kind) => {
-        const group = shown.filter((i) => i.kind === kind)
-        if (group.length === 0) return null
-        return (
-          <div key={kind} className="indicators-group">
-            <h3>{KIND_LABELS[kind]} ({group.length})</h3>
-            <ul className="indicator-list">
-              {group.map((i) => (
-                <li key={`${i.kind}:${i.value}`} className={`indicator indicator--${i.gateway ? 'gateway' : i.status}`}>
-                  <div className="indicator-main">
-                    <code className="indicator-value" dir="auto">{i.value}</code>
-                    {i.filename && <span className="indicator-file" dir="auto"> ({i.filename})</span>}
-                    {i.gateway ? (
-                      <span className="indicator-status indicator-status--gateway">your gateway</span>
-                    ) : (
-                      STATUS_LABELS[i.status] && <span className={`indicator-status indicator-status--${i.status}`}>{STATUS_LABELS[i.status]}</span>
-                    )}
-                    <button className="indicator-copy" onClick={() => run(i.value, i.value)} aria-label={`Copy ${i.value}`}>
-                      Copy
-                    </button>
-                  </div>
-                  <div className="indicator-seen">
-                    Seen as: {i.seen_in.join('; ')}
-                    {i.count > 1 ? ` (${i.count} times)` : ''}
-                  </div>
-                  {i.gateway ? (
-                    <div className="indicator-note">The address of a server you trust: it wrote the trusted authentication result for this message. Nothing to check by hand.</div>
-                  ) : (
-                    i.note && <div className="indicator-note">{i.note}</div>
-                  )}
-                  {Object.keys(i.providers).length > 0 && (
-                    <div className="indicator-providers">
-                      {Object.entries(i.providers).map(([name, state]) => `${name}: ${state}`).join(' · ')}
-                    </div>
-                  )}
-                  {i.pivots.length > 0 && (
-                    <div className="indicator-pivots">
-                      Look up:{' '}
-                      {i.pivots.map((p) => (
-                        <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer">
-                          {p.name}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )
-      })}
+      <KindGroups items={rest} coverage={coverage} onCopy={run} />
+
+      {quiet.length > 0 && (
+        <div className="indicators-group indicators-quiet">
+          <h3 className="indicators-quiet-heading">
+            <button type="button" className="wb-btn wb-disclosure" aria-expanded={quietOpen} onClick={() => setQuietOpen((o) => !o)}>
+              <span className="wb-caret" aria-hidden="true">{quietOpen ? '▾' : '▸'}</span>
+              {quiet.length} indicator{quiet.length === 1 ? '' : 's'} with nothing found (not proof of safety)
+            </button>
+          </h3>
+          {quietOpen && <KindGroups items={quiet} coverage={coverage} onCopy={run} />}
+        </div>
+      )}
     </section>
   )
 }

@@ -51,7 +51,7 @@ export function ResultsView({ result, onReset, jobId }: ResultsViewProps) {
         </>
       )}
 
-      <IndicatorsPanel pack={result.indicators} />
+      <IndicatorsPanel pack={result.indicators} coverage={result.coverage_report} />
 
       <ModuleDetailSection modules={orderedModules} />
 
