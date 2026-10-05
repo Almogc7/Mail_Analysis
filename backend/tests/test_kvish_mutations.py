@@ -16,12 +16,11 @@ def parsed():
 
 @pytest.fixture
 def ablated(monkeypatch):
-    from app.content_analysis import brand_impersonation, urgency
+    from app.content_analysis import brand_impersonation
     from app.shared import brands
 
     monkeypatch.delitem(brands.KNOWN_BRANDS, "kvish6", raising=False)
     monkeypatch.delitem(brand_impersonation._BRAND_PATTERNS, "kvish6", raising=False)
-    monkeypatch.setattr(urgency, "URGENCY_PHRASES", [p for p in urgency.URGENCY_PHRASES if p != "תקף לחודש בלבד"])
 
 
 def _ids(case):

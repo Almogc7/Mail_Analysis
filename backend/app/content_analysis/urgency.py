@@ -19,10 +19,11 @@ URGENCY_PHRASES: list[str] = [
     "update your billing information",
     "your access will be restricted",
     # Hebrew -- drafted, not reviewed by a native speaker; correct/extend as needed.
-    # First entry grounded in a real phishing email's actual wording; the rest are
     # Hebrew equivalents of the English categories above (account threat / urgency /
     # financial), not yet validated against real-world Hebrew phishing samples.
-    "תקף לחודש בלבד",  # "valid for one month only" -- real example, soft expiry pressure
+    # A phrase taken from the single Kvish sample ("valid for one month only", soft expiry
+    # pressure) was REMOVED: one sample's wording is not a lexicon, and it also fired on a
+    # legitimate Hebrew newsletter (docs/DESIGN_V2.md, decision D13).
     "אנא אשר",  # "please confirm"
     "החשבון שלך ייחסם",  # "your account will be blocked"
     "נדרשת פעולה מיידית",  # "immediate action required"

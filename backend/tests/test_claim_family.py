@@ -258,12 +258,11 @@ def test_every_other_benign_fixture_stays_below_suspicious(mode):
 
 
 def test_kvish_ablated_now_also_carries_a_claim_signal_from_the_display_name_alone(monkeypatch):
-    from app.content_analysis import brand_impersonation, urgency
+    from app.content_analysis import brand_impersonation
     from app.shared import brands
 
     monkeypatch.delitem(brands.KNOWN_BRANDS, "kvish6", raising=False)
     monkeypatch.delitem(brand_impersonation._BRAND_PATTERNS, "kvish6", raising=False)
-    monkeypatch.setattr(urgency, "URGENCY_PHRASES", [p for p in urgency.URGENCY_PHRASES if p != "תקף לחודש בלבד"])
     apply_mode("strict")
     result = analyze(FIXTURES / "malicious" / "kvish6_invoice_phish.eml", "clean")
     signals = {f.evidence["signal"]: f.evidence["family"] for f in result.findings if f.evidence.get("structural")}

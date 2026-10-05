@@ -214,13 +214,12 @@ def test_shared_hosting_plus_a_platform_tracker_it_did_not_use_is_two_families_a
 
 @pytest.mark.parametrize("mode", ["strict", "configured"])
 def test_kvish_with_seeds_ablated_reaches_suspicious_from_sender_and_link_families_alone(mode, monkeypatch):
-    """The pre-registered success criterion: no brand list, no urgency seed -- structural signals only."""
-    from app.content_analysis import brand_impersonation, urgency
+    """The pre-registered success criterion: no brand list, no single-sample seed -- structural signals only."""
+    from app.content_analysis import brand_impersonation
     from app.shared import brands
 
     monkeypatch.delitem(brands.KNOWN_BRANDS, "kvish6", raising=False)
     monkeypatch.delitem(brand_impersonation._BRAND_PATTERNS, "kvish6", raising=False)
-    monkeypatch.setattr(urgency, "URGENCY_PHRASES", [p for p in urgency.URGENCY_PHRASES if p != "תקף לחודש בלבד"])
     apply_mode(mode)
     result = analyze(FIXTURES / "malicious" / "kvish6_invoice_phish.eml", "clean")
     assert result.verdict == "suspicious"

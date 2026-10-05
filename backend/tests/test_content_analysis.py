@@ -91,14 +91,25 @@ def test_estimate_script_coverage_tiny_or_empty_text_is_not_full_coverage():
     assert estimate_script_coverage("") == 0.25
 
 
-def test_hebrew_invoice_phishing_fixture_detects_urgency_and_reports_full_coverage():
-    # Real-world-grounded fixture (see fixture file comment): Hebrew "valid for one month
-    # only" expiry-pressure phrasing from an actual phishing email that previously scored
-    # 0/100 "benign". Since Hebrew is now a supported script, this should be picked up and
-    # coverage should read as full (1.0) -- the reduced-coverage path is for scripts we
-    # still don't have any phrase-list entries for (see the Russian test above).
+def test_hebrew_invoice_phishing_fixture_reports_full_coverage_and_no_longer_matches_the_removed_seed_phrase():
+    # The fixture is wording from a real phishing email: Hebrew "valid for one month only" expiry pressure. Hebrew is a supported script, so coverage
+    # reads as full (1.0) -- the reduced-coverage path is for scripts without any phrase-list entries (see the Russian test above). That one phrase
+    # came from a single sample and was removed from the shipped lexicon (docs/DESIGN_V2.md, D13), so it no longer produces an urgency finding.
     result = _analyze("hebrew_invoice_phishing.eml")
 
-    titles = [f.title for f in result.findings]
-    assert "Urgency/pressure language detected" in titles
+    assert "Urgency/pressure language detected" not in [f.title for f in result.findings]
     assert result.raw_data["script_coverage"] == 1.0
+
+
+def test_hebrew_urgency_is_still_detected_from_the_phrases_that_remain_in_the_lexicon():
+    from app.content_analysis.urgency import URGENCY_PHRASES, detect_urgency
+
+    removed, kept = "תקף לחודש בלבד", "נדרשת פעולה מיידית"
+    assert removed not in URGENCY_PHRASES  # the single-sample seed phrase is gone
+    assert kept in URGENCY_PHRASES and len([p for p in URGENCY_PHRASES if any("֐" <= ch <= "׿" for ch in p)]) >= 5
+    assert detect_urgency(removed) == [] and detect_urgency(kept) == [kept]
+    head = ["From: a@sender.example.org", "To: t@example.com", "Subject: x", "MIME-Version: 1.0", "Content-Type: text/plain; charset=utf-8",
+            "Content-Transfer-Encoding: 8bit", "", "שלום, " + kept + " בחשבון שלך.", ""]
+    raw = chr(13).join(head).replace(chr(13), chr(13) + chr(10)).encode("utf-8")
+    result = run_content_analysis(parse_email_file(raw, "he.eml"))
+    assert "Urgency/pressure language detected" in [f.title for f in result.findings]

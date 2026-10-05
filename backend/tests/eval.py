@@ -20,8 +20,8 @@ Reading the numbers:
   * malicious/synthetic/ are hand-written display-name-spoof positives (matcher tests), not real phish.
   * --enrichment clean assumes every provider answers "no detections" (what a fresh
     attacker-controlled URL looks like). It measures the structural signals alone.
-  * --ablate-seeds removes the single-sample seeds (the "kvish6" brand and the Hebrew urgency
-    phrase taken from that sample). This is the honest "before".
+  * --ablate-seeds removes the single-sample seed (the "kvish6" brand taken from that sample; the Hebrew
+    urgency phrase from the same sample is no longer shipped at all). This is the honest "before".
 
 Local corpus (gitignored, made by scripts/select_corpus.py): _local_corpus/tuning/*.eml is evaluated
 when present and skipped otherwise. _local_corpus/holdout/ is NEVER read by a normal run. The only
@@ -45,9 +45,8 @@ from pathlib import Path
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 FLAGGED = {"malicious", "suspicious"}
 
-# The two single-sample seeds, removed by --ablate-seeds.
+# The single-sample seed removed by --ablate-seeds (the Hebrew urgency phrase taken from the same sample was removed from the shipped lexicon, D13).
 SEED_BRANDS = ["kvish6"]
-SEED_URGENCY = ["תקף לחודש בלבד"]
 
 # ---------------------------------------------------------------------------------------------------------------
 # Trust modes. Every report shows BOTH, side by side:
@@ -130,15 +129,12 @@ class Row:
 
 
 def _ablate_seeds() -> None:
-    from app.content_analysis import brand_impersonation, urgency
+    from app.content_analysis import brand_impersonation
     from app.shared import brands
 
     for b in SEED_BRANDS:
         brands.KNOWN_BRANDS.pop(b, None)
         brand_impersonation._BRAND_PATTERNS.pop(b, None)
-    for phrase in SEED_URGENCY:
-        if phrase in urgency.URGENCY_PHRASES:
-            urgency.URGENCY_PHRASES.remove(phrase)
 
 
 class _Stub:
