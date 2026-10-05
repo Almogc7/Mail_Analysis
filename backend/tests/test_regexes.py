@@ -116,6 +116,24 @@ REGISTRY = [
         ("--bg-root: #0b0e13;", [("bg-root", "#0b0e13")]), ("--x:#FFFFFF ;", [("x", "#FFFFFF")]),
         ("--a: #111111; --b: #222222;", [("a", "#111111"), ("b", "#222222")]),
         ("--x: #fff;", []), ("--x: var(--y);", []), ("color: #0b0e13;", []), ("--x: #0b0e1;", [])]),
+    # scripts/check_wording.py (the V1 word-ban lint, report only)
+    (r"^findings\[\*\]\.evidence(\.|$)", 0, [
+        ("findings[*].evidence.platform", ["."]), ("findings[*].evidence", [""]), ("findings[*].description", []),
+        ("xfindings[*].evidence.a", []), ("findings[0].evidence.a", [])]),
+    (r"\b(bucket|verdict|base_bucket|final_bucket)\b", 0, [
+        ("bucket and verdict", ["bucket", "verdict"]), ("bucketed and verdicts", []), ("final_bucket", ["final_bucket"]),
+        ("base_bucket", ["base_bucket"]), ("nothing", [])]),
+    (r"""content\s*:\s*(['\"])(.+?)\1""", 0, [
+        ("content: 'hi there'", [("'", "hi there")]), ('content:"x y"', [('"', "x y")]), ("color: red", []), ("content: ''", [])]),
+    (r"\[\d+\]", 0, [("a[0].b[12]", ["[0]", "[12]"]), ("a[*]", []), ("a[x]", [])]),
+    (r"(?<=[.;])\s+", 0, [("a. b; c", [" ", " "]), ("a.b", []), ("a.\n\tb", ["\n\t"]), ("no break", [])]),
+    (r"\d+(\.\d+)?", 0, [("17 hosts 0.39", ["", ".39"]), ("none", []), ("v2", [""])]),
+    (r"assert|expect\(|getBy|findBy|queryBy|toContain|toHaveText|toMatch|\bin\b.*(?:text|description|title|reason|note)|==|re\.search|match\(", 0, [
+        ("assert x == 1", ["assert", "=="]), ("expect(a).toBe(1)", ["expect("]), ("screen.getByText('x')", ["getBy"]),
+        ("a in the description text", ["in the description text"]), ("re.search(x)", ["re.search"]), ("plain prose here", [])]),
+    (r"\.test\.(ts|tsx)$", 0, [
+        ("Sample.test.tsx", ["tsx"]), ("a.test.ts", ["ts"]), ("a.tsx", []), ("a.test.tsx.bak", []), ("test.ts", [])]),
+    (r"""[\"'`]""", 0, [("say \"hi\"", ['"', '"']), ("it's", ["'"]), ("`x`", ["`", "`"]), ("plain", [])]),
 ]
 
 REGISTRY_BY_PATTERN = {pat: flags for pat, flags, _ in REGISTRY}

@@ -1,0 +1,4 @@
+{
+  "_comment": "Required negated disclaimers that may contain a banned word, by EXACT string (whitespace is normalised before comparing). One entry needs a reason. Adding an entry is an owner-approved change logged in docs/DESIGN_V2.md section 10 (D18, section 2.1). Empty on purpose until the wording cleanup decides which disclaimers, if any, must keep a banned word inside a negation.",
+  "allowed_exact_strings": []
+}
