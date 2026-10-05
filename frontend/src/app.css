@@ -1,7 +1,12 @@
+/* Page, forms, module detail, findings, feedback, AI opinion and indicators (docs/UI_DESIGN.md). Colours come from the tokens in theme.css only: no hex,
+   rgb() or hsl(), no color-mix(), no remote url() or @import, no legacy token. A test (src/test/appCss.test.ts) enforces that everywhere EXCEPT the one
+   marked verdict-card section below, which Phase B rewrites. Nothing renders HTML or makes message text a link. */
+
 .app-shell {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4);
+  padding-block: var(--space-6);
+  padding-inline: var(--space-4);
 }
 
 .view-card {
@@ -11,54 +16,126 @@
   padding: var(--space-5);
 }
 
+/* The three small views are a card in the middle of a wide page, not a full-width slab. */
+.upload-view,
+.progress-view,
+.error-view {
+  max-width: 40rem;
+  margin-inline: auto;
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+}
+.upload-view h1,
+.progress-view h2,
+.error-view h2 {
+  margin-top: 0;
+  font-size: var(--text-lg);
+  line-height: var(--leading-lg);
+  font-weight: 600;
+}
+
+/* Buttons: neutral, at least 28px high. Hover moves the border and background to neutral tones; the focus colour is only for keyboard focus. */
 button {
-  font-family: inherit;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  min-height: 28px;
+  min-width: 24px;
   background: var(--bg-muted);
   color: var(--text-primary);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-1) var(--space-4);
   cursor: pointer;
+  transition: border-color 100ms, background-color 100ms;
 }
-
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
 }
-
 button:hover:not(:disabled) {
-  border-color: var(--accent-cyan);
+  border-color: var(--text-secondary);
+  background: var(--bg-panel-raised);
+}
+/* One primary action per view: a 2px --text-primary border and a bold label. No brand colour. */
+.upload-view button[type='submit'],
+.timeout-notice button,
+.error-view button,
+.reset-button {
+  border: 2px solid var(--text-primary);
+  font-weight: 600;
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.module-panel-header:focus-visible {
+  outline-offset: -2px;
 }
 
 .error-text {
-  color: var(--accent-red);
+  color: var(--sev-critical);
 }
 
 /* Upload view */
-.upload-view h1 {
-  margin-top: 0;
+.upload-view form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
 }
-.subtitle {
+.upload-label {
+  font-weight: 600;
+}
+input[type='file'] {
+  max-width: 100%;
+  padding: var(--space-2);
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+input[type='file']::file-selector-button {
+  margin-inline-end: var(--space-3);
+  min-height: 28px;
+  padding: var(--space-1) var(--space-3);
+  font: inherit;
+  background: var(--bg-panel-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.upload-view p {
+  margin: 0;
+}
+.upload-view .subtitle {
+  margin: 0 0 var(--space-4);
   color: var(--text-secondary);
 }
 .file-name {
   color: var(--text-secondary);
-  font-size: 0.9em;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
 }
 
 /* Progress view */
 .current-step {
-  color: var(--accent-cyan);
-  font-size: 1.1em;
+  color: var(--text-primary);
+  font-size: var(--text-md);
+  font-weight: 600;
 }
 .hint {
   color: var(--text-muted);
-  font-size: 0.85em;
+  font-size: var(--text-sm);
 }
 .timeout-notice {
   margin-top: var(--space-4);
   padding: var(--space-3);
-  border: 1px solid var(--accent-amber);
+  border: 1px solid var(--notice);
+  border-inline-start-width: 3px;
   border-radius: var(--radius);
 }
 
@@ -66,9 +143,11 @@ button:hover:not(:disabled) {
 .results-view {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-3);
 }
 
+/* Phase B: verdict card, not migrated (start). Everything between the start and end markers is the verdict card, the Why list, top drivers, overrides and
+   the neutral-tier note, exactly as it was. The guard test skips this section only. */
 /* Summary card */
 .verdict-banner {
   display: flex;
@@ -119,12 +198,21 @@ button:hover:not(:disabled) {
   margin: 0;
   padding-left: var(--space-4);
 }
+.benign-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+/* Phase B: verdict card, not migrated (end) */
 
 /* Module panels */
 .module-panels {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
 }
 .module-panel {
   background: var(--bg-panel);
@@ -133,7 +221,8 @@ button:hover:not(:disabled) {
   overflow: hidden;
 }
 .module-panel--error {
-  border-color: var(--accent-amber);
+  border-color: var(--notice);
+  border-inline-start-width: 3px;
 }
 .module-panel-header {
   width: 100%;
@@ -144,25 +233,29 @@ button:hover:not(:disabled) {
   border: none;
   border-radius: 0;
   padding: var(--space-3) var(--space-4);
-  text-align: left;
+  text-align: start;
+  font-size: var(--text-base);
 }
 .module-title {
   flex: 1;
-  font-weight: bold;
+  font-weight: 600;
 }
+/* Neutral for a module that ran ("ran" says nothing about safety); amber, with the word "error", for one that failed. */
 .module-status {
-  font-size: 0.75em;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: 600;
   text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-.module-status--ok {
-  color: var(--accent-green);
-  background: color-mix(in srgb, var(--accent-green) 15%, transparent);
+  letter-spacing: 0.04em;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-control);
+  background: var(--bg-panel);
+  color: var(--text-secondary);
 }
 .module-status--error {
-  color: var(--accent-amber);
-  background: color-mix(in srgb, var(--accent-amber) 15%, transparent);
+  border-color: var(--notice);
+  color: var(--notice);
 }
 .module-panel-body {
   padding: var(--space-4);
@@ -171,28 +264,33 @@ button:hover:not(:disabled) {
   gap: var(--space-3);
 }
 .module-unavailable {
-  color: var(--accent-amber);
+  color: var(--notice);
 }
 .module-clean {
   color: var(--text-muted);
 }
+.module-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
 
-/* Findings */
+/* Findings: the severity is a written label, a left bar of its own weight and style, and a badge (docs/UI_DESIGN.md, 8.1). */
 .finding-item {
-  border-left: 3px solid var(--severity-info);
-  padding-left: var(--space-3);
+  border-inline-start: 1px solid var(--border);
+  padding-inline-start: var(--space-3);
 }
 .finding-item.severity-critical {
-  border-left-color: var(--severity-critical);
+  border-inline-start: 4px solid var(--sev-critical);
 }
 .finding-item.severity-high {
-  border-left-color: var(--severity-high);
+  border-inline-start: 3px solid var(--sev-high);
 }
 .finding-item.severity-medium {
-  border-left-color: var(--severity-medium);
+  border-inline-start: 3px dashed var(--sev-medium);
 }
 .finding-item.severity-low {
-  border-left-color: var(--severity-low);
+  border-inline-start: 2px dotted var(--sev-low);
 }
 .finding-header {
   width: 100%;
@@ -202,16 +300,43 @@ button:hover:not(:disabled) {
   background: transparent;
   border: none;
   padding: 0;
-  text-align: left;
+  text-align: start;
+  font-size: var(--text-base);
 }
 .severity-badge {
-  font-size: 0.7em;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: 600;
   text-transform: uppercase;
-  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+}
+.severity-critical .severity-badge {
+  background: var(--sev-critical);
+  border-color: var(--sev-critical);
+  color: var(--bg-root);
+}
+.severity-high .severity-badge {
+  border-color: var(--sev-high);
+  color: var(--sev-high);
+  font-weight: 700;
+}
+.severity-medium .severity-badge {
+  border-color: var(--sev-medium);
+  color: var(--sev-medium);
+}
+.severity-low .severity-badge {
+  border-color: var(--sev-low);
+  color: var(--sev-low);
+  font-weight: 400;
 }
 .finding-title {
   flex: 1;
-  font-weight: bold;
+  font-weight: 600;
 }
 .finding-description {
   margin: var(--space-1) 0 0;
@@ -219,7 +344,7 @@ button:hover:not(:disabled) {
 }
 .finding-evidence {
   margin: var(--space-2) 0 0;
-  font-size: 0.85em;
+  font-size: var(--text-sm);
 }
 .evidence-row {
   display: flex;
@@ -230,12 +355,12 @@ button:hover:not(:disabled) {
 }
 .evidence-row dd {
   margin: 0;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Enrichment raw data drill-down */
 .enrichment-raw-data {
-  border-top: 1px solid var(--border-muted);
+  border-top: 1px solid var(--border);
   padding-top: var(--space-3);
 }
 .raw-data-toggle {
@@ -245,46 +370,54 @@ button:hover:not(:disabled) {
   background: transparent;
   border: none;
   padding: var(--space-1) 0;
-  text-align: left;
+  text-align: start;
+  font-size: var(--text-sm);
 }
 .raw-data-json {
-  background: var(--bg-root);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
   padding: var(--space-3);
   border-radius: var(--radius);
   overflow-x: auto;
-  font-size: 0.8em;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
 }
 
-/* LLM opinion card */
+/* AI opinion card: a neutral raised surface with a dashed edge, so it never looks like part of the verdict. */
 .llm-opinion-card {
-  background: var(--llm-bg);
-  border: 1px solid var(--llm-border);
+  background: var(--bg-panel-raised);
+  border: 1px dashed var(--border-control);
   border-radius: var(--radius);
   padding: var(--space-4);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
 }
 .llm-opinion-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-3);
   margin-bottom: var(--space-3);
 }
 .llm-badge {
-  color: var(--accent-green);
-  font-size: 0.75em;
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 .llm-disclaimer {
-  color: var(--text-muted);
-  font-size: 0.75em;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
 }
 .llm-flags-heading {
   color: var(--text-secondary);
-  font-size: 0.85em;
+  font-size: var(--text-sm);
   margin-bottom: var(--space-1);
 }
 .llm-unavailable {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -295,70 +428,100 @@ button:hover:not(:disabled) {
 .feedback-bar {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding: 0.9rem 1rem;
+  gap: var(--space-3);
+  padding: var(--space-3);
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
 }
-
 .feedback-title {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   font-weight: 600;
 }
-
 .feedback-actions {
   display: flex;
-  gap: 0.6rem;
+  gap: var(--space-2);
 }
-
 .feedback-note {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  font-size: 0.78rem;
-  color: var(--text-muted);
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
 }
-
 .feedback-note textarea {
   background: var(--bg-muted);
   color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius);
+  padding: var(--space-2);
   font: inherit;
+  font-size: var(--text-sm);
   resize: vertical;
 }
-
+.feedback-note textarea::placeholder {
+  color: var(--text-muted);
+}
+/* The saved line is plain text: nothing here says "good" or "done well". */
 .feedback-status {
   margin: 0;
-  font-size: 0.8rem;
-  color: var(--accent-green);
-}
-
-.benign-note {
-  margin: 0.5rem 0 0;
-  font-size: 0.85rem;
-  opacity: 0.85;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
 }
 
 /* Indicators panel */
-.indicators-title { margin: 0 0 var(--space-2); font-size: 1.1em; }
-.indicators-lead { color: var(--text-secondary); margin: 0 0 var(--space-3); }
+.indicators-panel {
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+}
+.indicators-title { margin: 0 0 var(--space-2); font-size: var(--text-md); line-height: var(--leading-md); font-weight: 600; }
+.indicators-lead { color: var(--text-secondary); margin: 0 0 var(--space-3); font-size: var(--text-sm); }
 .indicators-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); }
-.indicators-message { color: var(--text-secondary); font-size: 0.85em; }
-.indicators-group h3 { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin: var(--space-3) 0 var(--space-1); }
+.indicators-message { color: var(--text-secondary); font-size: var(--text-sm); }
+.indicators-group h3 { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin: var(--space-3) 0 var(--space-1); }
 .indicator-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.indicator { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-2) var(--space-3); }
+.indicator { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-1) var(--space-3); background: var(--bg-panel-raised); }
 .indicator--provider_hit { border-color: var(--sev-critical); }
 /* Amber only where the gap blocks "No indicators found" (shared platforms, internal names); unknown and not-looked-up rows stay plain and say so in words. */
 .indicator--blocks { border-color: var(--notice); border-inline-start-width: 3px; }
 .indicators-group .indicators-quiet-heading { margin: var(--space-3) 0 var(--space-2); font-size: var(--text-sm); text-transform: none; letter-spacing: 0; color: var(--text-primary); }
 .indicators-quiet-heading .wb-disclosure { font-size: var(--text-sm); }
 .indicator-main { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-.indicator-value { word-break: break-all; }
-.indicator-status { font-size: 0.8em; padding: 0 var(--space-2); border-radius: var(--radius); border: 1px solid var(--border); }
-.indicator-seen, .indicator-note, .indicator-providers { font-size: 0.85em; color: var(--text-secondary); margin-top: var(--space-1); }
-.indicator-pivots { font-size: 0.85em; margin-top: var(--space-1); display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.indicator-value { font-family: var(--font-mono); font-size: var(--text-sm); word-break: break-all; overflow-wrap: anywhere; }
+.indicator-status {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-control);
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+}
+.indicator-seen, .indicator-note, .indicator-providers { font-size: var(--text-sm); color: var(--text-secondary); margin-top: var(--space-1); }
+.indicator-pivots { font-size: var(--text-sm); margin-top: var(--space-1); display: flex; flex-wrap: wrap; gap: var(--space-3); }
+/* The only links on the page: underlined and in the text colour, so they read as links without a hue. */
+.indicator-pivots a { color: var(--text-primary); text-decoration: underline; text-underline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+}
+
+/* Forced colors (Windows high contrast): backgrounds and hues are replaced by the system palette, so the marks here are carried by borders, border width
+   and style, the focus outline and the written labels. System colour keywords only. */
+@media (forced-colors: active) {
+  .upload-view, .progress-view, .error-view, .module-panel, .feedback-bar, .llm-opinion-card, .indicator, .timeout-notice, .enrichment-raw-data,
+  .raw-data-json, input[type='file'], .feedback-note textarea, .module-status, .severity-badge, .indicator-status { border-color: CanvasText; }
+  .finding-item { border-inline-start-color: CanvasText; }
+  .severity-critical .severity-badge { background: Canvas; color: CanvasText; border: 3px double CanvasText; }
+  .module-panel--error, .timeout-notice, .indicator--blocks { border-inline-start-width: 4px; }
+  button, input[type='file']::file-selector-button { border-color: ButtonBorder; }
+  :focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+  .module-panel-header:focus-visible { outline-offset: -3px; }
+  button:not(.finding-header):not(.module-panel-header):not(.raw-data-toggle):hover:not(:disabled) { border-width: 2px; padding: calc(var(--space-1) - 1px) calc(var(--space-4) - 1px); }
+}
