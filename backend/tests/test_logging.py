@@ -107,7 +107,7 @@ def test_unknown_and_disabled_outcomes_are_one_console_warning_with_counts_and_n
     result = run_enrichment(_parsed(["https://secret-host.example.org/a", "http://intranet/x", "http://srv.corp/y"]), _clients("disabled"),
                             VTRateLimiter(sleep_fn=lambda s: None), EnrichmentPolicy())
     err = capsys.readouterr().err
-    assert "WARNING app.enrichment enrichment: 1 indicator(s) looked up; the rest is UNKNOWN, not clean" in err
+    assert "WARNING app.enrichment enrichment: 1 indicator(s) looked up; the rest is UNKNOWN (no answer), which is not the same as 'nothing found'" in err
     assert "virustotal: disabled x1" in err and "urlscan: disabled x1" in err and "threatfox: disabled x1" in err
     assert "2 internal-looking host(s) never sent (not looked up)" in err
     for private in ("secret-host", "intranet", "srv.corp", "example.org"):
@@ -168,4 +168,4 @@ def test_the_api_response_and_the_console_tell_the_same_story(monkeypatch, capsy
     assert "Some enrichment providers did not give a usable answer" in titles
     assert any(t == "Enrichment incomplete for intranet" for t in titles)
     err = capsys.readouterr().err
-    assert "UNKNOWN, not clean" in err and "internal-looking host(s) never sent" in err and "intranet" not in err
+    assert "UNKNOWN (no answer), which is not the same as 'nothing found'" in err and "internal-looking host(s) never sent" in err and "intranet" not in err

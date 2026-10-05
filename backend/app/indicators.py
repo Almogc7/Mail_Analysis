@@ -93,7 +93,7 @@ def _assess(entry: Any, dropped: bool) -> tuple[str, str, dict[str, str]]:
         return "provider_hit", "A lookup source reported something. See the enrichment findings for the detail.", states
     answered = [s for s in states.values() if s == "answered"]
     if not answered:
-        return "unknown", "No source gave a usable answer, so this is UNKNOWN, not clean. Check it by hand.", states
+        return "unknown", "No source gave a usable answer, so this is UNKNOWN (no answer), which is not the same as 'nothing found'. Check it by hand.", states
     if len(answered) < len(states):
         return "unknown", "Some sources answered with nothing found, others did not: treat as unknown.", states
     return "nothing_found", "Every source that was asked reported nothing. That is not proof of safety.", states

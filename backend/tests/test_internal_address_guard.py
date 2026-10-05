@@ -127,7 +127,7 @@ def test_a_message_full_of_internal_links_causes_zero_requests_and_every_host_is
                             EnrichmentPolicy(path_query_providers=opt_in))
     assert fake_http.calls == []
     incomplete = [f for f in result.findings if f.title.startswith("Enrichment incomplete for")]
-    assert incomplete and all("UNKNOWN, not clean" in f.description for f in incomplete)
+    assert incomplete and all("UNKNOWN (no answer), which is not the same as 'nothing found'" in f.description for f in incomplete)
     assert not [f for f in result.findings if f.title.startswith("Suspicious")]
 
 

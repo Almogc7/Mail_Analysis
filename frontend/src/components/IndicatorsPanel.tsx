@@ -162,7 +162,7 @@ export function IndicatorsPanel({ pack, coverage }: { pack: IndicatorPack | null
       <p className="indicators-lead">
         Everything the message contains, in one place. This list adds nothing to the verdict.{' '}
         <strong>{pack.manual_check_count}</strong> need a manual check: the app could not judge them, which is not the same as
-        clean. The links open third-party sites only when you click them.
+        &apos;nothing found&apos;. The links open third-party sites only when you click them.
       </p>
 
       {hiddenCount > 0 && (

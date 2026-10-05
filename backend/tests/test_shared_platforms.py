@@ -114,7 +114,7 @@ def test_a_link_on_a_shared_platform_is_not_looked_up_and_is_uninformative_not_c
     assert result.raw_data["u4412345.ct.sendgrid.net"] == {"uninformative": {"platform": "SendGrid", "kind": "esp_tracker"}}
     gap = next(f for f in result.findings if f.title.startswith("Enrichment incomplete for"))
     assert gap.evidence["state"] == "uninformative" and gap.evidence["platform"] == "SendGrid" and gap.weight == 0.0
-    assert "UNINFORMATIVE" in gap.description and "not clean" in gap.description
+    assert "UNINFORMATIVE" in gap.description and "unknown on reputation, which is not the same as 'nothing found'" in gap.description
     assert not [f for f in result.findings if f.title.startswith("Suspicious")]
     assert category_coverage("enrichment", result) == 0.0  # no reputation evidence exists
 

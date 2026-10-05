@@ -218,6 +218,6 @@ def test_the_eval_does_not_flood_stderr_with_per_message_enrichment_warnings_and
     before = logging.getLogger("app").level
     _run("--corpus-dir", str(corpus), "--no-gate", "--enrichment", "unknown")
     captured = capsys.readouterr()
-    assert "UNKNOWN, not clean" not in captured.err and "enrichment:" not in captured.err  # the tables are readable
+    assert "UNKNOWN (no answer), which is not the same as 'nothing found'" not in captured.err and "enrichment:" not in captured.err  # the tables are readable
     assert "STRICT" in captured.out  # and the report itself is unchanged
     assert logging.getLogger("app").level == before

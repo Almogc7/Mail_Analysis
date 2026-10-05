@@ -86,7 +86,7 @@ def _skip_finding(ioc_kind: str, ioc_value: str, priority: int | None = None, re
         title=f"Not enriched: per-email limit reached ({ioc_kind})",
         description=(
             f"{ioc_kind.capitalize()} '{ioc_value}' was not looked up because this email exceeded the per-email "
-            f"enrichment limit; the riskiest indicators are looked up first.{detail} It is UNKNOWN, not clean."
+            f"enrichment limit; the riskiest indicators are looked up first.{detail} It is UNKNOWN (no answer), which is not the same as 'nothing found'."
         ),
         evidence={"ioc_kind": ioc_kind, "ioc_value": ioc_value, "priority": priority, "reasons": reasons or []},
         weight=0.0,
@@ -105,7 +105,7 @@ def _incomplete_findings(ioc_value: str, provider_results: dict[str, dict[str, A
                     title=f"Enrichment incomplete for {ioc_value}",
                     description=(
                         f"{provider} returned no usable result (status: {status}). This IOC is UNKNOWN on that "
-                        "source -- absence of a detection is not evidence that it is clean."
+                        "source -- absence of a detection is not evidence that nothing is wrong with it."
                     ),
                     evidence={"provider": provider, "ioc_value": ioc_value, "result": result},
                     weight=0.0,
@@ -121,7 +121,7 @@ def _internal_finding(host: str) -> Finding:
         title=f"Enrichment incomplete for {host}",
         description=(
             f"'{host}' looks internal (no public DNS name or a private/loopback address), so it was never "
-            "sent to any external service. It is UNKNOWN, not clean."
+            "sent to any external service. It is UNKNOWN (no answer), which is not the same as 'nothing found'."
         ),
         evidence={"provider": "all", "ioc_value": host, "reason": "internal-looking host"},
         weight=0.0,
@@ -137,7 +137,7 @@ def _uninformative_finding(key: str, platform) -> Finding:
         description=(
             f"'{key}' is on {platform.name} ({platform.kind.replace('_', ' ')}), a shared platform: its domains are "
             "reputable but host or relay content anyone can create, so a reputation lookup cannot separate a "
-            "good link from a bad one and none was made. UNINFORMATIVE -- unknown on reputation, not clean."
+            "good link from a bad one and none was made. UNINFORMATIVE -- unknown on reputation, which is not the same as 'nothing found'."
         ),
         evidence={"provider": "all", "ioc_value": key, "state": "uninformative", "platform": platform.name, "kind": platform.kind},
         weight=0.0,
@@ -298,7 +298,7 @@ def run_enrichment(
                 severity="info",
                 title="Some enrichment providers did not give a usable answer",
                 description=(
-                    "Affected indicators are UNKNOWN, not clean (" + "; ".join(parts) + "). "
+                    "Affected indicators are UNKNOWN (no answer), which is not the same as 'nothing found' (" + "; ".join(parts) + "). "
                     "Check provider API keys, ENRICHMENT_DISABLED_PROVIDERS, rate limits and connectivity."
                 ),
                 evidence={"providers": statuses},
@@ -325,7 +325,7 @@ def _log_outcome(statuses: dict[str, dict[str, int]], internal: int, shared: int
         parts.append(f"{shared} shared-platform host(s) not looked up")
     if skipped:
         parts.append(f"{skipped} indicator(s) skipped by the per-email limit")
-    logger.warning("enrichment: %d indicator(s) looked up; the rest is UNKNOWN, not clean (%s)", looked_up, "; ".join(parts))
+    logger.warning("enrichment: %d indicator(s) looked up; the rest is UNKNOWN (no answer), which is not the same as 'nothing found' (%s)", looked_up, "; ".join(parts))
 
 
 __all__ = ["run_enrichment"]

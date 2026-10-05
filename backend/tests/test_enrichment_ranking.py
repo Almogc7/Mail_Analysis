@@ -92,7 +92,7 @@ def test_every_dropped_indicator_is_listed_with_its_rank_and_reasons(monkeypatch
     result = run_enrichment(parsed, clients=_clients(), vt_limiter=_no_sleep_limiter())
     (skip,) = [f for f in result.findings if f.title.startswith("Not enriched:")]
     assert skip.evidence["ioc_value"] == "plain.other-example.org" and isinstance(skip.evidence["priority"], int)
-    assert "UNKNOWN, not clean" in skip.description and "riskiest indicators are looked up first" in skip.description
+    assert "UNKNOWN (no answer), which is not the same as 'nothing found'" in skip.description and "riskiest indicators are looked up first" in skip.description
     assert skip.evidence["reasons"]  # the analyst can see why it ranked where it did
 
 
