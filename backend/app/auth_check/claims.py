@@ -191,7 +191,7 @@ def claim_findings(parsed: ParsedEmail, auth: dict[str, Any], alignment: dict[st
         findings.append(Finding(
             module=MODULE_NAME, severity="info", weight=3.0,
             title="Body mentions a known brand the sender does not own",
-            description=(f"The body mentions {', '.join(mentions)}. Common in benign mail; it adds a little to the score and "
+            description=(f"The body mentions {', '.join(mentions)}. Common in ordinary mail; it adds a little to the score and "
                          "never counts toward the corroboration floor."),
             evidence={"brands": mentions, "signal": "C1b"},
         ))

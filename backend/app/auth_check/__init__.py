@@ -72,7 +72,7 @@ def _auth_findings(auth: dict) -> list[Finding]:
                 title="SPF/DKIM/DMARC all passed",
                 description=(
                     "A trusted receiver reported SPF, DKIM and DMARC all passed. This authenticates the "
-                    "sending infrastructure and domain; it does not make the content safe."
+                    "sending infrastructure and domain; it says nothing about what the message contains."
                 ),
                 evidence={
                     "spf_domain": auth["spf"]["domain"],
@@ -191,7 +191,7 @@ def _identity_findings(identity: dict) -> list[Finding]:
                 description=(
                     f"From display name contains the brand '{spoof['claimed_brand']}' as a whole word{evasion} "
                     f"but the sending domain '{spoof['actual_domain']}' is not one of that brand's known domains. "
-                    "A brand claim alone is common in benign mail (a business named like a brand), so it does not "
+                    "A brand claim alone is common in ordinary mail (a business named like a brand), so it does not "
                     "raise the verdict by itself; it does together with evidence from another family."
                 ),
                 # C1 (docs/DETECTION_DESIGN.md): MEDIUM, family 'claim'; floors only via corroboration.
@@ -272,7 +272,7 @@ def _identity_findings(identity: dict) -> list[Finding]:
 
 
 def _from_ambiguity_findings(parsed: ParsedEmail) -> list[Finding]:
-    """Informational only (weight 0): the From header was not a clean 'Display <address>'. The extractor recovered
+    """Informational only (weight 0): the From header was not a well-formed 'Display <address>'. The extractor recovered
     an address so sender checks still run, but the analyst should know the sender line is sloppy or tricky.
     It must never score on its own -- plenty of benign senders have a sloppy header."""
     prefix = f"{AMBIGUITY_PREFIX}:from: "
@@ -285,7 +285,7 @@ def _from_ambiguity_findings(parsed: ParsedEmail) -> list[Finding]:
             severity="low",
             title="From header parse ambiguity",
             description=(
-                "The From header is not a clean single 'Display <address>' (" + "; ".join(reasons) + "). "
+                "The From header is not a well-formed single 'Display <address>' (" + "; ".join(reasons) + "). "
                 f"The sender address used for checks is '{parsed.from_.address}'. Informational: this does not "
                 "affect the score by itself."
             ),

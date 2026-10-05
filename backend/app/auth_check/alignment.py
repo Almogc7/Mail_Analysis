@@ -90,8 +90,8 @@ def alignment_findings(alignment: dict[str, Any]) -> list[Finding]:
                     description=(
                         f"SPF authenticated the sending infrastructure only: the sending IP is authorised by "
                         f"'{env}' and the envelope domain equals the From domain ('{frm}'). This proves the sender "
-                        f"controls '{frm}'; it does not show that '{frm}' is who the display name claims or that "
-                        "the message is safe -- an attacker authorises their own servers for their own domain."
+                        f"controls '{frm}'; it does not show that '{frm}' is who the display name claims, and it "
+                        "says nothing about what the message contains -- an attacker authorises their own servers for their own domain."
                     ),
                     evidence=alignment,
                     weight=0.0,
@@ -123,7 +123,7 @@ def alignment_findings(alignment: dict[str, Any]) -> list[Finding]:
                     description=(
                         f"The message carries a valid DKIM signature from '{dkim['domain']}', the From domain's "
                         "registrable domain: it was signed with a key that domain publishes and not altered in "
-                        "transit. This proves who signed it, not that the content is safe."
+                        "transit. This proves who signed it; it says nothing about what the message contains."
                     ),
                     evidence=alignment,
                     weight=0.0,
