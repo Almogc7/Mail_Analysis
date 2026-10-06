@@ -3,8 +3,7 @@
 Three kinds of test live here.
   * COMPLETENESS and CONSISTENCY tests, which pass now: every D23 category is present, ids are unique, every finding code exists in the registry and carries the class the table gives it, every
     blocker of DESIGN_V2.md 2.3 has its case, the arithmetic fact behind R3B holds, and every case agrees with the frozen rules as the read-only predictor (scripts/predict_tiers.py) executes them.
-  * The BEHAVIOUR test and the V12 PROPERTY test, which import `compute_tier` from `app.scoring.tiers` (not built) and are marked xfail(strict=True): the implementation commit MUST remove the
-    marks, and the strict mark makes it fail loudly if it forgets.
+  * The BEHAVIOUR test and the V12 PROPERTY test, which import `compute_tier` from `app.scoring.tiers`. They were xfail(strict=True) until the implementation commit, which removed the marks.
 
 Calling convention pinned here, so the implementation has one thing to satisfy: `compute_tier(inputs: dict)`, where `inputs` has the contract names of section 2 (findings, score, contributions,
 trusted_auth_failures, hard_evidence_candidates, blockers, t4_positive_flags, coverage_gate); the result exposes `tier`, `route_id`, `reasons` (each with a `code`), `hard_evidence` (each with a `rule`),
@@ -235,7 +234,7 @@ def _named_route_satisfied(chosen, score):
     above = [t for t in items if t[2] != "info"]
     medium = [t for t in above if t[2] in ("medium", "high", "critical")]
     r1 = len({cls for _n, cls, _s in above if cls in FAMILY_CLASSES}) >= 2
-    r2 = any(name == "strong" and sev == "high" for name, _cls, sev in above)
+    r2 = any(name == "strong" and sev in ("high", "critical") for name, _cls, sev in above)  # clarification C2: high or higher, as v1's floor ("at least high")
     content_floor = sum(1 for _n, cls, sev in items if cls == "content" and sev in ("high", "critical")) >= 2
     enrichment_floor = any(cls == "enrichment" and sev == "critical" for _n, cls, sev in items)
     r3 = 35.0 <= score < 70.0 and len({cls for _n, cls, _s in medium}) >= 2
@@ -252,12 +251,13 @@ def _inputs_for(chosen, score):
             "coverage_gate": {"confidence": 1.0, "confidence_threshold": 0.6, "enrichment_complete": True}}
 
 
-def test_the_v12_oracle_agrees_with_the_predictor_on_every_generated_set_up_to_size_3_except_one_known_divergence(predictor):
+def test_the_v12_oracle_agrees_with_the_predictor_on_every_generated_set_up_to_size_3_except_two_known_divergences(predictor):
     """Validates the specification itself now (size 3 keeps it fast; the property test below goes to size 4).
 
-    KNOWN DIVERGENCE, reported to the owner and not resolved here: the frozen predictor counts the v1 content floor (two findings at severity high) by the MODULE that produced them
+    KNOWN DIVERGENCES (clarifications C1 and C2 of the pre-registration), the first reported to the owner and not resolved here: the frozen predictor counts the v1 content floor (two findings at severity high) by the MODULE that produced them
     (content_analysis), as v1 does; the contract, D16 and this oracle count by CLASS (content). They differ only for a link-class finding (built by content_analysis) at severity high, which no
-    producer emits (the link kinds are low or medium), so the 856 baseline rows are unaffected. The interface gives `compute_tier` no module field, so the implementation counts by class."""
+    producer emits (the link kinds are low or medium), so the 856 baseline rows are unaffected. The interface gives `compute_tier` no module field, so the implementation counts by class.
+    The second: the predictor reads the strong signal as produced severity == high, the clarified rule (v1's floor: at least high) as high or higher; they differ only at severity critical."""
     disagreements = []
     for chosen in _sets(3):
         findings = [{"code": code, "severity": sev, "module": BY_CODE[code].module} for _n, code, _c, sev in chosen]
@@ -268,12 +268,15 @@ def test_the_v12_oracle_agrees_with_the_predictor_on_every_generated_set_up_to_s
 
     def explained(item):
         chosen, _score, tier, route = item
-        return tier == "T2" and route == "R4" and any(cls == "link" and sev in ("high", "critical") for _n, _code, cls, sev in chosen)
+        link_high = tier == "T2" and route == "R4" and any(cls == "link" and sev in ("high", "critical") for _n, _code, cls, sev in chosen)
+        # the second divergence (clarification C2): the predictor reads the strong signal as severity == high, the clarified rule as high or higher; no producer emits critical for these kinds
+        strong_critical = any(name == "strong" and sev == "critical" for name, _code, _cls, sev in chosen)
+        return link_high or strong_critical
 
     assert [([(n, s) for n, _c, _cl, s in chosen], score, tier, route) for chosen, score, tier, route in disagreements if not explained((chosen, score, tier, route))] == []
 
 
-# ---- the strict xfails: the implementation commit must remove these marks ------------------------------------------------------------------------------------
+# ---- the behaviour test and the V12 property over app.scoring.tiers.compute_tier (the strict xfail marks were removed with the implementation) -----------------------
 
 def _field(result, name):
     return result[name] if isinstance(result, dict) else getattr(result, name)
@@ -283,7 +286,6 @@ def _item(entry, name):
     return entry[name] if isinstance(entry, dict) else getattr(entry, name)
 
 
-@pytest.mark.xfail(strict=True, raises=ImportError, reason="Phase B tier logic not built")
 def test_compute_tier_gives_the_expected_tier_route_reasons_hard_evidence_and_blockers_for_every_case():
     from app.scoring.tiers import compute_tier
 
@@ -296,7 +298,9 @@ def test_compute_tier_gives_the_expected_tier_route_reasons_hard_evidence_and_bl
         if got != want:
             mismatches.append((c["id"], got, want))
         if e["reason_codes"] is not None and e["tier"] in ("T1", "T2"):
-            if sorted({_item(r, "code") for r in _field(result, "reasons")}) != e["reason_codes"]:
+            # pseudo-reasons (class score, gap, positive_evidence) keep every tier's reasons non-empty (V14) and are not part of the case convention
+            compared = {_item(r, "code") for r in _field(result, "reasons") if _item(r, "class") in CLASSES or _item(r, "code") == "evidence_conflict"}
+            if sorted(compared) != e["reason_codes"]:
                 mismatches.append((c["id"], "reason_codes"))
         if sorted(_item(h, "rule") for h in _field(result, "hard_evidence")) != sorted(h["rule"] for h in e["hard_evidence"]):
             mismatches.append((c["id"], "hard_evidence"))
@@ -307,7 +311,6 @@ def test_compute_tier_gives_the_expected_tier_route_reasons_hard_evidence_and_bl
     assert mismatches == []
 
 
-@pytest.mark.xfail(strict=True, raises=ImportError, reason="Phase B tier logic not built")
 def test_v12_t2_if_and_only_if_a_named_route_is_satisfied_over_every_generated_finding_set_up_to_size_4():
     from app.scoring.tiers import compute_tier
 

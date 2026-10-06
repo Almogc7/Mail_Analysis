@@ -1,4 +1,4 @@
-"""The reason-class table (app/reason_classes.py, docs/DESIGN_V2.md D16 and D22): data plus the rules that pin it. No scoring code uses it yet."""
+"""The reason-class table (app/reason_classes.py, docs/DESIGN_V2.md D16 and D22): data plus the rules that pin it. Only scoring/tiers.py uses it."""
 import ast
 import json
 from pathlib import Path
@@ -109,19 +109,23 @@ def test_an_excluded_kind_says_why():
             assert any(word in entry.reason.lower() for word in ("info severity", "gap", "parse note", "untrusted claim", "message-controlled")), code
 
 
-# ---- nothing under scoring/ uses the table yet -----------------------------------------------------------------------------------------
+# ---- only scoring/tiers.py uses the table, and nothing uses the tier function yet --------------------------------------------------------------------
 
-def _imports_the_table(source: str) -> bool:
-    """True if the module imports app.reason_classes in any spelling: absolute, from-app, or relative."""
+def _imports_module(source: str, name: str) -> bool:
+    """True if the module imports a module called `name` in any spelling: absolute, from-package, or relative."""
     for node in ast.walk(ast.parse(source)):
-        if isinstance(node, ast.Import) and any(alias.name.split(".")[-1] == "reason_classes" or alias.name.endswith("reason_classes") for alias in node.names):
+        if isinstance(node, ast.Import) and any(alias.name.split(".")[-1] == name for alias in node.names):
             return True
         if isinstance(node, ast.ImportFrom):
-            if (node.module or "").split(".")[-1] == "reason_classes":
+            if (node.module or "").split(".")[-1] == name:
                 return True
-            if any(alias.name == "reason_classes" for alias in node.names):
+            if any(alias.name == name for alias in node.names):
                 return True
     return False
+
+
+def _imports_the_table(source: str) -> bool:
+    return _imports_module(source, "reason_classes")
 
 
 def test_the_import_check_recognises_every_spelling_of_the_import():
@@ -129,12 +133,24 @@ def test_the_import_check_recognises_every_spelling_of_the_import():
                    "from .. import reason_classes", "from ..reason_classes import CLASSES", "import app.reason_classes as rc"):
         assert _imports_the_table(source), source
     assert not _imports_the_table("from app.finding_codes import code")
+    assert _imports_module("from app.scoring.tiers import compute_tier", "tiers") and _imports_module("from app.scoring import tiers", "tiers")
+    assert not _imports_module("from app.scoring.config import ScoringConfig", "tiers")
 
 
-def test_nothing_under_scoring_imports_the_reason_class_table_yet():
-    files = sorted(SCORING.rglob("*.py"))
-    assert files, "scoring/ has no modules: the path is wrong"
-    assert [p.relative_to(BACKEND).as_posix() for p in files if _imports_the_table(p.read_text(encoding="utf-8"))] == []
+def test_exactly_scoring_tiers_imports_the_reason_class_table_and_nothing_else_in_the_app_does():
+    files = sorted((BACKEND / "app").rglob("*.py"))
+    assert files, "backend/app has no modules: the path is wrong"
+    importers = [p.relative_to(BACKEND).as_posix() for p in files if _imports_the_table(p.read_text(encoding="utf-8"))]
+    assert importers == ["app/scoring/tiers.py"]
+    assert [p.relative_to(BACKEND).as_posix() for p in sorted(SCORING.rglob("*.py")) if _imports_the_table(p.read_text(encoding="utf-8"))] == ["app/scoring/tiers.py"]
+
+
+def test_nothing_in_the_app_imports_the_tier_function_yet_so_it_is_not_wired():
+    """verdict_v2 does not exist: no pipeline, API, contract or other module imports app.scoring.tiers (only tests and read-only scripts do)."""
+    files = sorted((BACKEND / "app").rglob("*.py"))
+    assert [p.relative_to(BACKEND).as_posix() for p in files if _imports_module(p.read_text(encoding="utf-8"), "tiers")] == []
+    frontend = BACKEND.parent / "frontend" / "src"
+    assert not [p for p in frontend.rglob("*") if p.suffix in (".ts", ".tsx") and "verdict_v2" in p.read_text(encoding="utf-8", errors="ignore")], "the frontend does not know verdict_v2 yet"
 
 
 def test_the_trusted_and_the_fallback_none_aligned_kinds_are_split_by_where_the_compared_domain_came_from():
