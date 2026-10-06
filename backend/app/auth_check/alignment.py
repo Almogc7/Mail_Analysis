@@ -27,6 +27,7 @@ from app.finding_codes import code as finding_code
 from app.shared.matching import registrable_domain
 
 MODULE_NAME = "auth_check"
+TRUSTED_SPF_SOURCE = "trusted SPF result"  # envelope_source when the compared domain came from the trusted receiver's own result
 
 
 def _reg(domain: str | None) -> str | None:
@@ -44,7 +45,7 @@ def _envelope_domain(parsed: ParsedEmail, auth: dict[str, Any]) -> tuple[str | N
     """(domain, where it came from), preferring what a trusted receiver actually checked."""
     spf = auth["spf"]
     if spf["evaluated"] and spf["domain"]:
-        return spf["domain"].lower(), "trusted SPF result"
+        return spf["domain"].lower(), TRUSTED_SPF_SOURCE
     if parsed.return_path and parsed.return_path.domain:
         return parsed.return_path.domain, "Return-Path header"
     if parsed.received_chain and parsed.received_chain[-1].envelope_from:
@@ -160,7 +161,8 @@ def alignment_findings(alignment: dict[str, Any]) -> list[Finding]:
                 module=MODULE_NAME,
                 severity="medium",
                 title="No authentication is aligned with the From domain",
-                code=finding_code("AUTH_ALIGN_NONE_ALIGNED"),
+                # The code follows where the compared envelope domain came from: a trusted receiver's result, or a header the sender writes (a fallback).
+                code=finding_code("AUTH_ALIGN_NONE_ALIGNED" if alignment["envelope_source"] == TRUSTED_SPF_SOURCE else "AUTH_ALIGN_NONE_ALIGNED_FALLBACK"),
                 description=(
                     f"A trusted receiver evaluated SPF and DKIM, but neither authenticated the From domain "
                     f"('{frm}'): SPF covered '{env}'"

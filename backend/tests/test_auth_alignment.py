@@ -110,3 +110,36 @@ def test_only_the_no_alignment_finding_ever_carries_weight(monkeypatch, trusted)
     for f in run_auth_check(_email(ar=ar)).findings:
         if any(k in f.title for k in ("passed", "aligns", "not evaluated", "ignored")):
             assert f.weight == 0.0, f.title
+
+
+def _none_aligned(result):
+    return [f for f in result.findings if f.title == "No authentication is aligned with the From domain"]
+
+
+def test_the_trusted_result_carrying_a_domain_gives_the_trusted_none_aligned_code(monkeypatch):
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [MX])
+    ar = "mx.example.org; spf=pass smtp.mailfrom=bounce.esp.example.net; dkim=pass header.d=esp.example.net; dmarc=none"
+    (finding,) = _none_aligned(run_auth_check(_email(ar=ar)))
+    assert finding.code == "AUTH_ALIGN_NONE_ALIGNED"
+    assert finding.evidence["envelope_source"] == "trusted SPF result"
+
+
+def test_a_trusted_result_without_a_domain_falls_back_to_a_sender_header_and_gets_the_fallback_code(monkeypatch):
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [MX])
+    ar = "mx.example.org; spf=pass; dkim=pass header.d=esp.example.net; dmarc=none"  # SPF passed, but the result names no domain
+    return_path = EmailAddress(address="bounce@bounce.esp.example.net", domain="bounce.esp.example.net")
+    (finding,) = _none_aligned(run_auth_check(_email(ar=ar, return_path=return_path)))
+    assert finding.code == "AUTH_ALIGN_NONE_ALIGNED_FALLBACK"
+    assert finding.evidence["envelope_source"] == "Return-Path header"
+
+
+def test_the_two_none_aligned_findings_differ_only_in_their_code(monkeypatch):
+    """Title, severity and weight are the same whichever way the domain was found (only `code` and the recorded source differ)."""
+    monkeypatch.setattr("app.config.TRUSTED_RECEIVER_PATTERNS", [MX])
+    trusted_ar = "mx.example.org; spf=pass smtp.mailfrom=bounce.esp.example.net; dkim=pass header.d=esp.example.net; dmarc=none"
+    fallback_ar = "mx.example.org; spf=pass; dkim=pass header.d=esp.example.net; dmarc=none"
+    return_path = EmailAddress(address="bounce@bounce.esp.example.net", domain="bounce.esp.example.net")
+    (a,) = _none_aligned(run_auth_check(_email(ar=trusted_ar)))
+    (b,) = _none_aligned(run_auth_check(_email(ar=fallback_ar, return_path=return_path)))
+    assert (a.title, a.severity, a.weight) == (b.title, b.severity, b.weight)
+    assert a.code != b.code

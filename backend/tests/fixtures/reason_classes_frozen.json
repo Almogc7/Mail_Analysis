@@ -14,7 +14,12 @@
     "AUTH_ALIGN_NONE_ALIGNED": {
       "class": "auth",
       "counts_as_reason": true,
-      "reason": "computed only when a trusted receiver evaluated both SPF and DKIM; neither authenticated the From domain"
+      "reason": "a trusted receiver evaluated both SPF and DKIM, the compared domain came from its own result, and neither authenticated the From domain"
+    },
+    "AUTH_ALIGN_NONE_ALIGNED_FALLBACK": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "message-controlled domain: the compared envelope domain came from a header the sender writes, not from the trusted result"
     },
     "AUTH_ALIGN_SPF_ALIGNED": {
       "class": "auth",

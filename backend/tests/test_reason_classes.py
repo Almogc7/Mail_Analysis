@@ -58,6 +58,7 @@ NEVER_REASONS_ABOVE_INFO = {
     "AUTH_SPF_FAILURE_CLAIMED_UNTRUSTED",         # authentication result below the trust boundary
     "AUTH_DKIM_FAILURE_CLAIMED_UNTRUSTED",
     "AUTH_DMARC_FAILURE_CLAIMED_UNTRUSTED",
+    "AUTH_ALIGN_NONE_ALIGNED_FALLBACK",           # the compared domain came from a header the sender writes, not from the trusted result
 }
 # Gaps and notes by name (all info severity except where listed above): never eligible.
 GAPS_AND_NOTES = {
@@ -105,7 +106,7 @@ def test_the_exclusions_are_exactly_the_info_default_kinds_plus_the_named_above_
 def test_an_excluded_kind_says_why():
     for code, entry in REASON_TABLE.items():
         if not entry.counts_as_reason:
-            assert any(word in entry.reason.lower() for word in ("info severity", "gap", "parse note", "untrusted claim")), code
+            assert any(word in entry.reason.lower() for word in ("info severity", "gap", "parse note", "untrusted claim", "message-controlled")), code
 
 
 # ---- nothing under scoring/ uses the table yet -----------------------------------------------------------------------------------------
@@ -134,3 +135,10 @@ def test_nothing_under_scoring_imports_the_reason_class_table_yet():
     files = sorted(SCORING.rglob("*.py"))
     assert files, "scoring/ has no modules: the path is wrong"
     assert [p.relative_to(BACKEND).as_posix() for p in files if _imports_the_table(p.read_text(encoding="utf-8"))] == []
+
+
+def test_the_trusted_and_the_fallback_none_aligned_kinds_are_split_by_where_the_compared_domain_came_from():
+    trusted, fallback = REASON_TABLE["AUTH_ALIGN_NONE_ALIGNED"], REASON_TABLE["AUTH_ALIGN_NONE_ALIGNED_FALLBACK"]
+    assert (trusted.cls, trusted.counts_as_reason) == ("auth", True)
+    assert (fallback.cls, fallback.counts_as_reason) == ("auth", False)
+    assert BY_CODE["AUTH_ALIGN_NONE_ALIGNED"].severity == BY_CODE["AUTH_ALIGN_NONE_ALIGNED_FALLBACK"].severity == "medium"

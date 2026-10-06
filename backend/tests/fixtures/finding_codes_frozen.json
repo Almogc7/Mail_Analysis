@@ -16,6 +16,11 @@
       "family": null,
       "signal": null
     },
+    "AUTH_ALIGN_NONE_ALIGNED_FALLBACK": {
+      "module": "auth_check",
+      "family": null,
+      "signal": null
+    },
     "AUTH_ALIGN_SPF_ALIGNED": {
       "module": "auth_check",
       "family": null,

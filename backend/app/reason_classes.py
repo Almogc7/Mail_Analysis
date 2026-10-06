@@ -76,7 +76,8 @@ REASON_TABLE: dict[str, ReasonEntry] = {
     "AUTH_ALIGN_SPF_OTHER_DOMAIN": _n("auth", _INFO),
     "AUTH_ALIGN_DKIM_ALIGNED": _n("auth", _INFO),
     "AUTH_ALIGN_DKIM_OTHER_DOMAIN": _n("auth", _INFO),
-    "AUTH_ALIGN_NONE_ALIGNED": _y("auth", "computed only when a trusted receiver evaluated both SPF and DKIM; neither authenticated the From domain"),
+    "AUTH_ALIGN_NONE_ALIGNED": _y("auth", "a trusted receiver evaluated both SPF and DKIM, the compared domain came from its own result, and neither authenticated the From domain"),
+    "AUTH_ALIGN_NONE_ALIGNED_FALLBACK": _n("auth", "message-controlled domain: the compared envelope domain came from a header the sender writes, not from the trusted result"),
     # ---- auth_check: claims ---------------------------------------------------------------------------------------------------------------
     "AUTH_CLAIM_ENTITY_MISMATCH_UNSIGNED": _y("claim", "a real structural signal: links belong to another entity and the message is unsigned"),
     "AUTH_CLAIM_DECOY_LINKS": _y("claim", "a real structural signal: the claimed entity's own domain is linked but did not send it"),
