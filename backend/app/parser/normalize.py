@@ -187,6 +187,15 @@ def _extract_images_from_html(html: str | None) -> list[ImageRef]:
     return images
 
 
+def _count_data_images(html: str | None) -> int:
+    """How many <img> tags carry a data: source (an image embedded in the message itself). `_extract_images_from_html` keeps only http(s) sources, so these are dropped from `images`; this keeps
+    their NUMBER and nothing else (no content): a picture the message carries may hold a QR code, which is why it is a blocker for 'No indicators found' while QR decoding is off. Each tag counts
+    once, the same data source twice counts twice, and the browsers' dropped control characters are removed first, as for any URL here. CSS backgrounds and srcset are not counted."""
+    if not html:
+        return 0
+    return sum(1 for img in BeautifulSoup(html, "html.parser").find_all("img", src=True) if _HREF_CONTROL_RE.sub("", img["src"].strip()).lower().startswith("data:"))
+
+
 def _hash_attachment(raw: RawAttachment) -> Attachment:
     content = raw.content
     return Attachment(
@@ -224,6 +233,7 @@ def to_parsed_email(raw: RawParseResult) -> ParsedEmail:
         body_html=raw.body_html,
         urls=urls,
         images=_extract_images_from_html(raw.body_html),
+        data_image_count=_count_data_images(raw.body_html),
         attachments=[_hash_attachment(a) for a in raw.attachments],
         parse_warnings=raw.parse_warnings,
         raw_size_bytes=raw.raw_size_bytes,

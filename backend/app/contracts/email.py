@@ -96,6 +96,8 @@ class ParsedEmail(BaseModel):
     body_html: str | None = None
     urls: list[ExtractedUrl] = []
     images: list[ImageRef] = []
+    # How many <img> tags carry a data: source (embedded images; `images` keeps only http(s) ones). A number only, no content; additive (0 when absent).
+    data_image_count: int = 0
     attachments: list[Attachment] = []
     parse_warnings: list[str] = []
     raw_size_bytes: int
