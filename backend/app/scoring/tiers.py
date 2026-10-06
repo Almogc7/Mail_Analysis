@@ -41,6 +41,7 @@ class TierConfig:
     confidence_threshold: float = _V1.confidence_threshold  # 0.6, the internal gate
     gate_score_floor: float = _V1.inconclusive_score_floor  # 10: the gate applies from this weighted score
     min_families: int = _V1.structural_floor_min_families  # R1: different structural families
+    band_min_classes: int = 2  # R3: different reason classes among the medium-or-higher reasons
     content_floor_count: int = _V1.content_floor_min_high_severity_count  # R4: content findings at the floor severity
     content_floor_severity: str = "high"
     enrichment_floor_severity: str = _V1.floor_override_severity["enrichment"]  # R5: critical
@@ -131,7 +132,7 @@ def compute_tier(inputs: dict[str, Any], config: TierConfig = TIER_CONFIG) -> di
     floor_condition = bool(supports) or content_floor_holds or enrichment_floor_holds  # R1, R2, or either floor's own condition
 
     gate_demoted = False
-    if config.score_band_low <= score < config.score_band_high and len({f["class"] for f in medium_plus}) >= 2:
+    if config.score_band_low <= score < config.score_band_high and len({f["class"] for f in medium_plus}) >= config.band_min_classes:
         if confidence < threshold and score >= config.gate_score_floor and not floor_condition:
             gate_demoted = True  # the internal 0.6 gate applies to R3 only; a floor is never erased by low coverage
         else:
