@@ -159,6 +159,8 @@ that floor is split: a provider score of at least 70 **that rests on H1, H2 or H
 counts alone) is **T2 only with a second independent reason, otherwise T3** (2.1a, 2.4, D16, D22). Today every floor yields `suspicious`; the change makes the strongest
 of them say so and demotes the weakest.
 
+**R5 and the critical severity** *(stated 2026-10-06)*. R5 needs an enrichment finding at **critical** severity. **No registered enrichment code defaults to critical** (the registry gives enrichment kinds a default of low or info); only the two severity-varying reputation kinds can produce it, for a provider score of 70 or more. So the strongest cases reach **T1 through hard evidence** (H1 to H3), and R5 covers only a critical score that does not rest on hard evidence, with a second reason of another class at medium or higher (D22 route 5).
+
 ### 2.3 Positive evidence (T4) and blockers
 
 T4 ("No indicators found") requires **all** of:

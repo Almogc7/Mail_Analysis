@@ -106,7 +106,7 @@ def tier_for(findings: list[dict], score: float, confidence: float, evidence: li
     classes_medium = {REASON_TABLE[f["code"]].cls for f in medium_plus}
     families = {REASON_TABLE[f["code"]].cls for f in reasons if REASON_TABLE[f["code"]].cls in FAMILY_CLASSES}
     r1 = len(families) >= 2
-    r2 = any(f["code"] in TRUSTED_FAILURE_CODES and f["severity"] == "high" for f in findings)
+    r2 = any(f["code"] in TRUSTED_FAILURE_CODES and f["severity"] in ("high", "critical") for f in findings)  # high or higher, as v1 and compute_tier (clarification C2)
     content_floor = sum(1 for f in findings if f["module"] == "content_analysis" and f["severity"] in ("high", "critical")) >= 2
     enrichment_floor = any(f["module"] == "enrichment" and f["severity"] == "critical" for f in findings)
     r4 = content_floor and any(c != "content" for c in classes_medium)

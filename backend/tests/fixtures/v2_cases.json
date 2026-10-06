@@ -4819,6 +4819,58 @@
     "needs_analyst_reason": [],
     "blockers": []
    }
+  },
+  {
+   "id": "content_floor_plus_a_second_content_finding_is_never_r4",
+   "category": "demoted_route_one_class",
+   "description": "two high content findings plus a third finding of the SAME class (content, medium) is still one reason class: never R4, T3 (the second reason must come from another class)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "CONTENT_BRAND_LINK_MISMATCH",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_URGENCY_LANGUAGE",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_GREETING_PERSONAL_CLAIM",
+      "severity": "medium",
+      "class": "content"
+     }
+    ],
+    "score": 14.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 14.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
   }
  ]
 }

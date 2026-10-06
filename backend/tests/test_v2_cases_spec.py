@@ -64,10 +64,10 @@ def test_every_d23_category_and_every_listed_extra_is_present():
 def test_the_case_counts_are_pinned():
     import collections
 
-    assert len(CASES) == 100
+    assert len(CASES) == 101
     counts = collections.Counter(c["category"] for c in CASES)
-    assert counts["conflict"] == 6 and counts["blocker"] == 24 and counts["hard_evidence_positive"] == 7
-    assert collections.Counter(c["expected"]["tier"] for c in CASES) == {"T3": 60, "T2": 24, "T1": 13, "T4": 3}
+    assert counts["conflict"] == 6 and counts["blocker"] == 24 and counts["hard_evidence_positive"] == 7 and counts["demoted_route_one_class"] == 4
+    assert collections.Counter(c["expected"]["tier"] for c in CASES) == {"T3": 61, "T2": 24, "T1": 13, "T4": 3}
 
 
 def test_ids_are_unique_and_every_case_has_inputs_and_an_expected_result():
@@ -251,13 +251,13 @@ def _inputs_for(chosen, score):
             "coverage_gate": {"confidence": 1.0, "confidence_threshold": 0.6, "enrichment_complete": True}}
 
 
-def test_the_v12_oracle_agrees_with_the_predictor_on_every_generated_set_up_to_size_3_except_two_known_divergences(predictor):
+def test_the_v12_oracle_agrees_with_the_predictor_on_every_generated_set_up_to_size_3_except_one_known_divergence(predictor):
     """Validates the specification itself now (size 3 keeps it fast; the property test below goes to size 4).
 
-    KNOWN DIVERGENCES (clarifications C1 and C2 of the pre-registration), the first reported to the owner and not resolved here: the frozen predictor counts the v1 content floor (two findings at severity high) by the MODULE that produced them
+    KNOWN DIVERGENCE (clarification C1 of the pre-registration; the C2 divergence was closed in step 9 when the predictor was changed to read the strong signal as high or higher): the frozen predictor counts the v1 content floor (two findings at severity high) by the MODULE that produced them
     (content_analysis), as v1 does; the contract, D16 and this oracle count by CLASS (content). They differ only for a link-class finding (built by content_analysis) at severity high, which no
     producer emits (the link kinds are low or medium), so the 856 baseline rows are unaffected. The interface gives `compute_tier` no module field, so the implementation counts by class.
-    The second: the predictor reads the strong signal as produced severity == high, the clarified rule (v1's floor: at least high) as high or higher; they differ only at severity critical."""
+    """
     disagreements = []
     for chosen in _sets(3):
         findings = [{"code": code, "severity": sev, "module": BY_CODE[code].module} for _n, code, _c, sev in chosen]
@@ -268,10 +268,7 @@ def test_the_v12_oracle_agrees_with_the_predictor_on_every_generated_set_up_to_s
 
     def explained(item):
         chosen, _score, tier, route = item
-        link_high = tier == "T2" and route == "R4" and any(cls == "link" and sev in ("high", "critical") for _n, _code, cls, sev in chosen)
-        # the second divergence (clarification C2): the predictor reads the strong signal as severity == high, the clarified rule as high or higher; no producer emits critical for these kinds
-        strong_critical = any(name == "strong" and sev == "critical" for name, _code, _cls, sev in chosen)
-        return link_high or strong_critical
+        return tier == "T2" and route == "R4" and any(cls == "link" and sev in ("high", "critical") for _n, _code, cls, sev in chosen)
 
     assert [([(n, s) for n, _c, _cl, s in chosen], score, tier, route) for chosen, score, tier, route in disagreements if not explained((chosen, score, tier, route))] == []
 
