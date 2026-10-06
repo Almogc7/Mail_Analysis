@@ -197,6 +197,7 @@ def _hash_attachment(raw: RawAttachment) -> Attachment:
         sha1=hashlib.sha1(content).hexdigest(),
         md5=hashlib.md5(content).hexdigest(),
         is_inline=raw.is_inline,
+        first_bytes=content[:16],  # metadata only, never serialised (see contracts/email.py); taken here, before the content is dropped
     )
 
 

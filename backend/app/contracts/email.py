@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EmailAddress(BaseModel):
@@ -73,6 +73,9 @@ class Attachment(BaseModel):
     sha1: str
     md5: str
     is_inline: bool = False
+    # The first (at most 16) bytes of the attachment, kept ONLY so metadata-level blocker detection (app/blockers.py) can read a magic number. It is excluded from every serialisation
+    # (the API response, JSON, logs, the feedback record and the LLM prompt) and from the repr: it is never output. Additive: an older Attachment without it still builds.
+    first_bytes: bytes = Field(default=b"", exclude=True, repr=False)
 
 
 class ParsedEmail(BaseModel):
