@@ -1,7 +1,9 @@
 """Metadata-level blocker detection for verdict v2 (docs/DESIGN_V2.md 2.3; codes pinned in backend/tests/fixtures/blocker_codes_frozen.json).
 
 `derive_blockers(parts, parsed_flags)` is a PURE function: no I/O, no network, no logging, deterministic, and it never mutates its input. It is NOT wired into the pipeline, the API or the frontend
-(`verdict_v2` does not exist); only tests and read-only scripts call it. It returns a sorted list of blocker codes, content-free: a code, never a name, an address or any text of the message.
+(`verdict_v2` does not exist); only tests and read-only scripts call it. It returns a sorted list of blocker ITEMS, content-free: {"code": a frozen blocker code, "detail": a member of the closed
+DETAILS enum or None}, never a name, an address or any text of the message. The detail says WHICH kind of thing blocked (a pdf, a legacy Office file, an executable, a receiver that is not configured);
+the frozen code table does not change, and `blocker_codes(items)` gives the plain sorted code list that the tier function takes as its `blockers` input.
 
 WHAT IT READS (metadata only). For every attachment or inline part: the declared filename, the declared content type, the size and the FIRST BYTES (at most 16 are used, supplied by the caller). Also
 the count of `data:` image sources, the parsed From address (or none), structured parse flags (a code and a part id, never an error text), and the language and coverage flags the app already holds.
@@ -44,6 +46,21 @@ PARSE_FAILURE, PARSE_LIMIT, PARSE_TIMEOUT = "parse_failure", "parse_limit", "par
 DERIVABLE_CODES = frozenset({QR, INLINE_IMAGE, DATA_IMAGE, ACTIVE, HTML, CONTAINER, NESTED, CALENDAR, REDIRECTS, SHARED, INTERNAL, LANGUAGE, NO_TEXT, NO_HOP, FROM_UNPARSEABLE,
                              PARSE_FAILURE, PARSE_LIMIT, PARSE_TIMEOUT})
 
+# The closed enum of `detail` values (pinned by tests/fixtures/blocker_details_frozen.json; the V1 word ban applies). Each is content-free and attaches only to the codes the snapshot lists.
+PARSE_FAILURE_DETAILS = ("body_extract_failed", "attachment_read_failed", "header_parse_failed", "mime_structure_error")  # also the parser's structured flag codes
+DETAILS = frozenset({"pdf", "office_legacy", "office_zip", "executable", "script", "shortcut", "unknown_type", "no_first_bytes", "archive", "disk_image", "rfc822", "outlook_msg",
+                     "not_configured", "no_matching_hop", "missing", "malformed", "unrecognised_flag", *PARSE_FAILURE_DETAILS})
+
+
+def blocker_codes(items: Any) -> list[str]:
+    """The plain sorted list of unique codes of a list of items (what compute_tier takes as `blockers`)."""
+    return sorted({item["code"] for item in items})
+
+
+def _item(code: str, detail: str | None = None) -> tuple[str, str | None]:
+    return (code, detail)
+
+
 # The flags a caller must supply with every message. A missing or None value is read conservatively (as a blocker); these are the values that raise none.
 NO_BLOCKING_FLAGS: dict[str, Any] = {
     "data_image_count": 0,
@@ -54,9 +71,12 @@ NO_BLOCKING_FLAGS: dict[str, Any] = {
     "shared_platform_links_unexamined": 0,
     "internal_hosts": 0,
     "trusted_receiver_hop_present": True,
+    "trusted_receivers_configured": True,  # optional: when the hop is absent it tells `not_configured` from `no_matching_hop`
 }
 
-_PARSE_CODES = {"parse_failure": PARSE_FAILURE, "parse_limit": PARSE_LIMIT, "parse_timeout": PARSE_TIMEOUT}
+# a structured parse flag's code -> (blocker code, detail). parse_limit and parse_timeout have no producer yet: no parser limit or timeout exists (see the parser docstrings), so they stay unreachable.
+_PARSE_CODES = {"parse_failure": (PARSE_FAILURE, None), "parse_limit": (PARSE_LIMIT, None), "parse_timeout": (PARSE_TIMEOUT, None),
+                **{name: (PARSE_FAILURE, name) for name in PARSE_FAILURE_DETAILS}}
 # type families
 _IMAGE, _PDF, _OLE, _ZIP, _RAR, _7Z, _GZIP, _EXECUTABLE, _SHORTCUT, _CALENDAR, _MESSAGE, _HTML, _SCRIPT, _UNKNOWN = (
     "image", "pdf", "ole", "zip", "rar", "7z", "gzip", "executable", "shortcut", "calendar", "message", "html", "script", "unknown")
@@ -117,55 +137,65 @@ def _family(head: bytes) -> str:
     return _UNKNOWN
 
 
-def _part_codes(part: Any) -> set[str]:
+def _part_items(part: Any) -> set[tuple[str, str | None]]:
     if not isinstance(part, dict):
-        return {ACTIVE}  # a part we cannot even describe is not examined
+        return {_item(ACTIVE, "unknown_type")}  # a part we cannot even describe is not examined
     name, declared = part.get("filename"), part.get("content_type")
     ext = _ext(name)
     declared = declared.lower() if isinstance(declared, str) else ""
     raw = part.get("first_bytes")
     head = bytes(raw[:MAGIC_BYTES_USED]) if isinstance(raw, (bytes, bytearray, memoryview)) else None
     if head is None or (len(head) == 0 and part.get("size") != 0):
-        return {ACTIVE}  # no first bytes: nothing was identified, so nothing was examined
+        return {_item(ACTIVE, "no_first_bytes")}  # no first bytes: nothing was identified, so nothing was examined
     if len(head) == 0:
         return set()  # a part of size 0 carries nothing to examine
     family = _family(head)
-    codes: set[str] = set()
+    items: set[tuple[str, str | None]] = set()
     if family == _IMAGE:
-        codes.add(INLINE_IMAGE if part.get("inline") else QR)
-    elif family in (_PDF, _EXECUTABLE, _SHORTCUT, _SCRIPT):
-        codes.add(ACTIVE)
+        items.add(_item(INLINE_IMAGE if part.get("inline") else QR))
+    elif family == _PDF:
+        items.add(_item(ACTIVE, "pdf"))
+    elif family == _EXECUTABLE:
+        items.add(_item(ACTIVE, "executable"))
+    elif family == _SHORTCUT:
+        items.add(_item(ACTIVE, "shortcut"))
+    elif family == _SCRIPT:
+        items.add(_item(ACTIVE, "script"))
     elif family == _OLE:
-        codes.add(ACTIVE)
+        items.add(_item(ACTIVE, "office_legacy"))
         if ext == ".msg" or "ms-outlook" in declared:
-            codes.add(NESTED)  # an OLE container cannot be told from a message by its magic: the declared name or type refines it
+            items.add(_item(NESTED, "outlook_msg"))  # an OLE container cannot be told from a message by its magic: the declared name or type refines it
     elif family == _ZIP:
-        codes.add(CONTAINER)
+        items.add(_item(CONTAINER, "archive"))
         if ext in _OFFICE_EXTENSIONS:
-            codes.add(ACTIVE)  # a ZIP may be an Office file with macros: the declared name adds, never removes
+            items.add(_item(ACTIVE, "office_zip"))  # a ZIP may be an Office file with macros: the declared name adds, never removes
     elif family in (_RAR, _7Z, _GZIP):
-        codes.add(CONTAINER)
+        items.add(_item(CONTAINER, "archive"))
     elif family == _HTML:
-        codes.add(HTML)
+        items.add(_item(HTML))
     elif family == _MESSAGE:
-        codes.add(NESTED)
+        items.add(_item(NESTED, "rfc822"))
     elif family == _CALENDAR:
-        codes.add(CALENDAR)
+        items.add(_item(CALENDAR))
     else:
         # no recognisable magic: the declared name and type are the only hints, and they can only add; an unrecognised part is conservative
-        if ext in _DISK_IMAGE_EXTENSIONS or ext in _ARCHIVE_EXTENSIONS:
-            codes.add(CONTAINER)
+        if ext in _DISK_IMAGE_EXTENSIONS:
+            items.add(_item(CONTAINER, "disk_image"))
+        elif ext in _ARCHIVE_EXTENSIONS:
+            items.add(_item(CONTAINER, "archive"))
         elif ext == ".ics" or "calendar" in declared:
-            codes.add(CALENDAR)
-        elif ext in (".eml", ".msg") or "rfc822" in declared:
-            codes.add(NESTED)
+            items.add(_item(CALENDAR))
+        elif ext == ".msg":
+            items.add(_item(NESTED, "outlook_msg"))
+        elif ext == ".eml" or "rfc822" in declared:
+            items.add(_item(NESTED, "rfc822"))
         elif ext in _IMAGE_EXTENSIONS or declared.startswith("image/"):
-            codes.add(INLINE_IMAGE if part.get("inline") else QR)
+            items.add(_item(INLINE_IMAGE if part.get("inline") else QR))
         elif ext in (".htm", ".html", ".xhtml", ".svg") or "html" in declared:
-            codes.add(HTML)
+            items.add(_item(HTML))
         else:
-            codes.add(ACTIVE)
-    return codes
+            items.add(_item(ACTIVE, "unknown_type"))
+    return items
 
 
 def _count_positive(value: Any) -> bool:
@@ -175,46 +205,45 @@ def _count_positive(value: Any) -> bool:
     return value > 0
 
 
-def derive_blockers(parts: Any, parsed_flags: Any) -> list[str]:
-    """Blocker codes derivable from metadata only (see the module docstring). Returns a sorted list of unique codes from the frozen vocabulary."""
-    codes: set[str] = set()
+def derive_blockers(parts: Any, parsed_flags: Any) -> list[dict[str, str | None]]:
+    """Blocker items derivable from metadata only (see the module docstring): a sorted list of unique {"code", "detail"} items, codes from the frozen vocabulary, details from DETAILS or None."""
+    found: set[tuple[str, str | None]] = set()
     flags = parsed_flags if isinstance(parsed_flags, dict) else {}
     for part in parts if isinstance(parts, (list, tuple)) else [None]:
-        codes |= _part_codes(part)
+        found |= _part_items(part)
 
     if _count_positive(flags.get("data_image_count")):
-        codes.add(DATA_IMAGE)
+        found.add(_item(DATA_IMAGE))
 
     address = flags.get("from_address")
-    if not isinstance(address, str) or address.count("@") != 1 or any(ch.isspace() for ch in address):
-        codes.add(FROM_UNPARSEABLE)
-    else:
-        local, _, domain = address.partition("@")
-        if not local or not domain:
-            codes.add(FROM_UNPARSEABLE)
+    if not isinstance(address, str) or not address:
+        found.add(_item(FROM_UNPARSEABLE, "missing"))
+    elif address.count("@") != 1 or any(ch.isspace() for ch in address) or not address.partition("@")[0] or not address.partition("@")[2]:
+        found.add(_item(FROM_UNPARSEABLE, "malformed"))
 
     parse_flags = flags.get("parse_flags")
     if not isinstance(parse_flags, (list, tuple)):
-        codes.add(PARSE_FAILURE)
+        found.add(_item(PARSE_FAILURE, "unrecognised_flag"))
     else:
         for flag in parse_flags:
             code = flag.get("code") if isinstance(flag, dict) else None
-            codes.add(_PARSE_CODES.get(code, PARSE_FAILURE))  # an unrecognised flag is read as a failure
+            found.add(_item(*_PARSE_CODES.get(code, (PARSE_FAILURE, "unrecognised_flag"))))  # an unrecognised flag is read as a failure
 
     language = flags.get("language_status")
     if language in ("supported", "undetermined"):
         pass  # an undetermined language is a partial check today, not a blocker (the coverage report does not block on it)
     elif language == "none":
-        codes.add(NO_TEXT)
+        found.add(_item(NO_TEXT))
     else:
-        codes.add(LANGUAGE)  # unsupported, unrecognised or missing
+        found.add(_item(LANGUAGE))  # unsupported, unrecognised or missing
 
     if _count_positive(flags.get("unresolved_redirects")):
-        codes.add(REDIRECTS)
+        found.add(_item(REDIRECTS))
     if _count_positive(flags.get("shared_platform_links_unexamined")):
-        codes.add(SHARED)
+        found.add(_item(SHARED))
     if _count_positive(flags.get("internal_hosts")):
-        codes.add(INTERNAL)
+        found.add(_item(INTERNAL))
     if flags.get("trusted_receiver_hop_present") is not True:
-        codes.add(NO_HOP)
-    return sorted(codes)
+        configured = flags.get("trusted_receivers_configured")
+        found.add(_item(NO_HOP, "not_configured" if configured is False else ("no_matching_hop" if configured is True else None)))
+    return [{"code": code, "detail": detail} for code, detail in sorted(found, key=lambda item: (item[0], item[1] or ""))]

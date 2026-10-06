@@ -1,0 +1,68 @@
+{
+ "_comment": "Frozen blocker detail enum (docs/DESIGN_V2.md 2.3). `detail` is optional and closed: it says which kind of thing blocked, never a name or any content. Each detail attaches only to the blocker codes listed here; the frozen code table (blocker_codes_frozen.json) does not change. A detail is never renamed or reused (a rename is a new detail and a note). The V1 word ban applies. The tests fail if this file and app/blockers.py differ.",
+ "details": {
+  "archive": [
+   "archive_contents_unexamined"
+  ],
+  "attachment_read_failed": [
+   "parse_failure"
+  ],
+  "body_extract_failed": [
+   "parse_failure"
+  ],
+  "disk_image": [
+   "archive_contents_unexamined"
+  ],
+  "executable": [
+   "static_analysis_off"
+  ],
+  "header_parse_failed": [
+   "parse_failure"
+  ],
+  "malformed": [
+   "from_header_unparseable"
+  ],
+  "mime_structure_error": [
+   "parse_failure"
+  ],
+  "missing": [
+   "from_header_unparseable"
+  ],
+  "no_first_bytes": [
+   "static_analysis_off"
+  ],
+  "no_matching_hop": [
+   "no_trusted_receiver_hop"
+  ],
+  "not_configured": [
+   "no_trusted_receiver_hop"
+  ],
+  "office_legacy": [
+   "static_analysis_off"
+  ],
+  "office_zip": [
+   "static_analysis_off"
+  ],
+  "outlook_msg": [
+   "nested_message_unexamined"
+  ],
+  "pdf": [
+   "static_analysis_off"
+  ],
+  "rfc822": [
+   "nested_message_unexamined"
+  ],
+  "script": [
+   "static_analysis_off"
+  ],
+  "shortcut": [
+   "static_analysis_off"
+  ],
+  "unknown_type": [
+   "static_analysis_off"
+  ],
+  "unrecognised_flag": [
+   "parse_failure"
+  ]
+ }
+}

@@ -10,10 +10,18 @@ from pathlib import Path
 import pytest
 
 from app import blockers as B
-from app.blockers import DERIVABLE_CODES, NO_BLOCKING_FLAGS, derive_blockers
+from app.blockers import DERIVABLE_CODES, DETAILS, NO_BLOCKING_FLAGS, blocker_codes
+from app.blockers import derive_blockers as derive_items
+
+
+def derive_blockers(parts, parsed_flags):
+    """The plain sorted code list (what compute_tier takes as `blockers`); the detail tests at the end use derive_items."""
+    return blocker_codes(derive_items(parts, parsed_flags))
 
 BACKEND = Path(__file__).resolve().parents[1]
 FROZEN = json.loads((BACKEND / "tests" / "fixtures" / "blocker_codes_frozen.json").read_text(encoding="utf-8"))["codes"]
+FROZEN_DETAILS = json.loads((BACKEND / "tests" / "fixtures" / "blocker_details_frozen.json").read_text(encoding="utf-8"))["details"]
+V1_BANNED_TOKENS = {"safe", "clean", "legit", "benign", "harmless"}
 
 PNG = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
 JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00"
@@ -270,3 +278,106 @@ def test_nothing_in_the_app_imports_the_blocker_module_yet_so_it_is_not_wired():
                 assert (node.module or "").split(".")[-1] != "blockers" and not any(a.name == "blockers" for a in node.names), path
             elif isinstance(node, ast.Import):
                 assert not any(a.name.split(".")[-1] == "blockers" for a in node.names), path
+
+
+# ---- the closed `detail` enum ----------------------------------------------------------------------------------------------------------------------------------------------------
+
+def pairs(*parts, **flag_over):
+    return [(i["code"], i["detail"]) for i in derive_items(list(parts), flags(**flag_over))]
+
+
+@pytest.mark.parametrize("magic, name, expected", [
+    (PDF, "a.dat", ("static_analysis_off", "pdf")),
+    (OLE, "a.dat", ("static_analysis_off", "office_legacy")),
+    (PE, "a.dat", ("static_analysis_off", "executable")),
+    (ELF, "a.dat", ("static_analysis_off", "executable")),
+    (LNK, "a.dat", ("static_analysis_off", "shortcut")),
+    (SCRIPT_TEXT, "a.dat", ("static_analysis_off", "script")),
+    (PLAIN, "a.txt", ("static_analysis_off", "unknown_type")),
+    (ZIP, "a.dat", ("archive_contents_unexamined", "archive")),
+    (RAR, "a.dat", ("archive_contents_unexamined", "archive")),
+    (MESSAGE_TEXT, "a.dat", ("nested_message_unexamined", "rfc822")),
+])
+def test_the_detail_says_which_kind_of_part_blocked(magic, name, expected):
+    assert pairs(part(magic, name)) == [expected]
+
+
+def test_a_zip_with_an_office_name_carries_both_details_and_an_ole_msg_carries_two():
+    assert pairs(part(ZIP, "a.docm")) == [("archive_contents_unexamined", "archive"), ("static_analysis_off", "office_zip")]
+    assert pairs(part(OLE, "mail.msg")) == [("nested_message_unexamined", "outlook_msg"), ("static_analysis_off", "office_legacy")]
+
+
+def test_a_disk_image_by_name_and_a_part_without_first_bytes_have_their_own_details():
+    assert pairs(part(b"\x00" * 16, "x.iso")) == [("archive_contents_unexamined", "disk_image")]
+    assert pairs(part(None)) == [("static_analysis_off", "no_first_bytes")]
+    assert pairs(part(b"\x00" * 16, "x.bin")) == [("static_analysis_off", "unknown_type")]
+
+
+def test_codes_with_one_meaning_carry_no_detail():
+    assert pairs(part(PNG)) == [("qr_not_decoded", None)]
+    assert pairs(part(HTML_TEXT)) == [("html_attachment_unanalysed", None)]
+    assert pairs(part(CALENDAR_TEXT)) == [("calendar_invite_unexamined", None)]
+    assert pairs(data_image_count=1) == [("data_uri_image_not_decoded", None)]
+    assert pairs(unresolved_redirects=1) == [("redirects_not_resolved", None)]
+
+
+def test_the_receiver_blocker_tells_not_configured_from_no_matching_hop():
+    assert pairs(trusted_receiver_hop_present=False, trusted_receivers_configured=False) == [("no_trusted_receiver_hop", "not_configured")]
+    assert pairs(trusted_receiver_hop_present=False, trusted_receivers_configured=True) == [("no_trusted_receiver_hop", "no_matching_hop")]
+    over = flags(trusted_receiver_hop_present=False)
+    del over["trusted_receivers_configured"]
+    assert [(i["code"], i["detail"]) for i in derive_items([], over)] == [("no_trusted_receiver_hop", None)]  # an old caller without the flag still gets the blocker
+
+
+def test_the_from_blocker_tells_missing_from_malformed():
+    assert pairs(from_address=None) == [("from_header_unparseable", "missing")] == pairs(from_address="")
+    assert pairs(from_address="no-at-sign") == [("from_header_unparseable", "malformed")]
+    assert pairs(from_address="a@@b.example") == [("from_header_unparseable", "malformed")]
+
+
+def test_a_structured_parse_flag_carries_its_code_as_the_detail_and_an_unrecognised_one_is_marked():
+    for code in B.PARSE_FAILURE_DETAILS:
+        assert pairs(parse_flags=[{"code": code, "part_id": "p1"}]) == [("parse_failure", code)]
+    assert pairs(parse_flags=[{"code": "parse_limit", "part_id": "p1"}]) == [("parse_limit", None)]
+    assert pairs(parse_flags=[{"code": "who_knows", "part_id": "p1"}]) == [("parse_failure", "unrecognised_flag")]
+    assert pairs(parse_flags=[{"code": "attachment_read_failed", "part_id": "p1"}, {"code": "attachment_read_failed", "part_id": "p2"}]) == [("parse_failure", "attachment_read_failed")]
+
+
+def test_the_items_are_sorted_unique_and_the_codes_helper_matches():
+    items = derive_items([part(PDF), part(PDF), part(PE), part(PNG)], flags(from_address=None))
+    assert items == sorted(items, key=lambda i: (i["code"], i["detail"] or ""))
+    assert len({(i["code"], i["detail"]) for i in items}) == len(items)
+    assert blocker_codes(items) == sorted({i["code"] for i in items})
+    assert all(set(i) == {"code", "detail"} for i in items)
+
+
+# ---- the detail enum is frozen -----------------------------------------------------------------------------------------------------------------------------------------------
+
+def test_the_detail_enum_equals_the_frozen_snapshot_and_attaches_only_to_the_listed_codes():
+    assert set(FROZEN_DETAILS) == set(DETAILS), "a detail was added, renamed or removed: edit blocker_details_frozen.json and app/blockers.py together, on purpose"
+    for detail, codes in FROZEN_DETAILS.items():
+        assert codes and set(codes) <= set(FROZEN), detail  # the frozen CODE table does not change
+    assert set(B.PARSE_FAILURE_DETAILS) <= set(DETAILS)
+
+
+def test_no_detail_contains_a_word_the_v1_ban_forbids_and_each_is_a_plain_token():
+    import re
+
+    for detail in DETAILS:
+        assert re.fullmatch("[a-z][a-z0-9_]{2,40}", detail), detail
+        assert V1_BANNED_TOKENS.isdisjoint(detail.split("_")), detail
+
+
+def test_every_item_the_function_can_return_is_a_listed_pair_and_every_detail_is_reachable():
+    reached: set[tuple[str, str | None]] = set()
+    samples = [part(m, n) for m in (PNG, PDF, OLE, PE, ELF, LNK, SCRIPT_TEXT, HTML_TEXT, ZIP, RAR, MESSAGE_TEXT, CALENDAR_TEXT, PLAIN, None) for n in ("a.dat", "a.docx", "a.msg", "x.iso", "a.txt")]
+    for sample in samples:
+        reached |= set(pairs(sample))
+    for over in (dict(from_address=None), dict(from_address="bad"), dict(trusted_receiver_hop_present=False, trusted_receivers_configured=False),
+                 dict(trusted_receiver_hop_present=False, trusted_receivers_configured=True), dict(parse_flags=[{"code": "who_knows", "part_id": "p"}]),
+                 *[dict(parse_flags=[{"code": c, "part_id": "p"}]) for c in B.PARSE_FAILURE_DETAILS]):
+        reached |= set(pairs(**over))
+    for code, detail in reached:
+        assert code in FROZEN
+        assert detail is None or (detail in FROZEN_DETAILS and code in FROZEN_DETAILS[detail]), (code, detail)
+    assert {d for _c, d in reached if d} == set(DETAILS)

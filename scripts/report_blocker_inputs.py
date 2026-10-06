@@ -24,7 +24,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from bs4 import BeautifulSoup  # noqa: E402
 
-from app.blockers import derive_blockers  # noqa: E402
+from app.blockers import blocker_codes, derive_blockers  # noqa: E402
 from app.coverage import build_coverage_report  # noqa: E402
 from tests import eval as ev  # noqa: E402
 
@@ -71,7 +71,10 @@ def build_inputs(result, path: Path) -> tuple[list[dict], list[dict] | None, dic
         "unresolved_redirects": 1 if "redirects_not_resolved" in reasons else 0,
         "shared_platform_links_unexamined": 1 if "shared_platform" in reasons else 0,
         "internal_hosts": 1 if "internal_host_not_sent" in reasons else 0,
-        "trusted_receiver_hop_present": "no_trusted_receiver_hop" not in reasons,
+        # The coverage report gives the trusted-receiver row one of two blocking reasons when no method was evaluated by a trusted receiver: `no_trusted_receivers_configured` (nothing is trusted, as in STRICT)
+        # and `no_trusted_receiver_hop` (receivers are configured but none matched). The first version of this adapter looked only for the second, so STRICT showed none (fixed in step 10).
+        "trusted_receiver_hop_present": not (reasons & {"no_trusted_receiver_hop", "no_trusted_receivers_configured"}),
+        "trusted_receivers_configured": "no_trusted_receivers_configured" not in reasons,
     }
     today = [{"part_id": f"a{i}", "filename": a.filename, "content_type": a.content_type, "size": a.size_bytes, "first_bytes": None, "inline": a.is_inline}
              for i, a in enumerate(parsed.attachments)]
@@ -87,18 +90,21 @@ def report() -> dict:
     not_exposed = collections.Counter()
     for mode in ev.MODES:
         ev.apply_mode(mode)
-        today_codes, fb_codes = collections.Counter(), collections.Counter()
+        today_codes, fb_codes, fb_details = collections.Counter(), collections.Counter(), collections.Counter()
         any_today = any_fb = 0
         agree = collections.Counter()
         for path, _label, _source in items:
             result = ev.analyze(path, "clean")
             parsed = result.parsed_email
             today, simulated, flags = build_inputs(result, path)
-            codes_today = derive_blockers(today, flags)
+            items_today = derive_blockers(today, flags)
+            codes_today = blocker_codes(items_today)
             today_codes.update(codes_today)
             any_today += bool(codes_today)
             if simulated is not None:
-                codes_fb = derive_blockers(simulated, flags)
+                items_fb = derive_blockers(simulated, flags)
+                codes_fb = blocker_codes(items_fb)
+                fb_details.update(f"{i['code']}/{i['detail']}" for i in items_fb if i["detail"])
             else:
                 codes_fb = codes_today if not today else None  # a message with attachments whose bytes cannot be simulated (.msg) is left out of this variant
             if codes_fb is not None:
@@ -131,6 +137,7 @@ def report() -> dict:
             "messages_with_any_blocker_with_first_bytes": any_fb,
             "codes_today": dict(sorted(today_codes.items())),
             "codes_with_first_bytes": dict(sorted(fb_codes.items())),
+            "details_with_first_bytes": dict(sorted(fb_details.items())),
             "agreement_with_the_coverage_report": dict(agree),
         }
     ev.apply_mode("configured")
