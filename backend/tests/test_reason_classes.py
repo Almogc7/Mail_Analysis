@@ -137,18 +137,17 @@ def test_the_import_check_recognises_every_spelling_of_the_import():
     assert not _imports_module("from app.scoring.config import ScoringConfig", "tiers")
 
 
-def test_exactly_scoring_tiers_imports_the_reason_class_table_and_nothing_else_in_the_app_does():
+def test_exactly_the_tier_function_and_the_two_v2_builders_import_the_reason_class_table():
     files = sorted((BACKEND / "app").rglob("*.py"))
     assert files, "backend/app has no modules: the path is wrong"
     importers = [p.relative_to(BACKEND).as_posix() for p in files if _imports_the_table(p.read_text(encoding="utf-8"))]
-    assert importers == ["app/scoring/tiers.py"]
-    assert [p.relative_to(BACKEND).as_posix() for p in sorted(SCORING.rglob("*.py")) if _imports_the_table(p.read_text(encoding="utf-8"))] == ["app/scoring/tiers.py"]
+    assert importers == ["app/scoring/tiers.py", "app/scoring/v2_inputs.py", "app/scoring/v2_verdict.py"]
 
 
-def test_nothing_in_the_app_imports_the_tier_function_yet_so_it_is_not_wired():
-    """verdict_v2 does not exist: no pipeline, API, contract or other module imports app.scoring.tiers (only tests and read-only scripts do)."""
+def test_only_the_pipeline_imports_the_tier_function():
+    """verdict_v2 is computed in api/pipeline.py and nowhere else; the frontend only has the optional types (no component uses verdict_v2 until the UI step)."""
     files = sorted((BACKEND / "app").rglob("*.py"))
-    assert [p.relative_to(BACKEND).as_posix() for p in files if _imports_module(p.read_text(encoding="utf-8"), "tiers")] == []
+    assert [p.relative_to(BACKEND).as_posix() for p in files if _imports_module(p.read_text(encoding="utf-8"), "tiers")] == ["app/api/pipeline.py"]
     frontend = BACKEND.parent / "frontend" / "src"
     users = [p.relative_to(frontend).as_posix() for p in frontend.rglob("*") if p.suffix in (".ts", ".tsx") and "verdict_v2" in p.read_text(encoding="utf-8", errors="ignore")]
     assert users == ["types.ts"], "only the optional types in types.ts may mention verdict_v2: no component uses it until the UI step"

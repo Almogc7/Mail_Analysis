@@ -9,6 +9,22 @@ from app.verdict_labels import verdict_label
 _BUCKET_RANK = {"benign": 0, "suspicious": 1, "malicious": 2}
 
 
+def positive_evidence_flags(module_results: dict[str, ModuleResult | None], config: ScoringConfig) -> tuple[bool, bool]:
+    """(a verified, ALIGNED DKIM pass or a DMARC pass written by a TRUSTED receiver, the sender's registrable domain is on the KNOWN-SENDER list). The two positive-evidence conditions of 'benign' (v1) and
+    of 'No indicators found' (v2), defined once: benign_evidence_gaps below and the v2 tier inputs both use it."""
+    auth = module_results.get("auth_check")
+    raw = (auth.raw_data or {}) if auth is not None and auth.status == "ok" else {}
+    headers = raw.get("auth_headers", {})
+    alignment = raw.get("alignment", {})
+    dkim, dmarc = headers.get("dkim", {}), headers.get("dmarc", {})
+    dkim_ok = bool(dkim.get("evaluated")) and dkim.get("result") == "pass" and alignment.get("dkim", {}).get("aligned") is True
+    dmarc_ok = bool(dmarc.get("evaluated")) and dmarc.get("result") == "pass"
+    known = config.known_sender_domains if config.known_sender_domains is not None else app_config.KNOWN_SENDER_DOMAINS
+    known = {registrable_domain(d.strip().strip('.').lower()) or d.strip().strip('.').lower() for d in known}
+    sender = ((raw.get("identity") or {}).get("display_name_spoofing") or {}).get("actual_registrable_domain")
+    return (dkim_ok or dmarc_ok), bool(known) and bool(sender) and sender in known
+
+
 def benign_evidence_gaps(
     module_results: dict[str, ModuleResult | None], confidence: float, config: ScoringConfig
 ) -> list[str]:
@@ -30,11 +46,8 @@ def benign_evidence_gaps(
     auth = module_results.get("auth_check")
     raw = (auth.raw_data or {}) if auth is not None and auth.status == "ok" else {}
     headers = raw.get("auth_headers", {})
-    alignment = raw.get("alignment", {})
-    dkim, dmarc = headers.get("dkim", {}), headers.get("dmarc", {})
-    dkim_ok = bool(dkim.get("evaluated")) and dkim.get("result") == "pass" and alignment.get("dkim", {}).get("aligned") is True
-    dmarc_ok = bool(dmarc.get("evaluated")) and dmarc.get("result") == "pass"
-    if not (dkim_ok or dmarc_ok):
+    aligned_pass, sender_known = positive_evidence_flags(module_results, config)
+    if not aligned_pass:
         if not headers.get("trusted_receivers_configured"):
             gaps.append("no trusted receiver is configured, so no authentication result can be relied on")
         else:
@@ -43,10 +56,9 @@ def benign_evidence_gaps(
     if config.require_known_sender_for_benign:
         known = config.known_sender_domains if config.known_sender_domains is not None else app_config.KNOWN_SENDER_DOMAINS
         known = {registrable_domain(d.strip().strip('.').lower()) or d.strip().strip('.').lower() for d in known}
-        sender = ((raw.get("identity") or {}).get("display_name_spoofing") or {}).get("actual_registrable_domain")
         if not known:
             gaps.append("no known-sender list is configured, so no sender can be recognised as legitimate")
-        elif not sender or sender not in known:
+        elif not sender_known:
             gaps.append("the sender's domain is not on the known-sender list")
 
     above_info = [

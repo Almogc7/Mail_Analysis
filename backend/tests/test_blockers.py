@@ -268,7 +268,7 @@ def test_no_content_leaves_the_function_only_codes_from_the_vocabulary_are_retur
     assert out == ["static_analysis_off"] and "merger" not in json.dumps(out)
 
 
-def test_only_the_adapter_imports_the_blocker_module_and_nothing_imports_the_adapter_so_it_is_not_wired():
+def test_only_the_adapter_imports_the_blocker_module_and_only_the_v2_input_builder_imports_the_adapter():
     importers, adapter_importers = [], []
     for path in sorted((BACKEND / "app").rglob("*.py")):
         if path.name == "blockers.py":
@@ -285,7 +285,7 @@ def test_only_the_adapter_imports_the_blocker_module_and_nothing_imports_the_ada
             if "blockers_adapter" in names:
                 adapter_importers.append(path.name)
     assert sorted(set(importers)) == ["blockers_adapter.py"]
-    assert adapter_importers == [], "the pipeline, the API and the contracts do not call the adapter: verdict_v2 does not exist yet"
+    assert sorted(set(adapter_importers)) == ["v2_inputs.py"], "only the verdict v2 input builder uses the adapter"
 
 
 # ---- the closed `detail` enum ----------------------------------------------------------------------------------------------------------------------------------------------------

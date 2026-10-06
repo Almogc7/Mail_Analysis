@@ -1,6 +1,7 @@
 import logging
 from typing import Callable
 
+from app import config as app_config
 from app.auth_check import run_auth_check
 from app.contracts.analysis import AnalysisResult
 from app.contracts.findings import ModuleResult
@@ -12,6 +13,9 @@ from app.indicators import build_indicator_pack, visible_pack
 from app.llm import run_llm_opinion
 from app.parser import parse_email_file
 from app.scoring import build_analysis_result
+from app.scoring.tiers import compute_tier
+from app.scoring.v2_inputs import build_tier_inputs
+from app.scoring.v2_verdict import assemble_verdict_v2, count_checks
 
 StepCallback = Callable[[str], None]
 logger = logging.getLogger(__name__)
@@ -68,6 +72,18 @@ def run_pipeline(raw_bytes: bytes, filename: str, on_step: StepCallback = _noop)
     except Exception as exc:
         logger.warning("coverage report could not be built (%s)", type(exc).__name__)
 
+    # Verdict v2 and the checks count: additive fields computed from data already held (no scoring change, no enrichment request, no v1 field touched). Without a coverage report the blockers cannot be
+    # known, so nothing is attached rather than a verdict that could read a gap as an absence; only the exception's class is logged, never its text.
+    verdict_v2 = checks_completed = None
+    if coverage is not None:
+        try:
+            tier_inputs, blocker_items = build_tier_inputs(parsed, [auth_result, enrichment_result, content_result], analysis_result, coverage,
+                                                           known_sender_domains=app_config.KNOWN_SENDER_DOMAINS, own_domains=app_config.OWN_DOMAINS)
+            verdict_v2 = assemble_verdict_v2(compute_tier(tier_inputs), analysis_result, blocker_items)
+            checks_completed = count_checks(coverage)
+        except Exception as exc:
+            logger.warning("verdict v2 could not be built (%s)", type(exc).__name__)
+
     on_step("llm_opinion")
     opinion = run_llm_opinion(analysis_result)
 
@@ -78,6 +94,8 @@ def run_pipeline(raw_bytes: bytes, filename: str, on_step: StepCallback = _noop)
         update.update(evidence=evidence, schema_version=2)
     if coverage is not None:
         update.update(coverage_report=coverage, schema_version=2)
+    if verdict_v2 is not None:
+        update.update(verdict_v2=verdict_v2, checks_completed=checks_completed)
     return analysis_result.model_copy(update=update)
 
 

@@ -81,7 +81,7 @@ def test_an_older_parsed_email_without_the_new_fields_still_works():
     assert parts == [] and flags["data_image_count"] == 0 and flags["parse_flags"] == []
 
 
-def test_the_adapter_is_pure_and_not_called_by_the_pipeline():
+def test_the_adapter_is_pure_and_only_the_v2_input_builder_calls_it():
     tree = ast.parse((BACKEND / "app" / "blockers_adapter.py").read_text(encoding="utf-8"))
     imported = set()
     for node in ast.walk(tree):
@@ -90,8 +90,9 @@ def test_the_adapter_is_pure_and_not_called_by_the_pipeline():
         elif isinstance(node, ast.ImportFrom):
             imported.add(node.module or "")
     assert imported <= {"__future__", "typing", "app.blockers"}, imported
+    assert "blockers_adapter" in (BACKEND / "app" / "scoring" / "v2_inputs.py").read_text(encoding="utf-8")  # the one intended caller: the verdict v2 input builder
     for path in sorted((BACKEND / "app").rglob("*.py")):
-        if path.name in ("blockers.py", "blockers_adapter.py"):
+        if path.name in ("blockers.py", "blockers_adapter.py", "v2_inputs.py"):
             continue
         source = path.read_text(encoding="utf-8")
         assert "blockers_adapter" not in source and "from app.blockers" not in source and "import blockers" not in source, path
