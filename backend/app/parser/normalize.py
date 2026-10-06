@@ -12,6 +12,7 @@ from app.contracts.email import (
     ExtractedUrl,
     HeaderField,
     ImageRef,
+    ParseFlag,
     ParsedEmail,
     ReceivedHop,
     ReceivedSpf,
@@ -242,6 +243,7 @@ def to_parsed_email(raw: RawParseResult) -> ParsedEmail:
         data_image_count=_count_data_images(raw.body_html),
         attachments=[_hash_attachment(a) for a in raw.attachments],
         unlisted_parts=[_describe_unlisted(p) for p in raw.unlisted_parts],
+        parse_flags=[ParseFlag(code=f.code, part_id=f.part_id) for f in raw.parse_flags],
         parse_warnings=raw.parse_warnings,
         raw_size_bytes=raw.raw_size_bytes,
     )

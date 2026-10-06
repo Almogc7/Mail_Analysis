@@ -28,6 +28,14 @@ class RawUnlistedPart:
 
 
 @dataclass
+class RawParseFlag:
+    """A structured parse failure: a code (the ParseFlagCode set of contracts/email.py) and a content-free part id."""
+
+    code: str
+    part_id: str
+
+
+@dataclass
 class RawParseResult:
     """Internal, format-agnostic parse output. Not part of the public contract —
     both eml_parser and msg_parser produce this shape, and normalize.py converts it
@@ -50,4 +58,5 @@ class RawParseResult:
     body_html: str | None = None
     attachments: list[RawAttachment] = field(default_factory=list)
     unlisted_parts: list[RawUnlistedPart] = field(default_factory=list)
+    parse_flags: list[RawParseFlag] = field(default_factory=list)
     parse_warnings: list[str] = field(default_factory=list)

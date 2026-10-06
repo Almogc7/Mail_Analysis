@@ -10,7 +10,7 @@ from bs4 import UnicodeDammit
 
 from app.parser.addresses import AMBIGUITY_PREFIX, parse_address_header
 from app.parser.eml_parser import _raw_header_text
-from app.parser.raw import RawAddress, RawAttachment, RawParseResult
+from app.parser.raw import RawAddress, RawAttachment, RawParseFlag, RawParseResult
 
 _ADDR_RE = re.compile(r"^(?P<name>.*?)\s*<(?P<addr>[^<>]+)>\s*$")
 
@@ -73,6 +73,7 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
     headers: list[tuple[str, str]] = []
     received_raw: list[str] = []
     auth_results_raw: list[str] = []
+    flags: list[RawParseFlag] = []
 
     return_path: RawAddress | None = None
     header_from_raw: str | None = None
@@ -92,6 +93,7 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
             header_from_raw = _raw_header_text(parsed_headers, "from")
         except Exception as exc:
             warnings.append(f"Failed to parse embedded raw headers: {exc}")
+            flags.append(RawParseFlag("header_parse_failed", "headers"))
     else:
         warnings.append(
             "No raw internet headers found in .msg file (Outlook may not have stored them); "
@@ -107,6 +109,7 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
             content = att.data if isinstance(att.data, bytes) else bytes(att.data or b"")
         except Exception as exc:
             warnings.append(f"Failed to read attachment '{att.longFilename or att.shortFilename}': {exc}")
+            flags.append(RawParseFlag("attachment_read_failed", f"attachment:{len(attachments)}"))
             content = b""
         attachments.append(
             RawAttachment(
@@ -144,5 +147,6 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
         body_text=msg.body,
         body_html=_decode_html_bytes(getattr(msg, "htmlBody", None)),
         attachments=attachments,
+        parse_flags=flags,
         parse_warnings=warnings,
     )

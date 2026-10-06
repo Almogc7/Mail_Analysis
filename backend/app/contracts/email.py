@@ -78,6 +78,19 @@ class Attachment(BaseModel):
     first_bytes: bytes = Field(default=b"", exclude=True, repr=False)
 
 
+ParseFlagCode = Literal["body_extract_failed", "attachment_read_failed", "header_parse_failed", "mime_structure_error"]
+
+
+class ParseFlag(BaseModel):
+    """A structured, content-free record that a part of the message could not be parsed: a code from a CLOSED set and a part id (a short token such as body_text, attachment:0, header:date or part:3;
+    never a name, an address or error text). It sits next to the free-text `parse_warnings`, which are unchanged. NOT every warning is a flag: an ambiguous header (which has its own finding) and the
+    informational notes about missing headers are not failures. `parse_limit` and `parse_timeout` have no producer and stay UNREACHABLE: the parser has no size, depth or time limit today, so
+    they cannot be raised until one exists (the upload size is the only cap, checked by the API before parsing)."""
+
+    code: ParseFlagCode
+    part_id: str
+
+
 class UnlistedPart(BaseModel):
     """Metadata of a part that is neither the body nor in `attachments` (which needs a filename): an inline cid: image, a nameless message/rfc822 or calendar part. Content-free: a type, a size and two
     flags; the first bytes are kept for magic-number detection only and are excluded from every serialisation, as for Attachment. Never hashed, looked up or listed. Additive."""
@@ -111,6 +124,7 @@ class ParsedEmail(BaseModel):
     data_image_count: int = 0
     attachments: list[Attachment] = []
     unlisted_parts: list[UnlistedPart] = []
+    parse_flags: list[ParseFlag] = []
     parse_warnings: list[str] = []
     raw_size_bytes: int
     # SHA256 of the file exactly as received (before any banner/tag stripping or decoding).

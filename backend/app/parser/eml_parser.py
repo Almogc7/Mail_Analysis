@@ -1,11 +1,12 @@
 import email
 import email.policy
+from email import errors as email_errors
 from email.headerregistry import Address
 from email.message import EmailMessage
 from email.utils import parseaddr
 
 from app.parser.addresses import AMBIGUITY_PREFIX, parse_address_header
-from app.parser.raw import RawAddress, RawAttachment, RawParseResult, RawUnlistedPart
+from app.parser.raw import RawAddress, RawAttachment, RawParseFlag, RawParseResult, RawUnlistedPart
 
 
 def _to_raw_addresses(msg: EmailMessage, header_name: str) -> list[RawAddress]:
@@ -82,8 +83,23 @@ def _to_single_raw_address(msg: EmailMessage, header_name: str, warnings: list[s
     return RawAddress(display_name=display_name or None, address=address)
 
 
+# Defects of the MIME TREE (a missing or absent boundary, a broken header block). Encoding defects (invalid base64 characters or padding, an unknown charset) are NOT structure errors: the payload is
+# still read, and they are common in real mail, so they set no flag.
+_STRUCTURAL_DEFECTS = (
+    email_errors.StartBoundaryNotFoundDefect,
+    email_errors.CloseBoundaryNotFoundDefect,
+    email_errors.NoBoundaryInMultipartDefect,
+    email_errors.MultipartInvariantViolationDefect,
+    email_errors.FirstHeaderLineIsContinuationDefect,
+    email_errors.MisplacedEnvelopeHeaderDefect,
+    email_errors.MissingHeaderBodySeparatorDefect,
+    email_errors.InvalidMultipartContentTransferEncodingDefect,
+)
+
+
 def parse_eml(raw_bytes: bytes) -> RawParseResult:
     warnings: list[str] = []
+    flags: list[RawParseFlag] = []  # structured, content-free failures next to the free-text warnings (which are unchanged)
     msg: EmailMessage = email.message_from_bytes(raw_bytes, policy=email.policy.default)
 
     headers: list[tuple[str, str]] = []
@@ -109,6 +125,7 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
             body_text = body_part.get_content()
     except Exception as exc:
         warnings.append(f"Failed to extract text body: {exc}")
+        flags.append(RawParseFlag("body_extract_failed", "body_text"))
 
     try:
         html_part = msg.get_body(preferencelist=("html",))
@@ -116,6 +133,7 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
             body_html = html_part.get_content()
     except Exception as exc:
         warnings.append(f"Failed to extract html body: {exc}")
+        flags.append(RawParseFlag("body_extract_failed", "body_html"))
 
     inside_nested: set[int] = set()  # parts inside a nested message/rfc822: they are not separate unlisted parts of THIS message (named attachments there are unchanged)
     for part in msg.walk():
@@ -126,6 +144,7 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
                     inner = part.get_payload(0).as_bytes()
                 except Exception:
                     inner = b""
+                    flags.append(RawParseFlag("attachment_read_failed", f"part:{len(unlisted)}"))
                 disposition = part.get_content_disposition()
                 has_content_id = bool(part.get("content-id"))
                 unlisted.append(RawUnlistedPart(content_type="message/rfc822", content=inner, is_inline=(disposition == "inline" or has_content_id), has_content_id=has_content_id))
@@ -137,6 +156,7 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
                 content = part.get_payload(decode=True) or b""
             except Exception as exc:
                 warnings.append(f"Failed to decode attachment '{part.get_filename()}': {exc}")
+                flags.append(RawParseFlag("attachment_read_failed", f"attachment:{len(attachments)}"))
                 content = b""
             attachments.append(
                 RawAttachment(
@@ -152,6 +172,7 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
                 payload = part.get_payload(decode=True) or b""
             except Exception:
                 payload = b""
+                flags.append(RawParseFlag("attachment_read_failed", f"part:{len(unlisted)}"))
             has_content_id = bool(part.get("content-id"))
             unlisted.append(RawUnlistedPart(content_type=part.get_content_type(), content=payload, is_inline=(content_disposition == "inline" or has_content_id),
                                             has_content_id=has_content_id))
@@ -163,6 +184,12 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
             date_value = date_header.datetime
         except Exception as exc:
             warnings.append(f"Failed to parse Date header: {exc}")
+            flags.append(RawParseFlag("header_parse_failed", "header:date"))
+
+    # The standard library records structural defects of the MIME tree (a missing boundary, a missing closing boundary, ...) on the part they belong to; one flag per affected part.
+    for index, part in enumerate(msg.walk()):
+        if any(isinstance(defect, _STRUCTURAL_DEFECTS) for defect in part.defects):
+            flags.append(RawParseFlag("mime_structure_error", f"part:{index}"))
 
     return RawParseResult(
         source_format="eml",
@@ -182,5 +209,6 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
         body_html=body_html,
         attachments=attachments,
         unlisted_parts=unlisted,
+        parse_flags=flags,
         parse_warnings=warnings,
     )
