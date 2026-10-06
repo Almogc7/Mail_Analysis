@@ -159,6 +159,55 @@ class CoverageItem(BaseModel):
     how_to_clear: str = ""
 
 
+TierKey = Literal["confirmed_malicious", "suspicious", "needs_analyst", "no_indicators_found"]
+
+
+class V2Reason(BaseModel):
+    """One reason of verdict v2. `text` is the application's own fixed or registry-template wording, never text from the message; `evidence_ref` is the index of the finding in `findings` that the
+    reason rests on (where the page shows its real title), or None for a reason that rests on no finding (the score, a gap, positive evidence)."""
+
+    kind: Literal["finding", "score", "evidence_conflict", "gap", "positive_evidence"]
+    code: str
+    text: str
+    evidence_ref: str | None = None
+
+
+class V2HardEvidence(BaseModel):
+    code: Literal["H1", "H2", "H3"]
+    indicator: str  # a link host or URL in the defanged form the page already shows, or an attachment hash
+    source: str
+
+
+class V2Blocker(BaseModel):
+    code: str
+    detail: str | None = None
+    text: str
+    how_to_clear: str
+
+
+class VerdictV2(BaseModel):
+    """The verdict of the evidence workbench (docs/PHASE_B_PREREGISTRATION.md): a tier reached only through a named route, with every reason listed. Additive: the v1 `verdict` is unchanged."""
+
+    tier: TierKey
+    label: str
+    route: str
+    reasons: list[V2Reason] = []
+    hard_evidence: list[V2HardEvidence] = []
+    blockers: list[V2Blocker] = []
+    needs_analyst_reason: str | None = None
+    priority: float | None = None  # the queue priority, set only for Needs analyst (an ordering aid, not a probability)
+
+
+class ChecksCompleted(BaseModel):
+    """'Checks completed: N of M, K not checked', counted from the coverage report: `total` (M) counts the items that apply and are not by design, `completed` (N) those with status checked,
+    `not_checked` (K) the rest (not checked or partly). `by_design` counts the by-design items separately; they are in none of the three."""
+
+    completed: int
+    total: int
+    not_checked: int
+    by_design: int
+
+
 class AnalysisResult(BaseModel):
     parsed_email: ParsedEmail
     module_results: list[ModuleResult] = []
@@ -174,3 +223,6 @@ class AnalysisResult(BaseModel):
     schema_version: int = 1
     evidence: Evidence | None = None
     coverage_report: list[CoverageItem] | None = None
+    # Verdict v2 and the checks count (docs/PHASE_B_PREREGISTRATION.md). Optional and additive: the v1 fields above are unchanged, and a client that does not know them ignores them.
+    verdict_v2: VerdictV2 | None = None
+    checks_completed: ChecksCompleted | None = None

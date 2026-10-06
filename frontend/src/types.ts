@@ -259,6 +259,47 @@ export interface CoverageItem {
   how_to_clear: string
 }
 
+// Verdict v2 (optional: the page keeps showing the v1 verdict until the UI step; docs/PHASE_B_PREREGISTRATION.md).
+export type TierKey = 'confirmed_malicious' | 'suspicious' | 'needs_analyst' | 'no_indicators_found'
+
+export interface V2Reason {
+  kind: 'finding' | 'score' | 'evidence_conflict' | 'gap' | 'positive_evidence'
+  code: string
+  text: string
+  evidence_ref?: string | null
+}
+
+export interface V2HardEvidence {
+  code: 'H1' | 'H2' | 'H3'
+  indicator: string
+  source: string
+}
+
+export interface V2Blocker {
+  code: string
+  detail?: string | null
+  text: string
+  how_to_clear: string
+}
+
+export interface VerdictV2 {
+  tier: TierKey
+  label: string
+  route: string
+  reasons: V2Reason[]
+  hard_evidence: V2HardEvidence[]
+  blockers: V2Blocker[]
+  needs_analyst_reason?: string | null
+  priority?: number | null
+}
+
+export interface ChecksCompleted {
+  completed: number
+  total: number
+  not_checked: number
+  by_design: number
+}
+
 export interface AnalysisResult {
   parsed_email: ParsedEmail
   module_results: ModuleResult[]
@@ -272,6 +313,8 @@ export interface AnalysisResult {
   schema_version?: number
   evidence?: Evidence | null
   coverage_report?: CoverageItem[] | null
+  verdict_v2?: VerdictV2 | null
+  checks_completed?: ChecksCompleted | null
 }
 
 export interface AnalysisJob {

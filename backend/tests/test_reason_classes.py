@@ -150,7 +150,8 @@ def test_nothing_in_the_app_imports_the_tier_function_yet_so_it_is_not_wired():
     files = sorted((BACKEND / "app").rglob("*.py"))
     assert [p.relative_to(BACKEND).as_posix() for p in files if _imports_module(p.read_text(encoding="utf-8"), "tiers")] == []
     frontend = BACKEND.parent / "frontend" / "src"
-    assert not [p for p in frontend.rglob("*") if p.suffix in (".ts", ".tsx") and "verdict_v2" in p.read_text(encoding="utf-8", errors="ignore")], "the frontend does not know verdict_v2 yet"
+    users = [p.relative_to(frontend).as_posix() for p in frontend.rglob("*") if p.suffix in (".ts", ".tsx") and "verdict_v2" in p.read_text(encoding="utf-8", errors="ignore")]
+    assert users == ["types.ts"], "only the optional types in types.ts may mention verdict_v2: no component uses it until the UI step"
 
 
 def test_the_trusted_and_the_fallback_none_aligned_kinds_are_split_by_where_the_compared_domain_came_from():
