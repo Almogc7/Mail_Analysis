@@ -268,16 +268,24 @@ def test_no_content_leaves_the_function_only_codes_from_the_vocabulary_are_retur
     assert out == ["static_analysis_off"] and "merger" not in json.dumps(out)
 
 
-def test_nothing_in_the_app_imports_the_blocker_module_yet_so_it_is_not_wired():
+def test_only_the_adapter_imports_the_blocker_module_and_nothing_imports_the_adapter_so_it_is_not_wired():
+    importers, adapter_importers = [], []
     for path in sorted((BACKEND / "app").rglob("*.py")):
         if path.name == "blockers.py":
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
+            names = []
             if isinstance(node, ast.ImportFrom):
-                assert (node.module or "").split(".")[-1] != "blockers" and not any(a.name == "blockers" for a in node.names), path
+                names = [(node.module or "").split(".")[-1]] + [a.name for a in node.names]
             elif isinstance(node, ast.Import):
-                assert not any(a.name.split(".")[-1] == "blockers" for a in node.names), path
+                names = [a.name.split(".")[-1] for a in node.names]
+            if "blockers" in names:
+                importers.append(path.name)
+            if "blockers_adapter" in names:
+                adapter_importers.append(path.name)
+    assert sorted(set(importers)) == ["blockers_adapter.py"]
+    assert adapter_importers == [], "the pipeline, the API and the contracts do not call the adapter: verdict_v2 does not exist yet"
 
 
 # ---- the closed `detail` enum ----------------------------------------------------------------------------------------------------------------------------------------------------
