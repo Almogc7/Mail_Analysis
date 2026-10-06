@@ -1,0 +1,4661 @@
+{
+ "note": "Phase B specification cases (D23): data only; each carries its inputs (the contract of docs/PHASE_B_PREREGISTRATION.md section 2) and its expected result. Conventions pinned here: a finding's class is the table's class for its code; `reason_codes` for T1 and T2 is the sorted unique set of finding codes that support the route (R1: eligible family-tagged findings; R2: the trusted failure findings; R3: eligible findings of medium or higher; R3B: eligible findings above info, possibly none; R4 and R5: the floor findings plus the eligible medium-or-higher findings of other classes), plus `evidence_conflict` for R6; null means not asserted. `needs_analyst_reason` lists reasons the result must contain. `blockers` is always the input list. `hard_evidence` is non-empty exactly for T1. Blocker codes marked in `blocker_codes` as existing are the coverage reason codes of app/coverage.py; the others are Phase B names.",
+ "defaults": {
+  "findings": [],
+  "score": 0.0,
+  "contributions": {
+   "auth_check": 0.0,
+   "enrichment": 0.0,
+   "content_analysis": 0.0
+  },
+  "trusted_auth_failures": [],
+  "hard_evidence_candidates": [],
+  "blockers": [],
+  "t4_positive_flags": {
+   "trusted_aligned_dkim_or_dmarc_pass": false,
+   "sender_on_known_list": false
+  },
+  "coverage_gate": {
+   "confidence": 1.0,
+   "confidence_threshold": 0.6,
+   "enrichment_complete": true
+  }
+ },
+ "blocker_codes": {
+  "existing": [
+   "qr_not_decoded",
+   "static_analysis_off",
+   "html_attachment_unanalysed",
+   "archive_contents_unexamined",
+   "redirects_not_resolved",
+   "shared_platform",
+   "internal_host_not_sent",
+   "language_unsupported",
+   "no_readable_text",
+   "no_trusted_receiver_hop",
+   "from_header_unparseable"
+  ],
+  "phase_b_new": [
+   "inline_image_not_decoded",
+   "data_uri_image_not_decoded",
+   "nested_message_unanalysed",
+   "calendar_invite_unexamined",
+   "parse_failure",
+   "parse_limit",
+   "parse_timeout"
+  ]
+ },
+ "cases": [
+  {
+   "id": "content_floor_one_class",
+   "category": "demoted_route_one_class",
+   "description": "two high content findings are one reason class: the content floor alone is T3, not T2 (D16, D22 route 4)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "CONTENT_BRAND_LINK_MISMATCH",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_URGENCY_LANGUAGE",
+      "severity": "high",
+      "class": "content"
+     }
+    ],
+    "score": 11.3,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 11.3
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "content_floor_second_class_auth",
+   "category": "demoted_route_second_class",
+   "description": "content floor plus a medium finding of another class (auth) is T2 through R4",
+   "inputs": {
+    "findings": [
+     {
+      "code": "CONTENT_BRAND_LINK_MISMATCH",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_URGENCY_LANGUAGE",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "AUTH_IDENTITY_REPLY_TO_MISMATCH",
+      "severity": "medium",
+      "class": "auth"
+     }
+    ],
+    "score": 14.0,
+    "contributions": {
+     "auth_check": 2.7,
+     "enrichment": 0.0,
+     "content_analysis": 11.3
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R4",
+    "reason_codes": [
+     "AUTH_IDENTITY_REPLY_TO_MISMATCH",
+     "CONTENT_BRAND_LINK_MISMATCH",
+     "CONTENT_URGENCY_LANGUAGE"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "content_floor_second_class_link",
+   "category": "demoted_route_second_class",
+   "description": "content floor plus a medium link-family finding is T2 through R4 (a structural family is a second class)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "CONTENT_BRAND_LINK_MISMATCH",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_URGENCY_LANGUAGE",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_LINK_TRACKER_PLATFORM_MISMATCH",
+      "severity": "medium",
+      "class": "link"
+     }
+    ],
+    "score": 13.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 13.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R4",
+    "reason_codes": [
+     "CONTENT_BRAND_LINK_MISMATCH",
+     "CONTENT_LINK_TRACKER_PLATFORM_MISMATCH",
+     "CONTENT_URGENCY_LANGUAGE"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "enrichment_floor_one_class",
+   "category": "demoted_route_one_class",
+   "description": "a provider score of 70 or more that does not rest on H1 to H3 is one reason class: T3 alone (D16 follow-up a)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "critical",
+      "class": "enrichment"
+     }
+    ],
+    "score": 28.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 28.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "enrichment_floor_second_class_claim",
+   "category": "demoted_route_second_class",
+   "description": "enrichment floor plus a medium claim finding is T2 through R5",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "critical",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_CLAIM_DECOY_LINKS",
+      "severity": "medium",
+      "class": "claim"
+     }
+    ],
+    "score": 31.5,
+    "contributions": {
+     "auth_check": 3.5,
+     "enrichment": 28.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R5",
+    "reason_codes": [
+     "AUTH_CLAIM_DECOY_LINKS",
+     "ENRICH_REPUTATION_HOST_SUSPICIOUS"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "score_band_one_class",
+   "category": "demoted_route_one_class",
+   "description": "a weighted score of 36 from one reason class is T3: the band needs two classes (D22 route 3)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     }
+    ],
+    "score": 36.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 36.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "score_band_second_class",
+   "category": "demoted_route_second_class",
+   "description": "a weighted score of 39.5 with medium findings in two classes is T2 through R3",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_ALIGN_NONE_ALIGNED",
+      "severity": "medium",
+      "class": "auth"
+     }
+    ],
+    "score": 39.5,
+    "contributions": {
+     "auth_check": 3.5,
+     "enrichment": 36.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R3",
+    "reason_codes": [
+     "AUTH_ALIGN_NONE_ALIGNED",
+     "ENRICH_REPUTATION_HOST_SUSPICIOUS"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "severity_band_low_second",
+   "category": "severity_rule",
+   "description": "score band with a low second reason: T3 (the second reason must be medium or higher)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_IDENTITY_RETURN_PATH_MISMATCH",
+      "severity": "low",
+      "class": "auth"
+     }
+    ],
+    "score": 38.0,
+    "contributions": {
+     "auth_check": 2.0,
+     "enrichment": 36.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "severity_content_floor_low_second",
+   "category": "severity_rule",
+   "description": "content floor with a low second reason: T3",
+   "inputs": {
+    "findings": [
+     {
+      "code": "CONTENT_BRAND_LINK_MISMATCH",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_URGENCY_LANGUAGE",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "AUTH_IDENTITY_RETURN_PATH_MISMATCH",
+      "severity": "low",
+      "class": "auth"
+     }
+    ],
+    "score": 13.0,
+    "contributions": {
+     "auth_check": 1.7,
+     "enrichment": 0.0,
+     "content_analysis": 11.3
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "severity_enrichment_floor_low_second",
+   "category": "severity_rule",
+   "description": "enrichment floor with a low second reason: T3",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "critical",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_CLAIM_ENTITY_MISMATCH_UNSIGNED",
+      "severity": "low",
+      "class": "claim"
+     }
+    ],
+    "score": 29.0,
+    "contributions": {
+     "auth_check": 1.0,
+     "enrichment": 28.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "severity_two_low_signals_in_two_classes",
+   "category": "severity_rule",
+   "description": "the motivating pair: a Return-Path mismatch and an unsigned entity mismatch, both low, score 40: T3 (two weak signals are not two reasons)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_IDENTITY_RETURN_PATH_MISMATCH",
+      "severity": "low",
+      "class": "auth"
+     },
+     {
+      "code": "AUTH_CLAIM_ENTITY_MISMATCH_UNSIGNED",
+      "severity": "low",
+      "class": "claim"
+     }
+    ],
+    "score": 40.0,
+    "contributions": {
+     "auth_check": 35.0,
+     "enrichment": 0.0,
+     "content_analysis": 5.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "severity_structural_floor_not_subject_to_rule",
+   "category": "severity_rule",
+   "description": "route R1 is unchanged: two low findings from two different families are still T2",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_CLAIM_ENTITY_MISMATCH_UNSIGNED",
+      "severity": "low",
+      "class": "claim"
+     },
+     {
+      "code": "AUTH_IDENTITY_LOCAL_SUBMISSION",
+      "severity": "low",
+      "class": "sender"
+     }
+    ],
+    "score": 6.0,
+    "contributions": {
+     "auth_check": 6.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R1",
+    "reason_codes": [
+     "AUTH_CLAIM_ENTITY_MISMATCH_UNSIGNED",
+     "AUTH_IDENTITY_LOCAL_SUBMISSION"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "r3b_score_72",
+   "category": "r3b",
+   "description": "a weighted score of 72 without hard evidence is T2 through R3B",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_IDENTITY_REPLY_TO_MISMATCH",
+      "severity": "medium",
+      "class": "auth"
+     },
+     {
+      "code": "CONTENT_GREETING_PERSONAL_CLAIM",
+      "severity": "medium",
+      "class": "content"
+     }
+    ],
+    "score": 72.0,
+    "contributions": {
+     "auth_check": 21.0,
+     "enrichment": 40.0,
+     "content_analysis": 11.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R3B",
+    "reason_codes": [
+     "AUTH_IDENTITY_REPLY_TO_MISMATCH",
+     "CONTENT_GREETING_PERSONAL_CLAIM",
+     "ENRICH_REPUTATION_HOST_SUSPICIOUS"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "r3b_one_reason_class",
+   "category": "r3b",
+   "description": "R3B has no class condition: a score of 72 with medium-or-higher findings in only one class is still T2",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_IDENTITY_RETURN_PATH_MISMATCH",
+      "severity": "low",
+      "class": "auth"
+     }
+    ],
+    "score": 72.0,
+    "contributions": {
+     "auth_check": 32.0,
+     "enrichment": 40.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R3B",
+    "reason_codes": [
+     "AUTH_IDENTITY_RETURN_PATH_MISMATCH",
+     "ENRICH_REPUTATION_HOST_SUSPICIOUS"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "v1_malicious_without_hard_evidence",
+   "category": "r3b",
+   "description": "a case that v1 calls malicious (score 78, enrichment floor) with no hard evidence is T2, never T1 (D3); R3B names the route",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "critical",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_IDENTITY_REPLY_TO_MISMATCH",
+      "severity": "medium",
+      "class": "auth"
+     }
+    ],
+    "score": 78.0,
+    "contributions": {
+     "auth_check": 30.0,
+     "enrichment": 40.0,
+     "content_analysis": 8.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R3B",
+    "reason_codes": [
+     "AUTH_IDENTITY_REPLY_TO_MISMATCH",
+     "ENRICH_REPUTATION_HOST_SUSPICIOUS"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "r3b_not_subject_to_the_gate",
+   "category": "r3b",
+   "description": "R3B is not gated by low coverage (v1: a malicious bucket is not downgraded)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_IDENTITY_REPLY_TO_MISMATCH",
+      "severity": "medium",
+      "class": "auth"
+     }
+    ],
+    "score": 72.0,
+    "contributions": {
+     "auth_check": 32.0,
+     "enrichment": 40.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 0.3,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R3B",
+    "reason_codes": [
+     "AUTH_IDENTITY_REPLY_TO_MISMATCH",
+     "ENRICH_REPUTATION_HOST_SUSPICIOUS"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "boundary_score_35",
+   "category": "score_boundary",
+   "description": "exactly 35 with two medium classes: R3",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_ALIGN_NONE_ALIGNED",
+      "severity": "medium",
+      "class": "auth"
+     }
+    ],
+    "score": 35.0,
+    "contributions": {
+     "auth_check": 3.0,
+     "enrichment": 32.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R3",
+    "reason_codes": [
+     "AUTH_ALIGN_NONE_ALIGNED",
+     "ENRICH_REPUTATION_HOST_SUSPICIOUS"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "boundary_score_34_9",
+   "category": "score_boundary",
+   "description": "34.9 with two medium classes: below the band, T3",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_ALIGN_NONE_ALIGNED",
+      "severity": "medium",
+      "class": "auth"
+     }
+    ],
+    "score": 34.9,
+    "contributions": {
+     "auth_check": 2.9,
+     "enrichment": 32.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "boundary_score_69_9",
+   "category": "score_boundary",
+   "description": "69.9 with two medium classes: still R3",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_ALIGN_NONE_ALIGNED",
+      "severity": "medium",
+      "class": "auth"
+     }
+    ],
+    "score": 69.9,
+    "contributions": {
+     "auth_check": 29.9,
+     "enrichment": 40.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R3",
+    "reason_codes": [
+     "AUTH_ALIGN_NONE_ALIGNED",
+     "ENRICH_REPUTATION_HOST_SUSPICIOUS"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "boundary_score_70",
+   "category": "score_boundary",
+   "description": "exactly 70: R3B",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_ALIGN_NONE_ALIGNED",
+      "severity": "medium",
+      "class": "auth"
+     }
+    ],
+    "score": 70.0,
+    "contributions": {
+     "auth_check": 30.0,
+     "enrichment": 40.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R3B",
+    "reason_codes": [
+     "AUTH_ALIGN_NONE_ALIGNED",
+     "ENRICH_REPUTATION_HOST_SUSPICIOUS"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "ineligible_parse_note",
+   "category": "ineligible_code",
+   "description": "the From-header parse note (low, weight 0) never completes the content floor",
+   "inputs": {
+    "findings": [
+     {
+      "code": "CONTENT_BRAND_LINK_MISMATCH",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_URGENCY_LANGUAGE",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "AUTH_FROM_HEADER_AMBIGUOUS",
+      "severity": "low",
+      "class": "auth"
+     }
+    ],
+    "score": 11.3,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 11.3
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "ineligible_per_email_limit",
+   "category": "ineligible_code",
+   "description": "the per-email limit gap never completes the content floor",
+   "inputs": {
+    "findings": [
+     {
+      "code": "CONTENT_BRAND_LINK_MISMATCH",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_URGENCY_LANGUAGE",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "ENRICH_SKIPPED_PER_EMAIL_LIMIT",
+      "severity": "low",
+      "class": "enrichment"
+     }
+    ],
+    "score": 11.3,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 11.3
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "ineligible_untrusted_spf_claim",
+   "category": "ineligible_code",
+   "description": "an untrusted SPF failure claim never completes the content floor",
+   "inputs": {
+    "findings": [
+     {
+      "code": "CONTENT_BRAND_LINK_MISMATCH",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_URGENCY_LANGUAGE",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "AUTH_SPF_FAILURE_CLAIMED_UNTRUSTED",
+      "severity": "low",
+      "class": "auth"
+     }
+    ],
+    "score": 11.3,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 11.3
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "ineligible_untrusted_dkim_claim",
+   "category": "ineligible_code",
+   "description": "an untrusted DKIM failure claim never completes the content floor",
+   "inputs": {
+    "findings": [
+     {
+      "code": "CONTENT_BRAND_LINK_MISMATCH",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_URGENCY_LANGUAGE",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "AUTH_DKIM_FAILURE_CLAIMED_UNTRUSTED",
+      "severity": "low",
+      "class": "auth"
+     }
+    ],
+    "score": 11.3,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 11.3
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "ineligible_untrusted_dmarc_claim",
+   "category": "ineligible_code",
+   "description": "an untrusted DMARC failure claim never completes the content floor",
+   "inputs": {
+    "findings": [
+     {
+      "code": "CONTENT_BRAND_LINK_MISMATCH",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "CONTENT_URGENCY_LANGUAGE",
+      "severity": "high",
+      "class": "content"
+     },
+     {
+      "code": "AUTH_DMARC_FAILURE_CLAIMED_UNTRUSTED",
+      "severity": "low",
+      "class": "auth"
+     }
+    ],
+    "score": 11.3,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 11.3
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "ineligible_untrusted_claims_are_not_the_strong_signal",
+   "category": "ineligible_code",
+   "description": "three untrusted failure claims are not a trusted-receiver failure: no R2",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_SPF_FAILURE_CLAIMED_UNTRUSTED",
+      "severity": "low",
+      "class": "auth"
+     },
+     {
+      "code": "AUTH_DKIM_FAILURE_CLAIMED_UNTRUSTED",
+      "severity": "low",
+      "class": "auth"
+     },
+     {
+      "code": "AUTH_DMARC_FAILURE_CLAIMED_UNTRUSTED",
+      "severity": "low",
+      "class": "auth"
+     }
+    ],
+    "score": 3.0,
+    "contributions": {
+     "auth_check": 3.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "ineligible_fallback_alignment",
+   "category": "ineligible_code",
+   "description": "the fallback none-aligned finding (medium, domain from a sender-controlled header) is not a second class: T3, where the trusted variant gives R3",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_ALIGN_NONE_ALIGNED_FALLBACK",
+      "severity": "medium",
+      "class": "auth"
+     }
+    ],
+    "score": 39.5,
+    "contributions": {
+     "auth_check": 3.5,
+     "enrichment": 36.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "ineligible_info_findings",
+   "category": "ineligible_code",
+   "description": "info findings of every other class never count: the band with only info findings added stays T3",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_ALIGN_SPF_OTHER_DOMAIN",
+      "severity": "info",
+      "class": "auth"
+     },
+     {
+      "code": "AUTH_CLAIM_BODY_BRAND_MENTION",
+      "severity": "info",
+      "class": "auth"
+     },
+     {
+      "code": "CONTENT_LANGUAGE_UNSUPPORTED",
+      "severity": "info",
+      "class": "content"
+     },
+     {
+      "code": "ENRICH_INCOMPLETE_PROVIDER_NO_RESULT",
+      "severity": "info",
+      "class": "enrichment"
+     }
+    ],
+    "score": 36.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 36.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "strong_signal_spf_fail",
+   "category": "strong_signal",
+   "description": "a trusted-receiver SPF fail alone is T2 through R2",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_SPF_CHECK_FAILED",
+      "severity": "high",
+      "class": "auth"
+     }
+    ],
+    "score": 8.8,
+    "contributions": {
+     "auth_check": 8.8,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [
+     {
+      "method": "spf",
+      "result": "fail",
+      "trusted": true
+     }
+    ],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R2",
+    "reason_codes": [
+     "AUTH_SPF_CHECK_FAILED"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "strong_signal_dkim_fail",
+   "category": "strong_signal",
+   "description": "a trusted-receiver DKIM fail alone is T2 through R2",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_DKIM_CHECK_FAILED",
+      "severity": "high",
+      "class": "auth"
+     }
+    ],
+    "score": 8.8,
+    "contributions": {
+     "auth_check": 8.8,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [
+     {
+      "method": "dkim",
+      "result": "fail",
+      "trusted": true
+     }
+    ],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R2",
+    "reason_codes": [
+     "AUTH_DKIM_CHECK_FAILED"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "strong_signal_dmarc_fail",
+   "category": "strong_signal",
+   "description": "a trusted-receiver DMARC fail alone is T2 through R2",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_DMARC_CHECK_FAILED",
+      "severity": "high",
+      "class": "auth"
+     }
+    ],
+    "score": 8.8,
+    "contributions": {
+     "auth_check": 8.8,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [
+     {
+      "method": "dmarc",
+      "result": "fail",
+      "trusted": true
+     }
+    ],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R2",
+    "reason_codes": [
+     "AUTH_DMARC_CHECK_FAILED"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "strong_signal_softfail_is_not_strong",
+   "category": "strong_signal",
+   "description": "a softfail (medium) is not the strong signal: T3",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_SPF_CHECK_FAILED",
+      "severity": "medium",
+      "class": "auth"
+     }
+    ],
+    "score": 5.3,
+    "contributions": {
+     "auth_check": 5.3,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [
+     {
+      "method": "spf",
+      "result": "softfail",
+      "trusted": true
+     }
+    ],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "structural_sender_and_link",
+   "category": "structural_family",
+   "description": "findings from two different families (sender, link): T2 through R1",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_IDENTITY_FREE_MAILBOX_BRAND",
+      "severity": "medium",
+      "class": "sender"
+     },
+     {
+      "code": "CONTENT_LINK_REDIRECTOR",
+      "severity": "low",
+      "class": "link"
+     }
+    ],
+    "score": 7.0,
+    "contributions": {
+     "auth_check": 3.5,
+     "enrichment": 0.0,
+     "content_analysis": 3.5
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R1",
+    "reason_codes": [
+     "AUTH_IDENTITY_FREE_MAILBOX_BRAND",
+     "CONTENT_LINK_REDIRECTOR"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "structural_claim_and_link",
+   "category": "structural_family",
+   "description": "claim and link: R1",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_CLAIM_DECOY_LINKS",
+      "severity": "medium",
+      "class": "claim"
+     },
+     {
+      "code": "CONTENT_LINK_HOTLINKED_ASSETS",
+      "severity": "low",
+      "class": "link"
+     }
+    ],
+    "score": 7.0,
+    "contributions": {
+     "auth_check": 3.5,
+     "enrichment": 0.0,
+     "content_analysis": 3.5
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R1",
+    "reason_codes": [
+     "AUTH_CLAIM_DECOY_LINKS",
+     "CONTENT_LINK_HOTLINKED_ASSETS"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "structural_same_family_sender",
+   "category": "structural_family",
+   "description": "two findings in the same family (sender) are one reason: not R1",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_IDENTITY_MACHINE_SENDER_BRAND",
+      "severity": "medium",
+      "class": "sender"
+     },
+     {
+      "code": "AUTH_IDENTITY_LOCAL_SUBMISSION",
+      "severity": "low",
+      "class": "sender"
+     }
+    ],
+    "score": 6.0,
+    "contributions": {
+     "auth_check": 6.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "structural_same_family_link",
+   "category": "structural_family",
+   "description": "two link-family findings are one reason: not R1",
+   "inputs": {
+    "findings": [
+     {
+      "code": "CONTENT_LINK_REDIRECTOR",
+      "severity": "low",
+      "class": "link"
+     },
+     {
+      "code": "CONTENT_LINK_HOTLINKED_ASSETS",
+      "severity": "low",
+      "class": "link"
+     }
+    ],
+    "score": 6.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 6.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h1_malwarebazaar_hash",
+   "category": "hard_evidence_positive",
+   "description": "an attachment hash matched in MalwareBazaar is T1 (H1)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "critical",
+      "class": "enrichment"
+     }
+    ],
+    "score": 28.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 28.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "attachment_hash",
+      "source": "malwarebazaar",
+      "engine_count": null,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H1",
+      "source": "malwarebazaar"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h2_threatfox_link_host_90",
+   "category": "hard_evidence_positive",
+   "description": "a link host matched in ThreatFox with confidence 90 is T1 (H2)",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 90,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H2",
+      "source": "threatfox"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h2_threatfox_link_url_80",
+   "category": "hard_evidence_positive",
+   "description": "a link URL matched in ThreatFox with confidence 80 is T1 (H2)",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_url",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 80,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H2",
+      "source": "threatfox"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h2_threatfox_hash_80",
+   "category": "hard_evidence_positive",
+   "description": "an attachment hash matched in ThreatFox with confidence 80 is T1 (H2)",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "attachment_hash",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 80,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H2",
+      "source": "threatfox"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h2_boundary_75",
+   "category": "hard_evidence_boundary",
+   "description": "ThreatFox confidence 75 counts: T1",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 75,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H2",
+      "source": "threatfox"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h2_boundary_74",
+   "category": "hard_evidence_boundary",
+   "description": "ThreatFox confidence 74 does not count: the host finding alone is one class, T3",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "medium",
+      "class": "enrichment"
+     }
+    ],
+    "score": 12.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 12.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 74,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h3_virustotal_domain_12",
+   "category": "hard_evidence_positive",
+   "description": "a link domain with 12 VirusTotal engines malicious is T1 (H3)",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "virustotal",
+      "engine_count": 12,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H3",
+      "source": "virustotal"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h3_virustotal_url_25",
+   "category": "hard_evidence_positive",
+   "description": "a link URL with 25 engines is T1 (H3)",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_url",
+      "source": "virustotal",
+      "engine_count": 25,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H3",
+      "source": "virustotal"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h3_virustotal_hash_14",
+   "category": "hard_evidence_positive",
+   "description": "an attachment hash with 14 engines is T1 (H3)",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "attachment_hash",
+      "source": "virustotal",
+      "engine_count": 14,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H3",
+      "source": "virustotal"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h3_boundary_10",
+   "category": "hard_evidence_boundary",
+   "description": "exactly 10 VirusTotal engines counts: T1",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "virustotal",
+      "engine_count": 10,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H3",
+      "source": "virustotal"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h3_boundary_9",
+   "category": "hard_evidence_boundary",
+   "description": "9 VirusTotal engines does not count: one class, T3",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "medium",
+      "class": "enrichment"
+     }
+    ],
+    "score": 12.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 12.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "virustotal",
+      "engine_count": 9,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "hard_evidence_beats_routes",
+   "category": "precedence",
+   "description": "hard evidence wins over a T2 route that also holds (T1 first)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_SPF_CHECK_FAILED",
+      "severity": "high",
+      "class": "auth"
+     }
+    ],
+    "score": 9.0,
+    "contributions": {
+     "auth_check": 9.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [
+     {
+      "method": "spf",
+      "result": "fail",
+      "trusted": true
+     }
+    ],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 90,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H2",
+      "source": "threatfox"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "ip_alone_never",
+   "category": "hard_evidence_never",
+   "description": "an IP alone never counts, even at 30 VirusTotal engines (a link whose host is an IP)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     }
+    ],
+    "score": 18.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 18.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "virustotal",
+      "engine_count": 30,
+      "confidence": null,
+      "is_ip": true,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "ip_alone_threatfox_never",
+   "category": "hard_evidence_never",
+   "description": "an IP alone never counts for ThreatFox either",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 95,
+      "is_ip": true,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "received_hop_address_never",
+   "category": "hard_evidence_never",
+   "description": "a Received-hop address never counts, whatever a provider says",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "other",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 95,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     },
+     {
+      "indicator_type": "other",
+      "source": "virustotal",
+      "engine_count": 40,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "header_derived_domain_never",
+   "category": "hard_evidence_never",
+   "description": "a From, Reply-To or other header-derived domain never counts",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "other",
+      "source": "virustotal",
+      "engine_count": 40,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "image_host_never",
+   "category": "hard_evidence_never",
+   "description": "an image host never counts",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "other",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 90,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "shared_platform_domain_threatfox_never",
+   "category": "shared_platform",
+   "description": "a shared-platform domain never counts (ThreatFox)",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 90,
+      "is_ip": false,
+      "is_shared_platform": true,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "shared_platform_domain_virustotal_never",
+   "category": "shared_platform",
+   "description": "a shared-platform domain never counts (VirusTotal)",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "virustotal",
+      "engine_count": 40,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": true,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "shared_platform_url_exact_optin_on",
+   "category": "shared_platform",
+   "description": "a shared-platform URL on an exact match with the path-and-query opt-in on is T1",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_url",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 90,
+      "is_ip": false,
+      "is_shared_platform": true,
+      "path_optin_on": true,
+      "exact_url_match": true,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H2",
+      "source": "threatfox"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "shared_platform_url_exact_optin_off",
+   "category": "shared_platform",
+   "description": "the same exact match with the opt-in off (hostname-only lookups) is not T1",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_url",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 90,
+      "is_ip": false,
+      "is_shared_platform": true,
+      "path_optin_on": false,
+      "exact_url_match": true,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "shared_platform_url_host_match_optin_on",
+   "category": "shared_platform",
+   "description": "opt-in on but the provider matched the host, not the full URL: not T1",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_url",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 90,
+      "is_ip": false,
+      "is_shared_platform": true,
+      "path_optin_on": true,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "conflict_known_sender",
+   "category": "conflict",
+   "description": "hard evidence on a known-sender domain is T2 with the reason evidence_conflict, never T1",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 90,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": true
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R6",
+    "reason_codes": [
+     "evidence_conflict"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "conflict_own_organisation_domain",
+   "category": "conflict",
+   "description": "hard evidence on the organisation's own domain: T2 with evidence_conflict",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "virustotal",
+      "engine_count": 20,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": true
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R6",
+    "reason_codes": [
+     "evidence_conflict"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "conflict_plus_live_evidence",
+   "category": "conflict",
+   "description": "conflicted evidence on one domain and live evidence on another indicator: T1 on the live one only",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 90,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": true
+     },
+     {
+      "indicator_type": "attachment_hash",
+      "source": "virustotal",
+      "engine_count": 15,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": false
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H3",
+      "source": "virustotal"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "t4_full_positive",
+   "category": "t4_positive",
+   "description": "positive evidence (trusted aligned DKIM or DMARC pass, known sender), no finding above info, complete coverage, no blocker: T4",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T4",
+    "route": "T4_POSITIVE_EVIDENCE",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "t4_with_info_findings_only",
+   "category": "t4_positive",
+   "description": "info findings do not stop T4",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_ALIGN_DKIM_ALIGNED",
+      "severity": "info",
+      "class": "auth"
+     },
+     {
+      "code": "AUTH_ALL_METHODS_PASSED",
+      "severity": "info",
+      "class": "auth"
+     }
+    ],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T4",
+    "route": "T4_POSITIVE_EVIDENCE",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "t4_remote_image_is_not_a_blocker",
+   "category": "t4_positive",
+   "description": "a remote, hot-linked image yields no blocker, so a message with one and nothing else is still T4 (its blockers list is empty)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_ALIGN_DKIM_ALIGNED",
+      "severity": "info",
+      "class": "auth"
+     }
+    ],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T4",
+    "route": "T4_POSITIVE_EVIDENCE",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "t4_spf_only_is_not_t4",
+   "category": "t4_condition",
+   "description": "SPF-only evaluation is not a verified aligned DKIM or a DMARC pass: T3",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "t4_sender_not_known",
+   "category": "t4_condition",
+   "description": "a sender not on the known-sender list is not T4",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "t4_any_finding_above_info_stops_it",
+   "category": "t4_condition",
+   "description": "even an ineligible low finding is above info: not T4 (T3 with signals_present)",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_FROM_HEADER_AMBIGUOUS",
+      "severity": "low",
+      "class": "auth"
+     }
+    ],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "signals_present"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "t4_low_confidence_stops_it",
+   "category": "t4_condition",
+   "description": "confidence below 0.6 is not T4",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 0.5,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "t4_incomplete_enrichment_stops_it",
+   "category": "t4_condition",
+   "description": "incomplete enrichment is not T4",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": false
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "blocker_image_attachment",
+   "category": "blocker",
+   "description": "an image attachment while QR decoding is off stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "qr_not_decoded"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "qr_not_decoded"
+    ]
+   },
+   "blocker_kind": "image_attachment"
+  },
+  {
+   "id": "blocker_inline_cid_image",
+   "category": "blocker",
+   "description": "an inline image carried as a cid: part stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "inline_image_not_decoded"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "inline_image_not_decoded"
+    ]
+   },
+   "blocker_kind": "inline_cid_image"
+  },
+  {
+   "id": "blocker_data_uri_image",
+   "category": "blocker",
+   "description": "an embedded data: image in the HTML stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "data_uri_image_not_decoded"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "data_uri_image_not_decoded"
+    ]
+   },
+   "blocker_kind": "data_uri_image"
+  },
+  {
+   "id": "blocker_active_attachment_office_macro",
+   "category": "blocker",
+   "description": "an Office attachment of an active type that static analysis did not examine stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "static_analysis_off"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "static_analysis_off"
+    ]
+   },
+   "blocker_kind": "active_attachment_office_macro"
+  },
+  {
+   "id": "blocker_active_attachment_pdf",
+   "category": "blocker",
+   "description": "a PDF attachment that static analysis did not examine stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "static_analysis_off"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "static_analysis_off"
+    ]
+   },
+   "blocker_kind": "active_attachment_pdf"
+  },
+  {
+   "id": "blocker_active_attachment_script",
+   "category": "blocker",
+   "description": "a script attachment that static analysis did not examine stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "static_analysis_off"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "static_analysis_off"
+    ]
+   },
+   "blocker_kind": "active_attachment_script"
+  },
+  {
+   "id": "blocker_html_attachment",
+   "category": "blocker",
+   "description": "an HTML attachment, until analysed stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "html_attachment_unanalysed"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "html_attachment_unanalysed"
+    ]
+   },
+   "blocker_kind": "html_attachment"
+  },
+  {
+   "id": "blocker_archive",
+   "category": "blocker",
+   "description": "an archive whose contents were not examined stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "archive_contents_unexamined"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "archive_contents_unexamined"
+    ]
+   },
+   "blocker_kind": "archive"
+  },
+  {
+   "id": "blocker_password_protected_archive",
+   "category": "blocker",
+   "description": "a password-protected archive (blocked today as an unexamined archive; the encryption flag is Phase C) stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "archive_contents_unexamined"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "archive_contents_unexamined"
+    ]
+   },
+   "blocker_kind": "password_protected_archive"
+  },
+  {
+   "id": "blocker_disk_image",
+   "category": "blocker",
+   "description": "a disk image whose contents were not examined stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "archive_contents_unexamined"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "archive_contents_unexamined"
+    ]
+   },
+   "blocker_kind": "disk_image"
+  },
+  {
+   "id": "blocker_encrypted_office_file",
+   "category": "blocker",
+   "description": "an encrypted Office file (blocked today as an unexamined active type; the encryption flag is Phase C) stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "static_analysis_off"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "static_analysis_off"
+    ]
+   },
+   "blocker_kind": "encrypted_office_file"
+  },
+  {
+   "id": "blocker_encrypted_pdf",
+   "category": "blocker",
+   "description": "an encrypted PDF (blocked today as an unexamined active type; the encryption flag is Phase C) stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "static_analysis_off"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "static_analysis_off"
+    ]
+   },
+   "blocker_kind": "encrypted_pdf"
+  },
+  {
+   "id": "blocker_nested_message",
+   "category": "blocker",
+   "description": "a nested .eml or .msg attachment, until examined as a message of its own stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "nested_message_unanalysed"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "nested_message_unanalysed"
+    ]
+   },
+   "blocker_kind": "nested_message"
+  },
+  {
+   "id": "blocker_calendar_invite",
+   "category": "blocker",
+   "description": "a calendar invite (.ics) whose location, description and links are not examined stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "calendar_invite_unexamined"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "calendar_invite_unexamined"
+    ]
+   },
+   "blocker_kind": "calendar_invite"
+  },
+  {
+   "id": "blocker_shortener_unresolved",
+   "category": "blocker",
+   "description": "a link shortener or redirector that was not resolved stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "redirects_not_resolved"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "redirects_not_resolved"
+    ]
+   },
+   "blocker_kind": "shortener_unresolved"
+  },
+  {
+   "id": "blocker_shared_platform_link_not_looked_at",
+   "category": "blocker",
+   "description": "a link hosted on a shared platform that was not looked at stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "shared_platform"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "shared_platform"
+    ]
+   },
+   "blocker_kind": "shared_platform_link_not_looked_at"
+  },
+  {
+   "id": "blocker_internal_host",
+   "category": "blocker",
+   "description": "an internal-looking host stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "internal_host_not_sent"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "internal_host_not_sent"
+    ]
+   },
+   "blocker_kind": "internal_host"
+  },
+  {
+   "id": "blocker_unreadable_language",
+   "category": "blocker",
+   "description": "a message in a language the tool cannot read stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "language_unsupported"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "language_unsupported"
+    ]
+   },
+   "blocker_kind": "unreadable_language"
+  },
+  {
+   "id": "blocker_no_readable_text",
+   "category": "blocker",
+   "description": "a message with no readable text stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "no_readable_text"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "no_readable_text"
+    ]
+   },
+   "blocker_kind": "no_readable_text"
+  },
+  {
+   "id": "blocker_no_trusted_hop",
+   "category": "blocker",
+   "description": "a Received chain with no hop from a trusted receiver stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "no_trusted_receiver_hop"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "no_trusted_receiver_hop"
+    ]
+   },
+   "blocker_kind": "no_trusted_hop"
+  },
+  {
+   "id": "blocker_malformed_from",
+   "category": "blocker",
+   "description": "a malformed or unparseable From header stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "from_header_unparseable"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "from_header_unparseable"
+    ]
+   },
+   "blocker_kind": "malformed_from"
+  },
+  {
+   "id": "blocker_parser_limit",
+   "category": "blocker",
+   "description": "a parser limit reached on a part of the message stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "parse_limit"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "parse_limit"
+    ]
+   },
+   "blocker_kind": "parser_limit"
+  },
+  {
+   "id": "blocker_parser_timeout",
+   "category": "blocker",
+   "description": "a parser timeout on a part of the message stops T4: T3 with the blocker listed, though every positive-evidence condition holds",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "parse_timeout"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "parse_timeout"
+    ]
+   },
+   "blocker_kind": "parser_timeout"
+  },
+  {
+   "id": "parser_failure_never_t4",
+   "category": "parser_failure",
+   "description": "a parser failure on any part is never T4 (it is a blocker, V16): T3 with the blocker listed",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "parse_failure"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": true,
+     "sender_on_known_list": true
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "no_signals_insufficient_evidence"
+    ],
+    "blockers": [
+     "parse_failure"
+    ]
+   },
+   "blocker_kind": "parser_failure"
+  },
+  {
+   "id": "blockers_are_listed_whatever_the_tier",
+   "category": "blocker",
+   "description": "blockers are listed even when the tier is T2: an R1 case with a blocker is T2 and names it",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_IDENTITY_FREE_MAILBOX_BRAND",
+      "severity": "medium",
+      "class": "sender"
+     },
+     {
+      "code": "CONTENT_LINK_REDIRECTOR",
+      "severity": "low",
+      "class": "link"
+     }
+    ],
+    "score": 7.0,
+    "contributions": {
+     "auth_check": 3.5,
+     "enrichment": 0.0,
+     "content_analysis": 3.5
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [
+     "qr_not_decoded"
+    ],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R1",
+    "reason_codes": [
+     "AUTH_IDENTITY_FREE_MAILBOX_BRAND",
+     "CONTENT_LINK_REDIRECTOR"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": [
+     "qr_not_decoded"
+    ]
+   }
+  },
+  {
+   "id": "gate_band_low_coverage",
+   "category": "coverage_gate",
+   "description": "R3 with confidence 0.5 and no floor condition: demoted to T3, marked low_confidence",
+   "inputs": {
+    "findings": [
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+      "severity": "high",
+      "class": "enrichment"
+     },
+     {
+      "code": "AUTH_ALIGN_NONE_ALIGNED",
+      "severity": "medium",
+      "class": "auth"
+     }
+    ],
+    "score": 39.5,
+    "contributions": {
+     "auth_check": 3.5,
+     "enrichment": 36.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 0.5,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T3",
+    "route": "DEFAULT",
+    "reason_codes": null,
+    "hard_evidence": [],
+    "needs_analyst_reason": [
+     "low_confidence"
+    ],
+    "blockers": []
+   }
+  },
+  {
+   "id": "gate_floor_survives_low_coverage",
+   "category": "coverage_gate",
+   "description": "a floor is never erased by low coverage of other evidence: R1 at confidence 0.4 stays T2",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_IDENTITY_FREE_MAILBOX_BRAND",
+      "severity": "medium",
+      "class": "sender"
+     },
+     {
+      "code": "CONTENT_LINK_REDIRECTOR",
+      "severity": "low",
+      "class": "link"
+     }
+    ],
+    "score": 7.0,
+    "contributions": {
+     "auth_check": 3.5,
+     "enrichment": 0.0,
+     "content_analysis": 3.5
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 0.4,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R1",
+    "reason_codes": [
+     "AUTH_IDENTITY_FREE_MAILBOX_BRAND",
+     "CONTENT_LINK_REDIRECTOR"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "gate_strong_signal_survives_low_coverage",
+   "category": "coverage_gate",
+   "description": "the strong signal survives low coverage: R2 at confidence 0.3 stays T2",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_DKIM_CHECK_FAILED",
+      "severity": "high",
+      "class": "auth"
+     }
+    ],
+    "score": 8.8,
+    "contributions": {
+     "auth_check": 8.8,
+     "enrichment": 0.0,
+     "content_analysis": 0.0
+    },
+    "trusted_auth_failures": [
+     {
+      "method": "dkim",
+      "result": "fail",
+      "trusted": true
+     }
+    ],
+    "hard_evidence_candidates": [],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 0.3,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R2",
+    "reason_codes": [
+     "AUTH_DKIM_CHECK_FAILED"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  }
+ ]
+}

@@ -237,3 +237,4 @@ An entry may not be made to improve a number that was measured on the fresh samp
 | Date | File | sha256 | Note |
 |---|---|---|---|
 | 2026-10-06 | see the table at the top | | frozen with this commit |
+| 2026-10-06 | `backend/tests/fixtures/v2_cases.json` | `35840091d75595bb47d95d15d63bdfa2ef46fcf2ccbac9da384285442dc39356` | the 97 specification cases (D23), added after the pre-registration commit as the next commit; a record, not a rule change |
