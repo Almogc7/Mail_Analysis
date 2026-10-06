@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from app.finding_codes import BY_CODE, REGISTRY
-from app.reason_classes import CLASSES, REASON_CLASS, UNTAGGED_CLASSES
+from app.reason_classes import CLASSES, REASON_CLASS, REASON_TABLE, UNTAGGED_CLASSES
 
 BACKEND = Path(__file__).resolve().parents[1]
 FROZEN = BACKEND / "tests" / "fixtures" / "reason_classes_frozen.json"
@@ -42,10 +42,70 @@ def test_no_untagged_code_is_given_a_family_class_and_no_family_class_is_given_t
 
 
 def test_the_table_equals_the_frozen_snapshot_so_a_change_is_a_deliberate_edit_of_both():
-    frozen = json.loads(FROZEN.read_text(encoding="utf-8"))["classes"]
-    assert sorted(set(frozen) - set(REASON_CLASS)) == [], "a frozen code left the table"
-    assert sorted(set(REASON_CLASS) - set(frozen)) == [], "a code is not in tests/fixtures/reason_classes_frozen.json: add it there in the same commit"
-    assert [c for c in frozen if frozen[c] != REASON_CLASS[c]] == [], "a class changed: edit the snapshot in the same commit, on purpose"
+    frozen = json.loads(FROZEN.read_text(encoding="utf-8"))["codes"]
+    current = {c: {"class": e.cls, "counts_as_reason": e.counts_as_reason, "reason": e.reason} for c, e in REASON_TABLE.items()}
+    assert sorted(set(frozen) - set(current)) == [], "a frozen code left the table"
+    assert sorted(set(current) - set(frozen)) == [], "a code is not in tests/fixtures/reason_classes_frozen.json: add it there in the same commit"
+    assert [c for c in frozen if frozen[c] != current[c]] == [], "a class, flag or reason changed: edit the snapshot in the same commit, on purpose"
+
+
+# ---- eligibility: which kinds may ever count as a reason -----------------------------------------------------------------------------------
+
+# Named, so a change is a decision: kinds that are never reasons although their severity is above info (a gap, a parse note, an untrusted claim).
+NEVER_REASONS_ABOVE_INFO = {
+    "AUTH_FROM_HEADER_AMBIGUOUS",                 # parse note, weight 0
+    "ENRICH_SKIPPED_PER_EMAIL_LIMIT",             # gap: not looked up
+    "AUTH_SPF_FAILURE_CLAIMED_UNTRUSTED",         # authentication result below the trust boundary
+    "AUTH_DKIM_FAILURE_CLAIMED_UNTRUSTED",
+    "AUTH_DMARC_FAILURE_CLAIMED_UNTRUSTED",
+}
+# Gaps and notes by name (all info severity except where listed above): never eligible.
+GAPS_AND_NOTES = {
+    "AUTH_SPF_NOT_EVALUATED", "AUTH_DKIM_NOT_EVALUATED", "AUTH_DMARC_NOT_EVALUATED", "AUTH_UNTRUSTED_CLAIMS_IGNORED",
+    "AUTH_SPF_TRUSTED_RESULT_BELOW_HOP", "AUTH_DKIM_TRUSTED_RESULT_BELOW_HOP", "AUTH_DMARC_TRUSTED_RESULT_BELOW_HOP",
+    "ENRICH_INCOMPLETE_PROVIDER_NO_RESULT", "ENRICH_INCOMPLETE_INTERNAL_HOST", "ENRICH_INCOMPLETE_SHARED_PLATFORM", "ENRICH_PROVIDERS_NO_USABLE_ANSWER",
+    "CONTENT_LANGUAGE_UNSUPPORTED", "CONTENT_LANGUAGE_NO_TEXT", "CONTENT_LANGUAGE_UNDETERMINED",
+} | NEVER_REASONS_ABOVE_INFO
+
+
+def test_every_code_has_the_flag_and_a_short_content_free_reason():
+    for code, entry in REASON_TABLE.items():
+        assert isinstance(entry.counts_as_reason, bool), code
+        assert 10 <= len(entry.reason) <= 160, code
+        assert not any(ch in entry.reason for ch in "<>@\\"), f"{code}: the reason must be plain text without values or placeholders"
+
+
+def test_info_default_kinds_are_never_eligible():
+    info_default = [k.code for k in REGISTRY if k.severity == "info" and not k.severity_varies]
+    assert info_default, "the registry has no info-default kinds"
+    assert [c for c in info_default if REASON_TABLE[c].counts_as_reason] == []
+
+
+def test_a_kind_whose_severity_varies_may_count_because_the_router_applies_the_above_info_rule_to_the_produced_severity():
+    varying = {k.code for k in REGISTRY if k.severity_varies}
+    assert varying == {"AUTH_SPF_CHECK_FAILED", "AUTH_DKIM_CHECK_FAILED", "AUTH_DMARC_CHECK_FAILED", "ENRICH_REPUTATION_HOST_SUSPICIOUS",
+                       "ENRICH_REPUTATION_HASH_KNOWN_MALICIOUS", "CONTENT_URGENCY_LANGUAGE"}
+    assert all(REASON_TABLE[c].counts_as_reason for c in varying)  # their severity is never info, so the kind may count; the produced severity decides each case
+
+
+def test_gaps_notes_and_untrusted_claims_are_never_eligible_by_name():
+    assert sorted(GAPS_AND_NOTES - set(REASON_TABLE)) == [], "a named gap or note is not a code in the table"
+    assert [c for c in sorted(GAPS_AND_NOTES) if REASON_TABLE[c].counts_as_reason] == []
+
+
+def test_the_exclusions_are_exactly_the_info_default_kinds_plus_the_named_above_info_ones():
+    info_default = {k.code for k in REGISTRY if k.severity == "info" and not k.severity_varies}
+    not_counting = {c for c, e in REASON_TABLE.items() if not e.counts_as_reason}
+    assert not_counting == info_default | NEVER_REASONS_ABOVE_INFO
+    assert NEVER_REASONS_ABOVE_INFO.isdisjoint(info_default)
+    assert info_default <= GAPS_AND_NOTES | {"AUTH_ALL_METHODS_PASSED", "AUTH_ALIGN_SPF_ALIGNED", "AUTH_ALIGN_SPF_OTHER_DOMAIN",
+                                             "AUTH_ALIGN_DKIM_ALIGNED", "AUTH_ALIGN_DKIM_OTHER_DOMAIN", "AUTH_CLAIM_BODY_BRAND_MENTION"}
+
+
+def test_an_excluded_kind_says_why():
+    for code, entry in REASON_TABLE.items():
+        if not entry.counts_as_reason:
+            assert any(word in entry.reason.lower() for word in ("info severity", "gap", "parse note", "untrusted claim")), code
 
 
 # ---- nothing under scoring/ uses the table yet -----------------------------------------------------------------------------------------

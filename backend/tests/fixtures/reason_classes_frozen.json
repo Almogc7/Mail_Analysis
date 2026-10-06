@@ -1,51 +1,235 @@
 {
-  "_comment": "Frozen reason classes (docs/DESIGN_V2.md D16, D22): every finding code with its one class (auth, enrichment, content, sender, link, claim). The tests fail if app/reason_classes.py and this file differ, so a changed class is a deliberate edit of both in one commit.",
-  "classes": {
-    "AUTH_ALIGN_DKIM_ALIGNED": "auth",
-    "AUTH_ALIGN_DKIM_OTHER_DOMAIN": "auth",
-    "AUTH_ALIGN_NONE_ALIGNED": "auth",
-    "AUTH_ALIGN_SPF_ALIGNED": "auth",
-    "AUTH_ALIGN_SPF_OTHER_DOMAIN": "auth",
-    "AUTH_ALL_METHODS_PASSED": "auth",
-    "AUTH_CLAIM_BODY_BRAND_MENTION": "auth",
-    "AUTH_CLAIM_DECOY_LINKS": "claim",
-    "AUTH_CLAIM_ENTITY_MISMATCH_UNSIGNED": "claim",
-    "AUTH_DKIM_CHECK_FAILED": "auth",
-    "AUTH_DKIM_FAILURE_CLAIMED_UNTRUSTED": "auth",
-    "AUTH_DKIM_NOT_EVALUATED": "auth",
-    "AUTH_DKIM_TRUSTED_RESULT_BELOW_HOP": "auth",
-    "AUTH_DMARC_CHECK_FAILED": "auth",
-    "AUTH_DMARC_FAILURE_CLAIMED_UNTRUSTED": "auth",
-    "AUTH_DMARC_NOT_EVALUATED": "auth",
-    "AUTH_DMARC_TRUSTED_RESULT_BELOW_HOP": "auth",
-    "AUTH_FROM_HEADER_AMBIGUOUS": "auth",
-    "AUTH_IDENTITY_DISPLAY_NAME_FUZZY": "auth",
-    "AUTH_IDENTITY_DISPLAY_NAME_SPOOF": "claim",
-    "AUTH_IDENTITY_FREE_MAILBOX_BRAND": "sender",
-    "AUTH_IDENTITY_LOCAL_SUBMISSION": "sender",
-    "AUTH_IDENTITY_MACHINE_SENDER_BRAND": "sender",
-    "AUTH_IDENTITY_REPLY_TO_MISMATCH": "auth",
-    "AUTH_IDENTITY_RETURN_PATH_MISMATCH": "auth",
-    "AUTH_SPF_CHECK_FAILED": "auth",
-    "AUTH_SPF_FAILURE_CLAIMED_UNTRUSTED": "auth",
-    "AUTH_SPF_NOT_EVALUATED": "auth",
-    "AUTH_SPF_TRUSTED_RESULT_BELOW_HOP": "auth",
-    "AUTH_UNTRUSTED_CLAIMS_IGNORED": "auth",
-    "CONTENT_BRAND_LINK_MISMATCH": "content",
-    "CONTENT_GREETING_PERSONAL_CLAIM": "content",
-    "CONTENT_LANGUAGE_NO_TEXT": "content",
-    "CONTENT_LANGUAGE_UNDETERMINED": "content",
-    "CONTENT_LANGUAGE_UNSUPPORTED": "content",
-    "CONTENT_LINK_HOTLINKED_ASSETS": "link",
-    "CONTENT_LINK_REDIRECTOR": "link",
-    "CONTENT_LINK_TRACKER_PLATFORM_MISMATCH": "link",
-    "CONTENT_URGENCY_LANGUAGE": "content",
-    "ENRICH_INCOMPLETE_INTERNAL_HOST": "enrichment",
-    "ENRICH_INCOMPLETE_PROVIDER_NO_RESULT": "enrichment",
-    "ENRICH_INCOMPLETE_SHARED_PLATFORM": "enrichment",
-    "ENRICH_PROVIDERS_NO_USABLE_ANSWER": "enrichment",
-    "ENRICH_REPUTATION_HASH_KNOWN_MALICIOUS": "enrichment",
-    "ENRICH_REPUTATION_HOST_SUSPICIOUS": "enrichment",
-    "ENRICH_SKIPPED_PER_EMAIL_LIMIT": "enrichment"
+  "_comment": "Frozen reason classes and eligibility (docs/DESIGN_V2.md D16, D22): every finding code with its one class (auth, enrichment, content, sender, link, claim), whether the kind may count as a reason, and the content-free reason why. The tests fail if app/reason_classes.py and this file differ, so a changed entry is a deliberate edit of both in one commit.",
+  "codes": {
+    "AUTH_ALIGN_DKIM_ALIGNED": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "info severity: never a reason"
+    },
+    "AUTH_ALIGN_DKIM_OTHER_DOMAIN": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "info severity: never a reason"
+    },
+    "AUTH_ALIGN_NONE_ALIGNED": {
+      "class": "auth",
+      "counts_as_reason": true,
+      "reason": "computed only when a trusted receiver evaluated both SPF and DKIM; neither authenticated the From domain"
+    },
+    "AUTH_ALIGN_SPF_ALIGNED": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "info severity: never a reason"
+    },
+    "AUTH_ALIGN_SPF_OTHER_DOMAIN": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "info severity: never a reason"
+    },
+    "AUTH_ALL_METHODS_PASSED": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "info severity: never a reason"
+    },
+    "AUTH_CLAIM_BODY_BRAND_MENTION": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "info severity: never a reason"
+    },
+    "AUTH_CLAIM_DECOY_LINKS": {
+      "class": "claim",
+      "counts_as_reason": true,
+      "reason": "a real structural signal: the claimed entity's own domain is linked but did not send it"
+    },
+    "AUTH_CLAIM_ENTITY_MISMATCH_UNSIGNED": {
+      "class": "claim",
+      "counts_as_reason": true,
+      "reason": "a real structural signal: links belong to another entity and the message is unsigned"
+    },
+    "AUTH_DKIM_CHECK_FAILED": {
+      "class": "auth",
+      "counts_as_reason": true,
+      "reason": "a trusted receiver's failed result about this message"
+    },
+    "AUTH_DKIM_FAILURE_CLAIMED_UNTRUSTED": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "untrusted claim: the result was written below the trust boundary, so it is shown but never counted"
+    },
+    "AUTH_DKIM_NOT_EVALUATED": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "gap: info severity, the method was not evaluated by a trusted receiver"
+    },
+    "AUTH_DKIM_TRUSTED_RESULT_BELOW_HOP": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "info severity: never a reason"
+    },
+    "AUTH_DMARC_CHECK_FAILED": {
+      "class": "auth",
+      "counts_as_reason": true,
+      "reason": "a trusted receiver's failed result about this message"
+    },
+    "AUTH_DMARC_FAILURE_CLAIMED_UNTRUSTED": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "untrusted claim: the result was written below the trust boundary, so it is shown but never counted"
+    },
+    "AUTH_DMARC_NOT_EVALUATED": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "gap: info severity, the method was not evaluated by a trusted receiver"
+    },
+    "AUTH_DMARC_TRUSTED_RESULT_BELOW_HOP": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "info severity: never a reason"
+    },
+    "AUTH_FROM_HEADER_AMBIGUOUS": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "parse note: informational, weight 0, it describes how the header was written and not what the message does"
+    },
+    "AUTH_IDENTITY_DISPLAY_NAME_FUZZY": {
+      "class": "auth",
+      "counts_as_reason": true,
+      "reason": "a real signal (fuzzy display-name match); deliberately untagged, so it cannot feed the structural floor"
+    },
+    "AUTH_IDENTITY_DISPLAY_NAME_SPOOF": {
+      "class": "claim",
+      "counts_as_reason": true,
+      "reason": "a real signal: the display name claims a brand the sending domain does not own"
+    },
+    "AUTH_IDENTITY_FREE_MAILBOX_BRAND": {
+      "class": "sender",
+      "counts_as_reason": true,
+      "reason": "a real structural signal about who sent the message"
+    },
+    "AUTH_IDENTITY_LOCAL_SUBMISSION": {
+      "class": "sender",
+      "counts_as_reason": true,
+      "reason": "a real structural signal about how the message entered the path"
+    },
+    "AUTH_IDENTITY_MACHINE_SENDER_BRAND": {
+      "class": "sender",
+      "counts_as_reason": true,
+      "reason": "a real structural signal about who sent the message"
+    },
+    "AUTH_IDENTITY_REPLY_TO_MISMATCH": {
+      "class": "auth",
+      "counts_as_reason": true,
+      "reason": "a real signal in the message's own headers (replies are redirected)"
+    },
+    "AUTH_IDENTITY_RETURN_PATH_MISMATCH": {
+      "class": "auth",
+      "counts_as_reason": true,
+      "reason": "a weak but real signal in the message's own headers; common with mail services"
+    },
+    "AUTH_SPF_CHECK_FAILED": {
+      "class": "auth",
+      "counts_as_reason": true,
+      "reason": "a trusted receiver's failed result about this message"
+    },
+    "AUTH_SPF_FAILURE_CLAIMED_UNTRUSTED": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "untrusted claim: the result was written below the trust boundary, so it is shown but never counted"
+    },
+    "AUTH_SPF_NOT_EVALUATED": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "gap: info severity, the method was not evaluated by a trusted receiver"
+    },
+    "AUTH_SPF_TRUSTED_RESULT_BELOW_HOP": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "info severity: never a reason"
+    },
+    "AUTH_UNTRUSTED_CLAIMS_IGNORED": {
+      "class": "auth",
+      "counts_as_reason": false,
+      "reason": "info severity: never a reason"
+    },
+    "CONTENT_BRAND_LINK_MISMATCH": {
+      "class": "content",
+      "counts_as_reason": true,
+      "reason": "a real signal: a brand named in the body is linked to a different domain"
+    },
+    "CONTENT_GREETING_PERSONAL_CLAIM": {
+      "class": "content",
+      "counts_as_reason": true,
+      "reason": "a real signal in the message text"
+    },
+    "CONTENT_LANGUAGE_NO_TEXT": {
+      "class": "content",
+      "counts_as_reason": false,
+      "reason": "gap: info severity, there was no readable text"
+    },
+    "CONTENT_LANGUAGE_UNDETERMINED": {
+      "class": "content",
+      "counts_as_reason": false,
+      "reason": "gap: info severity, the language could not be confirmed"
+    },
+    "CONTENT_LANGUAGE_UNSUPPORTED": {
+      "class": "content",
+      "counts_as_reason": false,
+      "reason": "gap: info severity, content heuristics were not applied to this language"
+    },
+    "CONTENT_LINK_HOTLINKED_ASSETS": {
+      "class": "link",
+      "counts_as_reason": true,
+      "reason": "a real structural signal about the message's images and links"
+    },
+    "CONTENT_LINK_REDIRECTOR": {
+      "class": "link",
+      "counts_as_reason": true,
+      "reason": "a real structural signal about the message's links"
+    },
+    "CONTENT_LINK_TRACKER_PLATFORM_MISMATCH": {
+      "class": "link",
+      "counts_as_reason": true,
+      "reason": "a real structural signal about the message's links"
+    },
+    "CONTENT_URGENCY_LANGUAGE": {
+      "class": "content",
+      "counts_as_reason": true,
+      "reason": "a real signal in the message text"
+    },
+    "ENRICH_INCOMPLETE_INTERNAL_HOST": {
+      "class": "enrichment",
+      "counts_as_reason": false,
+      "reason": "gap: info severity, never sent to an external service"
+    },
+    "ENRICH_INCOMPLETE_PROVIDER_NO_RESULT": {
+      "class": "enrichment",
+      "counts_as_reason": false,
+      "reason": "gap: info severity, a provider gave no usable answer"
+    },
+    "ENRICH_INCOMPLETE_SHARED_PLATFORM": {
+      "class": "enrichment",
+      "counts_as_reason": false,
+      "reason": "gap: info severity, a shared platform with no reputation lookup"
+    },
+    "ENRICH_PROVIDERS_NO_USABLE_ANSWER": {
+      "class": "enrichment",
+      "counts_as_reason": false,
+      "reason": "gap: info severity, a summary of providers without an answer"
+    },
+    "ENRICH_REPUTATION_HASH_KNOWN_MALICIOUS": {
+      "class": "enrichment",
+      "counts_as_reason": true,
+      "reason": "a real signal: a lookup scored the attachment hash above zero"
+    },
+    "ENRICH_REPUTATION_HOST_SUSPICIOUS": {
+      "class": "enrichment",
+      "counts_as_reason": true,
+      "reason": "a real signal: a lookup scored the host above zero"
+    },
+    "ENRICH_SKIPPED_PER_EMAIL_LIMIT": {
+      "class": "enrichment",
+      "counts_as_reason": false,
+      "reason": "gap: the indicator was not looked up because of a limit, so nothing is known about it"
+    }
   }
 }
