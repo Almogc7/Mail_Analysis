@@ -59,8 +59,9 @@ INTERNAL_HOP_PATTERNS = _json_pattern_list("INTERNAL_HOP_PATTERNS")
 # authenticated message only proves WHO sent it, not that the sender is legitimate -- attackers authenticate their own
 # domains. Read from an UNTRACKED JSON file (default backend/known_senders.local.json, override with
 # KNOWN_SENDERS_FILE): {"domains": ["example.com", ...]}. EMPTY BY DEFAULT: with no list, nothing can be benign.
-def _load_known_sender_domains() -> frozenset[str]:
-    file = Path(os.getenv("KNOWN_SENDERS_FILE") or Path(__file__).resolve().parents[1] / "known_senders.local.json")
+def _load_domain_list(env_var: str, default_name: str) -> frozenset[str]:
+    """An untracked JSON list of domains, {"domains": ["example.com", ...]}: the file named by `env_var`, else backend/<default_name>. Missing file: empty. Lower-cased, surrounding dots stripped."""
+    file = Path(os.getenv(env_var) or Path(__file__).resolve().parents[1] / default_name)
     if not file.exists():
         return frozenset()
     try:
@@ -73,7 +74,21 @@ def _load_known_sender_domains() -> frozenset[str]:
     return frozenset(d.strip().strip(".").lower() for d in domains)
 
 
+def _load_known_sender_domains() -> frozenset[str]:
+    return _load_domain_list("KNOWN_SENDERS_FILE", "known_senders.local.json")
+
+
 KNOWN_SENDER_DOMAINS = _load_known_sender_domains()
+
+# Own-organisation domains: the registrable domains the organisation itself owns. Hard evidence on one of them (a provider flagging a link to your own domain) is far more likely a provider error or a
+# compromised account than a verdict the tool should state alone, so verdict v2 gives it Suspicious with the reason evidence_conflict instead of Confirmed malicious (docs/DESIGN_V2.md 2.2, rule 5).
+# Read from an UNTRACKED JSON file (default backend/own_domains.local.json, override with OWN_DOMAINS_FILE): {"domains": ["example.com", ...]}. EMPTY BY DEFAULT. Matched by REGISTRABLE domain, so
+# a subdomain of a listed domain matches. A placeholder with reserved domains only is backend/own_domains.local.example.json; real values never go in a tracked file.
+def _load_own_domains() -> frozenset[str]:
+    return _load_domain_list("OWN_DOMAINS_FILE", "own_domains.local.json")
+
+
+OWN_DOMAINS = _load_own_domains()
 
 # Enrichment privacy policy (see app/enrichment/policy.py). By default only HOSTNAMES leave this machine: the
 # path and query of a URL (where per-recipient tracking tokens live) are never sent unless a provider is

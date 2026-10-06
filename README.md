@@ -16,6 +16,8 @@ Tier 1 analysts doing hands-on triage, not a batch-processing dashboard.
   (`TRUSTED_RECEIVER_PATTERNS`) and a known-sender list (`known_senders.local.json`). Without them everything that is
   not flagged is inconclusive. Organisation-specific brands, aliases and gateway banners also live only in untracked
   local config.
+  A third optional file, `own_domains.local.json` (copy `own_domains.local.example.json`), lists the organisation's own domains: a provider
+  flag on one of them is shown as a conflict, never as confirmed malicious.
 * **What is measured, honestly:** one real phishing sample (a hosting-provider lure, Kvish 6), a seeded split of a
   public phishing corpus (recall only, a poor proxy for this class), and 26 hand-written benign fixtures
   (regression guards, not an accuracy claim). **Real-world precision is not established.** See "Evaluation scope".

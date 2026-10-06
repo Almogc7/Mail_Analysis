@@ -18,5 +18,7 @@ backend/brands.local.json
 # Analyst feedback log -- local only (hashes/verdicts/signal names; see backend/app/feedback.py)
 backend/feedback.local.sqlite*
 backend/known_senders.local.json
+# The organisation's own domains -- never commit real values (see app/config.py); the .example file holds reserved domains only
+backend/own_domains.local.json
 team-config/
 .claude/skills/
