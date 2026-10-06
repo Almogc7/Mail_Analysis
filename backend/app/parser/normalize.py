@@ -15,6 +15,7 @@ from app.contracts.email import (
     ParsedEmail,
     ReceivedHop,
     ReceivedSpf,
+    UnlistedPart,
 )
 from app.parser.raw import RawAddress, RawAttachment, RawParseResult
 
@@ -196,6 +197,11 @@ def _count_data_images(html: str | None) -> int:
     return sum(1 for img in BeautifulSoup(html, "html.parser").find_all("img", src=True) if _HREF_CONTROL_RE.sub("", img["src"].strip()).lower().startswith("data:"))
 
 
+def _describe_unlisted(raw) -> UnlistedPart:
+    """Metadata only (type, size, two flags, the first 16 bytes kept out of every serialisation). The content is never hashed and never leaves this function."""
+    return UnlistedPart(content_type=raw.content_type, size_bytes=len(raw.content), is_inline=raw.is_inline, has_content_id=raw.has_content_id, first_bytes=raw.content[:16])
+
+
 def _hash_attachment(raw: RawAttachment) -> Attachment:
     content = raw.content
     return Attachment(
@@ -235,6 +241,7 @@ def to_parsed_email(raw: RawParseResult) -> ParsedEmail:
         images=_extract_images_from_html(raw.body_html),
         data_image_count=_count_data_images(raw.body_html),
         attachments=[_hash_attachment(a) for a in raw.attachments],
+        unlisted_parts=[_describe_unlisted(p) for p in raw.unlisted_parts],
         parse_warnings=raw.parse_warnings,
         raw_size_bytes=raw.raw_size_bytes,
     )

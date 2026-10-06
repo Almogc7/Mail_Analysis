@@ -17,6 +17,17 @@ class RawAttachment:
 
 
 @dataclass
+class RawUnlistedPart:
+    """A part of the message that is NOT the body and is NOT in `attachments` (the attachment list requires a filename): an inline image referenced as cid:, a message/rfc822 or a calendar part
+    without a name. Metadata for blocker detection only: it is never hashed, never looked up, never listed."""
+
+    content_type: str | None
+    content: bytes
+    is_inline: bool = False
+    has_content_id: bool = False
+
+
+@dataclass
 class RawParseResult:
     """Internal, format-agnostic parse output. Not part of the public contract —
     both eml_parser and msg_parser produce this shape, and normalize.py converts it
@@ -38,4 +49,5 @@ class RawParseResult:
     body_text: str | None = None
     body_html: str | None = None
     attachments: list[RawAttachment] = field(default_factory=list)
+    unlisted_parts: list[RawUnlistedPart] = field(default_factory=list)
     parse_warnings: list[str] = field(default_factory=list)

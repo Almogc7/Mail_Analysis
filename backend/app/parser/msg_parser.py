@@ -113,7 +113,8 @@ def _parse_extract_msg(msg: "extract_msg.Message", raw_bytes: bytes, warnings: l
                 filename=att.longFilename or att.shortFilename,
                 content_type=None,
                 content=content,
-                is_inline=False,
+                # an attachment that carries a Content-ID is an inline (cid:) part; extract_msg lists every attachment, with or without a name, so there are no separate unlisted parts here
+                is_inline=bool(getattr(att, "cid", None)),
             )
         )
 

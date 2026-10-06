@@ -5,7 +5,7 @@ from email.message import EmailMessage
 from email.utils import parseaddr
 
 from app.parser.addresses import AMBIGUITY_PREFIX, parse_address_header
-from app.parser.raw import RawAddress, RawAttachment, RawParseResult
+from app.parser.raw import RawAddress, RawAttachment, RawParseResult, RawUnlistedPart
 
 
 def _to_raw_addresses(msg: EmailMessage, header_name: str) -> list[RawAddress]:
@@ -100,6 +100,8 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
     body_text: str | None = None
     body_html: str | None = None
     attachments: list[RawAttachment] = []
+    unlisted: list[RawUnlistedPart] = []  # parts that are neither the body nor listed as attachments (see RawUnlistedPart)
+    body_part = html_part = None
 
     try:
         body_part = msg.get_body(preferencelist=("plain",))
@@ -115,8 +117,19 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
     except Exception as exc:
         warnings.append(f"Failed to extract html body: {exc}")
 
+    inside_nested: set[int] = set()  # parts inside a nested message/rfc822: they are not separate unlisted parts of THIS message (named attachments there are unchanged)
     for part in msg.walk():
         if part.is_multipart():
+            if part.get_content_type() == "message/rfc822" and id(part) not in inside_nested:
+                # the standard library calls a nested message "multipart", so it never reached the attachment list, named or not; keep its metadata (the inner message's first bytes)
+                try:
+                    inner = part.get_payload(0).as_bytes()
+                except Exception:
+                    inner = b""
+                disposition = part.get_content_disposition()
+                has_content_id = bool(part.get("content-id"))
+                unlisted.append(RawUnlistedPart(content_type="message/rfc822", content=inner, is_inline=(disposition == "inline" or has_content_id), has_content_id=has_content_id))
+                inside_nested.update(id(inner_part) for inner_part in part.walk() if inner_part is not part)
             continue
         content_disposition = part.get_content_disposition()
         if content_disposition in ("attachment", "inline") and part.get_filename():
@@ -133,6 +146,15 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
                     is_inline=(content_disposition == "inline"),
                 )
             )
+        elif part is not body_part and part is not html_part and id(part) not in inside_nested:
+            # The attachment list needs a filename, so an inline cid: image, a nameless message/rfc822 or an invite part is invisible to it. Keep only metadata for blocker detection.
+            try:
+                payload = part.get_payload(decode=True) or b""
+            except Exception:
+                payload = b""
+            has_content_id = bool(part.get("content-id"))
+            unlisted.append(RawUnlistedPart(content_type=part.get_content_type(), content=payload, is_inline=(content_disposition == "inline" or has_content_id),
+                                            has_content_id=has_content_id))
 
     date_header = msg.get("date")
     date_value = None
@@ -159,5 +181,6 @@ def parse_eml(raw_bytes: bytes) -> RawParseResult:
         body_text=body_text,
         body_html=body_html,
         attachments=attachments,
+        unlisted_parts=unlisted,
         parse_warnings=warnings,
     )

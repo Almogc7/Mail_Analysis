@@ -78,6 +78,17 @@ class Attachment(BaseModel):
     first_bytes: bytes = Field(default=b"", exclude=True, repr=False)
 
 
+class UnlistedPart(BaseModel):
+    """Metadata of a part that is neither the body nor in `attachments` (which needs a filename): an inline cid: image, a nameless message/rfc822 or calendar part. Content-free: a type, a size and two
+    flags; the first bytes are kept for magic-number detection only and are excluded from every serialisation, as for Attachment. Never hashed, looked up or listed. Additive."""
+
+    content_type: str | None = None
+    size_bytes: int
+    is_inline: bool = False  # disposition inline, or the part has a Content-ID
+    has_content_id: bool = False
+    first_bytes: bytes = Field(default=b"", exclude=True, repr=False)
+
+
 class ParsedEmail(BaseModel):
     source_format: Literal["eml", "msg"]
     message_id: str | None = None
@@ -99,6 +110,7 @@ class ParsedEmail(BaseModel):
     # How many <img> tags carry a data: source (embedded images; `images` keeps only http(s) ones). A number only, no content; additive (0 when absent).
     data_image_count: int = 0
     attachments: list[Attachment] = []
+    unlisted_parts: list[UnlistedPart] = []
     parse_warnings: list[str] = []
     raw_size_bytes: int
     # SHA256 of the file exactly as received (before any banner/tag stripping or decoding).
