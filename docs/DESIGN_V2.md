@@ -213,6 +213,28 @@ declared name or type alone would miss. What is derivable today and what Phase B
 | Password-protected archive; encrypted or password-protected Office or PDF | **no flag today, but covered**: the attachment is already an unexamined active or container type, which blocks T4 | **nothing in Phase B**: the encryption flags are **Phase C**, in the D10 subprocess |
 | Unresolved shortener or redirector; shared-platform link not looked at; internal-looking host; unreadable language; no trusted hop | **yes** (existing coverage flags) | none |
 
+**Blocker codes (frozen 2026-10-06; `backend/tests/fixtures/blocker_codes_frozen.json`).** Every blocker the tier function can list has one stable code, pinned by a snapshot test; the V1 word ban applies to the codes. `source`: *existing* = a reason code already in `app/coverage.py`; *new* = introduced by verdict v2. `detector`: *derivable today* = the pipeline already holds the data; *metadata in Phase B* = Phase B adds a metadata-only detector; *Phase C* = waits for Phase C (none yet: the encryption cases reuse `archive_contents_unexamined` and `static_analysis_off` until the D10 subprocess exists). A code is never renamed or reused (a rename is a new code and a note; `nested_message_unanalysed` was renamed `nested_message_unexamined` before any code used it).
+
+| Code | Source | Detector | Blocks T4 because |
+|---|---|---|---|
+| `qr_not_decoded` | existing | derivable today | an image attachment while QR decoding is off |
+| `static_analysis_off` | existing | derivable today | an active or container attachment that static analysis did not examine |
+| `html_attachment_unanalysed` | existing | derivable today | an HTML attachment, until analysed |
+| `archive_contents_unexamined` | existing | derivable today | an archive or disk image whose contents were not examined |
+| `redirects_not_resolved` | existing | derivable today | a shortener or redirector that was not resolved |
+| `shared_platform` | existing | derivable today | a link on a shared platform that was not looked at |
+| `internal_host_not_sent` | existing | derivable today | an internal-looking host |
+| `language_unsupported` | existing | derivable today | a language the tool cannot read |
+| `no_readable_text` | existing | derivable today | no readable text |
+| `no_trusted_receiver_hop` | existing | derivable today | no hop from a trusted receiver |
+| `from_header_unparseable` | existing | derivable today | the sender identity cannot be established |
+| `inline_image_not_decoded` | new | metadata in Phase B | an inline `cid:` image while QR decoding is off |
+| `data_uri_image_not_decoded` | new | metadata in Phase B | an embedded `data:` image while QR decoding is off |
+| `nested_message_unexamined` | new | metadata in Phase B | a nested .eml or .msg not examined as a message of its own |
+| `calendar_invite_unexamined` | new | metadata in Phase B | a calendar invite whose content is not examined |
+| `parse_failure`, `parse_limit`, `parse_timeout` | new | metadata in Phase B | a parser failure, limit or timeout on a part of the message |
+| `unknown_finding_code` | new | derivable today (computed by the tier function from the findings) | a finding whose code is not in the registry: it is never a reason and can never reach T4 |
+
 **Reachability of "No indicators found" is not a goal** *(2026-10-05)*. While the click-tracker, shared-platform and redirect blockers exist, "No indicators found" is
 **expected to be rare for real mail**: legitimate newsletters and transactional mail are full of trackers and shared platforms. That is acceptable. The tool's **useful tiers in
 practice are Confirmed malicious, Suspicious and Needs analyst**; the fourth tier is a deliberately hard-to-reach statement, and nothing here is to be loosened to make it more

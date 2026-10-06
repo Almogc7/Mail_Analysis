@@ -38,11 +38,12 @@
   "phase_b_new": [
    "inline_image_not_decoded",
    "data_uri_image_not_decoded",
-   "nested_message_unanalysed",
+   "nested_message_unexamined",
    "calendar_invite_unexamined",
    "parse_failure",
    "parse_limit",
-   "parse_timeout"
+   "parse_timeout",
+   "unknown_finding_code"
   ]
  },
  "cases": [
@@ -3109,7 +3110,7 @@
   {
    "id": "conflict_plus_live_evidence",
    "category": "conflict",
-   "description": "conflicted evidence on one domain and live evidence on another indicator: T1 on the live one only",
+   "description": "conflicted evidence on one domain and live evidence on another indicator: T1 on the live one only; the reasons list still contains evidence_conflict",
    "inputs": {
     "findings": [],
     "score": 0.0,
@@ -3157,7 +3158,9 @@
    "expected": {
     "tier": "T1",
     "route": "HARD_EVIDENCE",
-    "reason_codes": [],
+    "reason_codes": [
+     "evidence_conflict"
+    ],
     "hard_evidence": [
      {
       "rule": "H3",
@@ -3980,7 +3983,7 @@
     "trusted_auth_failures": [],
     "hard_evidence_candidates": [],
     "blockers": [
-     "nested_message_unanalysed"
+     "nested_message_unexamined"
     ],
     "t4_positive_flags": {
      "trusted_aligned_dkim_or_dmarc_pass": true,
@@ -4001,7 +4004,7 @@
      "no_signals_insufficient_evidence"
     ],
     "blockers": [
-     "nested_message_unanalysed"
+     "nested_message_unexamined"
     ]
    },
    "blocker_kind": "nested_message"
@@ -4651,6 +4654,166 @@
     "route": "R2",
     "reason_codes": [
      "AUTH_DKIM_CHECK_FAILED"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "conflict_subdomain_of_known_sender",
+   "category": "conflict",
+   "description": "hard evidence on a SUBDOMAIN of a known-sender domain is still a conflict: the match is by registrable domain (the caller sets the flag from it): T2 through R6 with evidence_conflict",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 11.3
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 90,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": true
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R6",
+    "reason_codes": [
+     "evidence_conflict"
+    ],
+    "hard_evidence": [],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "h1_known_sender_hash_is_not_a_conflict",
+   "category": "conflict",
+   "description": "H1 on an attachment hash from a known sender is T1: a hash has no domain, so the conflict rule does not apply (even if a caller passes the known-sender flag on it)",
+   "inputs": {
+    "findings": [],
+    "score": 0.0,
+    "contributions": {
+     "auth_check": 0.0,
+     "enrichment": 0.0,
+     "content_analysis": 11.3
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "attachment_hash",
+      "source": "malwarebazaar",
+      "engine_count": null,
+      "confidence": null,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": true
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T1",
+    "route": "HARD_EVIDENCE",
+    "reason_codes": [],
+    "hard_evidence": [
+     {
+      "rule": "H1",
+      "source": "malwarebazaar"
+     }
+    ],
+    "needs_analyst_reason": [],
+    "blockers": []
+   }
+  },
+  {
+   "id": "r1_with_conflicting_evidence_keeps_r1_and_lists_the_conflict",
+   "category": "conflict",
+   "description": "R1 holds and there is also conflicting hard evidence: the route id is R1 (first that holds) and the reasons list still contains evidence_conflict",
+   "inputs": {
+    "findings": [
+     {
+      "code": "AUTH_IDENTITY_FREE_MAILBOX_BRAND",
+      "severity": "medium",
+      "class": "sender"
+     },
+     {
+      "code": "CONTENT_LINK_REDIRECTOR",
+      "severity": "low",
+      "class": "link"
+     }
+    ],
+    "score": 7.0,
+    "contributions": {
+     "auth_check": 3.5,
+     "enrichment": 0.0,
+     "content_analysis": 3.5
+    },
+    "trusted_auth_failures": [],
+    "hard_evidence_candidates": [
+     {
+      "indicator_type": "link_host",
+      "source": "threatfox",
+      "engine_count": null,
+      "confidence": 90,
+      "is_ip": false,
+      "is_shared_platform": false,
+      "path_optin_on": false,
+      "exact_url_match": false,
+      "is_known_sender_or_own_domain": true
+     }
+    ],
+    "blockers": [],
+    "t4_positive_flags": {
+     "trusted_aligned_dkim_or_dmarc_pass": false,
+     "sender_on_known_list": false
+    },
+    "coverage_gate": {
+     "confidence": 1.0,
+     "confidence_threshold": 0.6,
+     "enrichment_complete": true
+    }
+   },
+   "expected": {
+    "tier": "T2",
+    "route": "R1",
+    "reason_codes": [
+     "AUTH_IDENTITY_FREE_MAILBOX_BRAND",
+     "CONTENT_LINK_REDIRECTOR",
+     "evidence_conflict"
     ],
     "hard_evidence": [],
     "needs_analyst_reason": [],

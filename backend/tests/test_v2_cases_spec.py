@@ -44,6 +44,10 @@ REQUIRED_BLOCKER_KINDS = {
 }
 
 
+BLOCKER_FROZEN = json.loads((ROOT / "backend" / "tests" / "fixtures" / "blocker_codes_frozen.json").read_text(encoding="utf-8"))["codes"]
+V1_BANNED_TOKENS = {"safe", "clean", "legit", "benign", "harmless"}
+
+
 @pytest.fixture(scope="module")
 def predictor():
     spec = importlib.util.spec_from_file_location("predict_tiers", ROOT / "scripts" / "predict_tiers.py")
@@ -56,6 +60,15 @@ def predictor():
 
 def test_every_d23_category_and_every_listed_extra_is_present():
     assert REQUIRED_CATEGORIES - {c["category"] for c in CASES} == set()
+
+
+def test_the_case_counts_are_pinned():
+    import collections
+
+    assert len(CASES) == 100
+    counts = collections.Counter(c["category"] for c in CASES)
+    assert counts["conflict"] == 6 and counts["blocker"] == 24 and counts["hard_evidence_positive"] == 7
+    assert collections.Counter(c["expected"]["tier"] for c in CASES) == {"T3": 60, "T2": 24, "T1": 13, "T4": 3}
 
 
 def test_ids_are_unique_and_every_case_has_inputs_and_an_expected_result():
@@ -89,7 +102,7 @@ def test_expected_tiers_and_routes_are_well_formed():
 def test_every_blocker_of_2_3_has_its_case_and_each_stops_t4_with_every_positive_condition_true():
     blocker_cases = {c["blocker_kind"]: c for c in CASES if "blocker_kind" in c}
     assert set(blocker_cases) == REQUIRED_BLOCKER_KINDS
-    vocabulary = set(SPEC["blocker_codes"]["existing"]) | set(SPEC["blocker_codes"]["phase_b_new"])
+    vocabulary = set(BLOCKER_FROZEN)
     for kind, c in blocker_cases.items():
         flags = c["inputs"]["t4_positive_flags"]
         assert flags == {"trusted_aligned_dkim_or_dmarc_pass": True, "sender_on_known_list": True}, kind
@@ -123,9 +136,10 @@ def test_no_single_module_can_reach_70_so_r3b_needs_at_least_two_modules():
             assert value <= largest[category] + 1e-9, (c["id"], category)
 
 
-def test_the_cases_file_hash_is_recorded_in_the_pre_registration(predictor):
-    digest = predictor.sha256_lf(CASES_FILE)
-    assert f"`{digest}`" in DOC.read_text(encoding="utf-8"), "v2_cases.json changed: log the change in section 6 of docs/PHASE_B_PREREGISTRATION.md and update section 7"
+def test_the_cases_file_and_blocker_table_hashes_are_recorded_in_the_pre_registration(predictor):
+    text = DOC.read_text(encoding="utf-8")
+    for path in (CASES_FILE, ROOT / "backend" / "tests" / "fixtures" / "blocker_codes_frozen.json"):
+        assert f"`{predictor.sha256_lf(path)}`" in text, f"{path.name} changed: log the change in section 6 of docs/PHASE_B_PREREGISTRATION.md and update section 7"
 
 
 # ---- consistency with the frozen rules as the predictor executes them -------------------------------------------------------------------------------
@@ -144,11 +158,12 @@ def _survives(c):
         rule = "H3"
     else:
         return None
-    return {"rule": rule, "source": c["source"], "conflict": c["is_known_sender_or_own_domain"]}
+    # a conflict is by registrable domain; an attachment hash has no domain, so the conflict rule never applies to it
+    return {"rule": rule, "source": c["source"], "conflict": bool(c["is_known_sender_or_own_domain"]) and c["indicator_type"] != "attachment_hash"}
 
 
-def _reason_codes(route, findings):
-    """The codes that support the route that names the tier (the convention in the cases file)."""
+def _reason_codes(route, findings, conflict=False):
+    """The codes that support the route that names the tier (the convention in the cases file), plus evidence_conflict whenever the conflict applies, whatever the route."""
     eligible = [f for f in findings if REASON_TABLE[f["code"]].counts_as_reason and f["severity"] != "info"]
     medium_plus = [f for f in eligible if f["severity"] in ("medium", "high", "critical")]
     if route == "R1":
@@ -166,8 +181,8 @@ def _reason_codes(route, findings):
     elif route == "R6":
         return ["evidence_conflict"]
     else:
-        return []
-    return sorted({f["code"] for f in picked})
+        picked = []
+    return sorted({f["code"] for f in picked} | ({"evidence_conflict"} if conflict else set()))
 
 
 def _run_frozen_rules(predictor, inputs):
@@ -178,22 +193,22 @@ def _run_frozen_rules(predictor, inputs):
     t4_ok = (flags["trusted_aligned_dkim_or_dmarc_pass"] and flags["sender_on_known_list"] and gate["confidence"] >= gate["confidence_threshold"]
              and gate["enrichment_complete"] and not any(f["severity"] != "info" for f in findings))
     tier, route, sub = predictor.tier_for(findings, inputs["score"], gate["confidence"], evidence, t4_ok, inputs["blockers"])
-    return tier, route, sub, sorted(e["rule"] for e in evidence if not e["conflict"]) if tier == "T1" else []
+    return tier, route, sub, (sorted(e["rule"] for e in evidence if not e["conflict"]) if tier == "T1" else []), any(e["conflict"] for e in evidence)
 
 
 def test_every_case_agrees_with_the_frozen_rules_as_the_predictor_executes_them(predictor):
     mismatches = []
     for c in CASES:
         e = c["expected"]
-        tier, route, sub, rules = _run_frozen_rules(predictor, c["inputs"])
+        tier, route, sub, rules, conflict = _run_frozen_rules(predictor, c["inputs"])
         if (tier, route) != (e["tier"], e["route"]):
             mismatches.append((c["id"], "tier/route", (tier, route), (e["tier"], e["route"])))
         if e["needs_analyst_reason"] and not set(e["needs_analyst_reason"]) <= {sub}:
             mismatches.append((c["id"], "needs_analyst_reason", sub, e["needs_analyst_reason"]))
         if tier == "T1" and rules != sorted(h["rule"] for h in e["hard_evidence"]):
             mismatches.append((c["id"], "hard_evidence", rules, e["hard_evidence"]))
-        if e["reason_codes"] is not None and _reason_codes(route if tier in ("T1", "T2") else "", c["inputs"]["findings"]) != e["reason_codes"]:
-            mismatches.append((c["id"], "reason_codes", _reason_codes(route, c["inputs"]["findings"]), e["reason_codes"]))
+        if e["reason_codes"] is not None and _reason_codes(route if tier in ("T1", "T2") else "", c["inputs"]["findings"], conflict) != e["reason_codes"]:
+            mismatches.append((c["id"], "reason_codes", _reason_codes(route, c["inputs"]["findings"], conflict), e["reason_codes"]))
     assert mismatches == []
 
 
@@ -306,3 +321,34 @@ def test_v12_t2_if_and_only_if_a_named_route_is_satisfied_over_every_generated_f
                 if len(violations) >= 20:
                     break
     assert violations == []
+
+
+# ---- the blocker codes are frozen ------------------------------------------------------------------------------------------------------------------------------------------
+
+def test_the_blocker_vocabulary_of_the_cases_file_equals_the_frozen_table():
+    vocabulary = set(SPEC["blocker_codes"]["existing"]) | set(SPEC["blocker_codes"]["phase_b_new"])
+    assert vocabulary == set(BLOCKER_FROZEN), "a blocker code was added, renamed or removed: edit blocker_codes_frozen.json and the cases file together, on purpose"
+    assert {c for c, v in BLOCKER_FROZEN.items() if v["source"] == "existing"} == set(SPEC["blocker_codes"]["existing"])
+    assert "nested_message_unanalysed" not in BLOCKER_FROZEN  # renamed to nested_message_unexamined
+
+
+def test_every_blocker_entry_has_a_source_and_a_detector_status_and_existing_codes_are_coverage_codes():
+    from app.coverage import HOW_TO_CLEAR
+
+    for code, entry in BLOCKER_FROZEN.items():
+        assert set(entry) == {"source", "detector"}, code
+        assert entry["source"] in {"existing", "new"} and entry["detector"] in {"derivable_today", "metadata_in_phase_b", "phase_c"}, code
+        assert (code in HOW_TO_CLEAR) == (entry["source"] == "existing"), f"{code}: an existing code must be a coverage reason code in app/coverage.py, a new one must not be"
+
+
+def test_no_blocker_code_contains_a_word_the_v1_ban_forbids_and_each_matches_the_code_pattern():
+    import re
+
+    for code in BLOCKER_FROZEN:
+        assert re.fullmatch("[a-z][a-z0-9_]{3,63}", code), code
+        assert V1_BANNED_TOKENS.isdisjoint(code.split("_")), code
+
+
+def test_every_blocker_used_by_a_case_is_in_the_frozen_table():
+    used = {b for c in CASES for b in c["inputs"]["blockers"]}
+    assert used <= set(BLOCKER_FROZEN), used - set(BLOCKER_FROZEN)

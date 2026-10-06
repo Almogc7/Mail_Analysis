@@ -230,7 +230,7 @@ An entry may not be made to improve a number that was measured on the fresh samp
 
 | Date | Iteration | Change | Reason | Data |
 |---|---|---|---|---|
-| (none yet) | | | | |
+| 2026-10-06 | **C1, a clarification; not counted toward the cap** | The content floor (two content findings at severity high) is counted **by reason class** (class `content`, produced severity high or critical), not by the module that produced the finding; the enrichment floor likewise by class `enrichment` (severity critical). No rule changes. | The interface passes no module field, and D16 and D22 key reasons by class, not by module. The frozen predictor counts by module, as v1 does; the two differ only for a link-class finding (built by the content module) at severity high, which no producer emits. | A class-based recompute equals `scripts/predict_tiers.py` on all 856 rows (a test: in-process on the as-is clean variant, and on all 856 rows in a subprocess); **no row and no case changes**, so the iteration count stays 0 of 3. |
 
 ## 7. Register of fixed files
 
@@ -238,3 +238,5 @@ An entry may not be made to improve a number that was measured on the fresh samp
 |---|---|---|---|
 | 2026-10-06 | see the table at the top | | frozen with this commit |
 | 2026-10-06 | `backend/tests/fixtures/v2_cases.json` | `35840091d75595bb47d95d15d63bdfa2ef46fcf2ccbac9da384285442dc39356` | the 97 specification cases (D23), added after the pre-registration commit as the next commit; a record, not a rule change |
+| 2026-10-06 | `backend/tests/fixtures/v2_cases.json` (supersedes the line above) | `ecdedf282f1b15fd6ba5fe59653d34e649f2919630c035ec7889a65a507a1241` | 100 cases: three conflict cases added, the blocker code `nested_message_unanalysed` renamed `nested_message_unexamined`, and `conflict_plus_live_evidence` now lists `evidence_conflict` (the reason is listed whatever the route); a record of the owner's step-8 instructions, not a rule change |
+| 2026-10-06 | `backend/tests/fixtures/blocker_codes_frozen.json` | `390bd81bf477b23dd98e3c955eb611f076a5cf3c44476ab72ee3fc4b428b788f` | the frozen blocker codes (19) with source and Phase B detector status |

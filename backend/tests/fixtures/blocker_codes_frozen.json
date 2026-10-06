@@ -1,0 +1,81 @@
+{
+ "_comment": "Frozen blocker codes (docs/DESIGN_V2.md 2.3, docs/PHASE_B_PREREGISTRATION.md 1.6). `source`: existing = a reason code already in app/coverage.py, new = introduced by verdict v2. `detector`: derivable_today = the pipeline already holds the data; metadata_in_phase_b = Phase B adds a metadata-only detector (a magic-number type, a count, a structured flag); phase_c = waits for Phase C (none yet: the encryption flags reuse archive_contents_unexamined and static_analysis_off until then). A code is never renamed or reused: a rename is a new code and a note. The V1 word ban applies to every code. The tests fail if this file and the cases file differ.",
+ "codes": {
+  "archive_contents_unexamined": {
+   "source": "existing",
+   "detector": "derivable_today"
+  },
+  "calendar_invite_unexamined": {
+   "source": "new",
+   "detector": "metadata_in_phase_b"
+  },
+  "data_uri_image_not_decoded": {
+   "source": "new",
+   "detector": "metadata_in_phase_b"
+  },
+  "from_header_unparseable": {
+   "source": "existing",
+   "detector": "derivable_today"
+  },
+  "html_attachment_unanalysed": {
+   "source": "existing",
+   "detector": "derivable_today"
+  },
+  "inline_image_not_decoded": {
+   "source": "new",
+   "detector": "metadata_in_phase_b"
+  },
+  "internal_host_not_sent": {
+   "source": "existing",
+   "detector": "derivable_today"
+  },
+  "language_unsupported": {
+   "source": "existing",
+   "detector": "derivable_today"
+  },
+  "nested_message_unexamined": {
+   "source": "new",
+   "detector": "metadata_in_phase_b"
+  },
+  "no_readable_text": {
+   "source": "existing",
+   "detector": "derivable_today"
+  },
+  "no_trusted_receiver_hop": {
+   "source": "existing",
+   "detector": "derivable_today"
+  },
+  "parse_failure": {
+   "source": "new",
+   "detector": "metadata_in_phase_b"
+  },
+  "parse_limit": {
+   "source": "new",
+   "detector": "metadata_in_phase_b"
+  },
+  "parse_timeout": {
+   "source": "new",
+   "detector": "metadata_in_phase_b"
+  },
+  "qr_not_decoded": {
+   "source": "existing",
+   "detector": "derivable_today"
+  },
+  "redirects_not_resolved": {
+   "source": "existing",
+   "detector": "derivable_today"
+  },
+  "shared_platform": {
+   "source": "existing",
+   "detector": "derivable_today"
+  },
+  "static_analysis_off": {
+   "source": "existing",
+   "detector": "derivable_today"
+  },
+  "unknown_finding_code": {
+   "source": "new",
+   "detector": "derivable_today"
+  }
+ }
+}
