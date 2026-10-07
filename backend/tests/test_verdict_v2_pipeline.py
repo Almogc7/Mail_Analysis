@@ -262,7 +262,7 @@ def test_print_the_tier_counts_by_mode_for_the_report(live_results):
 
 def test_distinctive_message_strings_appear_nowhere_in_verdict_v2_checks_logs_feedback_or_the_prompt(monkeypatch, caplog, tmp_path):
     caplog.set_level(logging.DEBUG)
-    markers = {"subject": "ZQXSUBJECTMARK", "body": "ZQXBODYMARK", "brand": "ZQXBRANDMARK", "address": "zqxaddrmark", "content_type": "zqxctypemark"}
+    markers = {"subject": "ZQXSUBJECTMARK", "body": "ZQXBODYMARK", "brand": "ZQXBRANDMARK", "address": "zqxaddrmark", "content_type": "zqxctypemark", "unlisted_content_type": "zqxunlistedctype"}
     host = "zqxhostmark.example.com"
     msg = EmailMessage()
     msg["From"] = f"{markers['brand']} Support <{markers['address']}@example.com>"
@@ -271,11 +271,16 @@ def test_distinctive_message_strings_appear_nowhere_in_verdict_v2_checks_logs_fe
     msg.set_content(f"{TEXT} {markers['body']} https://{host}/a")
     msg.add_alternative(f'<p>{markers["body"]}</p><a href="https://{host}/a">open</a>', subtype="html")
     msg.add_attachment(b"ZQXPAYLOAD-first-bytes", maintype="application", subtype=markers["content_type"], filename="doc.bin")
+    # a part with NO filename: it is not an attachment but an unlisted part, and its content type is attacker-written text that the parser keeps as metadata
+    msg.add_attachment(b"ZQXUNLISTED-first-bytes", maintype="application", subtype=markers["unlisted_content_type"])
     answers = fake.Answers(tf={host: 90})
     fake.install(monkeypatch, answers)
     result = pi.run_raw(bytes(msg), "m.eml", "configured", clients=fake.clients(), known_senders=set(), own_domains=set())
     v2 = result.verdict_v2
     assert v2.tier == "confirmed_malicious" and [h.indicator for h in v2.hard_evidence] == ["zqxhostmark[.]example[.]com"]
+    # the test is meaningful: the parser did keep the attacker-written content types as metadata, and the unlisted part really blocks (with fixed wording only)
+    assert [p.content_type for p in result.parsed_email.unlisted_parts] == ["application/" + markers["unlisted_content_type"]]
+    assert {(b.code, b.detail) for b in v2.blockers} >= {("static_analysis_off", "unknown_type")}
 
     surfaces = {"verdict_v2": v2.model_dump_json(), "checks_completed": result.checks_completed.model_dump_json()}
     for where, text in surfaces.items():
@@ -297,6 +302,8 @@ def test_distinctive_message_strings_appear_nowhere_in_verdict_v2_checks_logs_fe
     prompt = build_prompt(result)
     assert build_prompt(result.model_copy(update={"verdict_v2": None, "checks_completed": None})) == prompt, "the prompt must not change because of verdict_v2"
     assert "verdict_v2" not in prompt and "confirmed_malicious" not in prompt
+    for kind in ("content_type", "unlisted_content_type"):  # attacker-written content types never reach the language model
+        assert markers[kind].lower() not in prompt.lower(), f"the {kind} marker leaked into the prompt"
 
 
 # ---- (g) the V1 wording lint ----------------------------------------------------------------------------------------------------------------------------------------------------------
