@@ -205,6 +205,61 @@ input[type='file']::file-selector-button {
 }
 /* Phase B: verdict card, not migrated (end) */
 
+/* Verdict card of verdict v2 (docs/UI_DESIGN.md 8.2 and 13). The tier is told apart by the written label, the outline weight and style and the band, never by colour alone. Tokens only.
+   "No indicators found" is neutral: no green, no check mark, no shield, and its label has the same size and weight as every other tier. */
+.tier {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  background: var(--bg-panel);
+  border-radius: var(--radius);
+}
+.tier-band { padding: var(--space-3) var(--space-4); }
+.tier-label { margin: 0; font-size: var(--text-xl); line-height: var(--leading-xl); font-weight: 700; }
+.tier-body { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
+.tier--malicious { border: 4px solid var(--verdict-malicious); }
+.tier--malicious .tier-band { background: var(--verdict-malicious); color: var(--bg-root); }
+.tier--suspicious { border: 3px solid var(--verdict-suspicious); }
+.tier--suspicious .tier-band { background: var(--verdict-suspicious-tint); color: var(--verdict-suspicious); }
+.tier--inconclusive { border: 2px dashed var(--verdict-inconclusive); }
+.tier--inconclusive .tier-band { background: var(--verdict-inconclusive-tint); color: var(--verdict-inconclusive); }
+.tier--none-found { border: 1px dotted var(--border-control); }
+.tier--none-found .tier-band { background: var(--bg-muted); color: var(--text-secondary); }
+.tier--unavailable { border: 2px dashed var(--notice); }
+.tier--unavailable .tier-band { background: var(--bg-muted); color: var(--notice); }
+.tier-route, .tier-none, .tier-priority { margin: 0; color: var(--text-primary); }
+.tier-none { color: var(--text-secondary); }
+.tier-neutral-note { display: flex; flex-direction: column; gap: var(--space-1); }
+/* The neutral tier's sentence is in the primary text colour, not muted: it must be read. */
+.tier-disclaimer { margin: 0; color: var(--text-primary); font-weight: 600; }
+.tier-heading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.tier-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.tier-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.tier-item--blocker { border-color: var(--notice); border-inline-start-width: 3px; }
+.tier-item-badges { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
 /* Module panels */
 .module-panels {
   display: flex;
@@ -523,5 +578,11 @@ input[type='file']::file-selector-button {
   button, input[type='file']::file-selector-button { border-color: ButtonBorder; }
   :focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
   .module-panel-header:focus-visible { outline-offset: -3px; }
+  /* Tiers: outline weight and style are kept; the filled Confirmed malicious band becomes a 4px double rule under the label; the other bands keep a plain rule. */
+  .tier { border-color: CanvasText; }
+  .tier-band { border-bottom: 1px solid CanvasText; }
+  .tier--malicious .tier-band { background: Canvas; color: CanvasText; border-bottom: 4px double CanvasText; }
+  .tier-item { border-color: CanvasText; }
+  .tier-item--blocker { border-inline-start-width: 4px; }
   button:not(.finding-header):not(.module-panel-header):not(.raw-data-toggle):hover:not(:disabled) { border-width: 2px; padding: calc(var(--space-1) - 1px) calc(var(--space-4) - 1px); }
 }

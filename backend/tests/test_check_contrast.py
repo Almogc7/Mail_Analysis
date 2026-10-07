@@ -31,13 +31,13 @@ def test_the_real_theme_css_passes():
     assert cc.missing_tokens(REAL) == []
     checked, failures = cc.check(REAL)
     assert failures == []
-    assert checked == 72  # 36 pairs per theme: 12 text, 18 colour+tint, 2 filled, 4 ring/border
+    assert checked == 74  # 37 pairs per theme: 12 text, 18 colour+tint, 2 filled, 1 notice on the muted surface, 4 ring/border
 
 
 def test_main_passes_on_the_real_theme_css_and_names_it(capsys):
     assert cc.main([]) == 0
     out = capsys.readouterr().out
-    assert "check_contrast: OK (72 pairs, source: frontend/src/theme.css)" in out
+    assert "check_contrast: OK (74 pairs, source: frontend/src/theme.css)" in out
 
 
 def test_there_is_no_fallback_table():

@@ -63,6 +63,8 @@ def pairs() -> list[tuple[str, str, float]]:
         out += [(name, "bg-panel", 4.5), (name, f"{name}-tint", 4.5)]
     # Filled critical badge and filled malicious band: --bg-root text on the colour.
     out += [("bg-root", "sev-critical", 4.5), ("bg-root", "verdict-malicious", 4.5)]
+    # The "Verdict unavailable" band (step 13): the notice amber (--sev-medium) as text on the muted surface.
+    out += [("sev-medium", "bg-muted", 4.5)]
     out += [(tok, s, 3.0) for tok in ("focus", "border-control") for s in ("bg-panel", "bg-root")]
     return out
 

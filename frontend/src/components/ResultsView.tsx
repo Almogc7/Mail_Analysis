@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { AnalysisResult } from '../types'
-import { SummaryCard } from './SummaryCard'
+import { VerdictCard } from './VerdictCard'
 import { ModuleDetailSection } from './ModuleDetailSection'
 import { LlmOpinionCard } from './LlmOpinionCard'
 import { FeedbackBar } from './FeedbackBar'
@@ -58,7 +58,7 @@ export function ResultsView({ result, onReset, jobId }: ResultsViewProps) {
 
   return (
     <div className="results-view" ref={rootRef}>
-      <SummaryCard result={result} />
+      <VerdictCard result={result} />
 
       <JumpNav targets={jumpTargets} onJump={(t) => jump(t.panel)} />
 

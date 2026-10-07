@@ -1,4 +1,4 @@
-import type { AnalysisResult, CoverageItem, Evidence, Finding, ModuleResult, ParsedEmail } from '../types'
+import type { AnalysisResult, ChecksCompleted, CoverageItem, Evidence, Finding, ModuleResult, ParsedEmail, V2Blocker, VerdictV2 } from '../types'
 
 export function makeParsedEmail(overrides: Partial<ParsedEmail> = {}): ParsedEmail {
   return {
@@ -104,4 +104,32 @@ export function makeEvidence(overrides: Partial<Evidence> = {}): Evidence {
     images: [],
     ...overrides,
   }
+}
+
+export function makeVerdictV2(overrides: Partial<VerdictV2> = {}): VerdictV2 {
+  return {
+    tier: 'suspicious',
+    label: 'Suspicious',
+    route: 'R1',
+    reasons: [],
+    hard_evidence: [],
+    blockers: [],
+    needs_analyst_reason: null,
+    priority: null,
+    ...overrides,
+  }
+}
+
+export function makeBlocker(overrides: Partial<V2Blocker> = {}): V2Blocker {
+  return {
+    code: 'shared_platform',
+    detail: null,
+    text: 'A link on a shared platform was not looked at.',
+    how_to_clear: 'A shared platform\'s reputation says nothing about one page on it. Open the link in your sandbox.',
+    ...overrides,
+  }
+}
+
+export function makeChecks(overrides: Partial<ChecksCompleted> = {}): ChecksCompleted {
+  return { completed: 7, total: 10, not_checked: 3, by_design: 3, ...overrides }
 }

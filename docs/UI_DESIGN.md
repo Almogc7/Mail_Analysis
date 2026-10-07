@@ -426,3 +426,21 @@ section 5 is derived from the documented 8 to 32px range, not copied from a tool
 - Introduce tokens first (theme.css), then migrate component rules to tokens one stylesheet at a time, running `npm test` and `npm run lint` after each.
 - Tier styles from section 8.2 are wired into the verdict card and the coverage panel in step 13 (section 13).
 - Any new dependency, any theme toggle and any change to panel order needs approval first.
+
+## 13. Step 13 as built: the verdict card and the coverage panel (2026-10-07)
+
+Source: `verdict_v2` and `checks_completed` from the API (docs/DESIGN_V2.md 2.1, 2.3, 2.4, 3, D1, D19, V13). No numeric score and no confidence percentage are shown.
+
+**Which card renders** (`frontend/src/components/VerdictCard.tsx`):
+1. The result has `verdict_v2`: the tier card. The v1 verdict (label, value, score, confidence, "Overrides applied", "Top drivers") appears nowhere on the page or in the exports (V13).
+2. It has `verdict_v2_status` but no `verdict_v2`: a neutral card "Verdict unavailable" (2px dashed `--notice` outline, the word in the band) with the coverage item's reason code and its "To clear" hint, and no tier and no v1 label.
+3. An OLD-shape result (neither field, such as a stored job): the old v1 card, unchanged.
+
+**Inside the tier card, in this order:** the tier label in the band (the outline and band of 8.2: 4px solid and filled; 3px solid and tint; 2px dashed and tint; 1px dotted and neutral), the route in plain words,
+the blockers block (always rendered, with an explicit "None." line), the neutral tier's sentence (No indicators found only, in `--text-primary`), the Needs analyst sub-reason and the queue priority
+labelled "Queue priority (ordering aid, not a probability)" (Needs analyst only), the hard-evidence list (Confirmed malicious only: rule, source, defanged indicator), the evidence-conflict block when present,
+and the reasons (the class and the severity of the finding behind each, and the finding's title the page already shows; the API's own text for a reason that rests on no finding).
+The class of a finding is its family tag (sender, link, claim) or else its module (auth, enrichment, content): the rule the backend table follows.
+
+The tier styles are the classes `.tier--malicious`, `.tier--suspicious`, `.tier--inconclusive` (Needs analyst), `.tier--none-found` and `.tier--unavailable`; the token names did not change.
+Every element that can show message content has `dir="auto"`; the chrome does not. No animation. In forced-colors mode the outline weight and style stay and the filled band becomes a 4px double rule.
