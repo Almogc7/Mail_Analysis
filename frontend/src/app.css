@@ -146,39 +146,41 @@ input[type='file']::file-selector-button {
   gap: var(--space-3);
 }
 
-/* Phase B: verdict card, not migrated (start). Everything between the start and end markers is the verdict card, the Why list, top drivers, overrides and
-   the neutral-tier note, exactly as it was. The guard test skips this section only. */
-/* Summary card */
+/* Old-shape result card (docs/UI_DESIGN.md 13): a stored job without verdict_v2 still shows the v1 card, in tokens. The v1 values are frozen API values; this card is never shown when
+   verdict_v2 or verdict_v2_status is present (V13). "No indicators found" is neutral on purpose: no green, no check mark, nothing that reads as reassurance (D1 in docs/DESIGN_V2.md). */
 .verdict-banner {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   padding: var(--space-4);
   border-radius: var(--radius);
-  font-size: 1.4em;
-  font-weight: bold;
+  font-size: var(--text-xl);
+  line-height: var(--leading-xl);
+  font-weight: 700;
 }
 .verdict-malicious {
-  background: color-mix(in srgb, var(--verdict-malicious) 15%, transparent);
+  background: var(--verdict-malicious-tint);
   color: var(--verdict-malicious);
+  border: 4px solid var(--verdict-malicious);
 }
 .verdict-suspicious {
-  background: color-mix(in srgb, var(--verdict-suspicious) 15%, transparent);
+  background: var(--verdict-suspicious-tint);
   color: var(--verdict-suspicious);
+  border: 3px solid var(--verdict-suspicious);
 }
 .verdict-inconclusive {
-  background: color-mix(in srgb, var(--verdict-needs-review) 15%, transparent);
-  color: var(--verdict-needs-review);
+  background: var(--verdict-inconclusive-tint);
+  color: var(--verdict-inconclusive);
+  border: 2px dashed var(--verdict-inconclusive);
 }
-/* "No indicators found" is neutral on purpose: no green, no check mark, nothing that reads as reassurance (D1 in docs/DESIGN_V2.md). */
 .verdict-benign {
   background: var(--bg-muted);
   color: var(--text-secondary);
-  border: 1px solid var(--border);
+  border: 1px dotted var(--border-control);
 }
 .why-list ul {
   margin: 0;
-  padding-left: var(--space-4);
+  padding-inline-start: var(--space-4);
   overflow-wrap: anywhere;
 }
 .confidence-line {
@@ -189,21 +191,23 @@ input[type='file']::file-selector-button {
 .raw-data-heading {
   color: var(--text-secondary);
   text-transform: uppercase;
-  font-size: 0.75em;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
   letter-spacing: 0.05em;
-  margin-bottom: var(--space-1);
+  margin-block-end: var(--space-1);
 }
 .top-drivers ul,
 .applied-overrides ul {
   margin: 0;
-  padding-left: var(--space-4);
+  padding-inline-start: var(--space-4);
 }
 .benign-note {
-  margin: 0.5rem 0 0;
-  font-size: 0.85rem;
-  opacity: 0.85;
+  margin-block: var(--space-2) 0;
+  margin-inline: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--text-secondary);
 }
-/* Phase B: verdict card, not migrated (end) */
 
 /* Verdict card of verdict v2 (docs/UI_DESIGN.md 8.2 and 13). The tier is told apart by the written label, the outline weight and style and the band, never by colour alone. Tokens only.
    "No indicators found" is neutral: no green, no check mark, no shield, and its label has the same size and weight as every other tier. */

@@ -68,35 +68,6 @@
   --space-6: 32px;
   --radius: 4px;
   --radius-sm: 2px;
-
-  /* legacy: retire during migration */
-  --border-muted: #1b212a;
-  /* legacy: retire during migration */
-  --accent-green: #39ff88;
-  /* legacy: retire during migration */
-  --accent-cyan: #4fe1ff;
-  /* legacy: retire during migration */
-  --accent-red: #ff5c6c;
-  /* legacy: retire during migration */
-  --accent-amber: #ffb347;
-  /* legacy: retire during migration */
-  --verdict-needs-review: #4fe1ff;
-  /* legacy: retire during migration */
-  --verdict-legit: #39ff88;
-  /* legacy: retire during migration */
-  --severity-critical: #ff5c6c;
-  /* legacy: retire during migration */
-  --severity-high: #ff8a5c;
-  /* legacy: retire during migration */
-  --severity-medium: #ffb347;
-  /* legacy: retire during migration */
-  --severity-low: #4fe1ff;
-  /* legacy: retire during migration */
-  --severity-info: #6b7684;
-  /* legacy: retire during migration */
-  --llm-bg: #10241a;
-  /* legacy: retire during migration */
-  --llm-border: #1e4531;
 }
 
 * {
@@ -144,21 +115,4 @@ body {
   --verdict-suspicious-tint: #ebe5d9;
   --verdict-inconclusive-tint: #dde5f2;
   --verdict-none-found-tint: #e4e6e7;
-
-  /* legacy: retire during migration. The neon dark values are unreadable on light surfaces, so in light mode only,
-     the legacy names point at the light design tokens. */
-  --border-muted: var(--border);
-  --accent-green: var(--text-secondary);
-  --accent-cyan: var(--focus);
-  --accent-red: var(--sev-critical);
-  --accent-amber: var(--sev-medium);
-  --verdict-needs-review: var(--verdict-inconclusive);
-  --verdict-legit: var(--verdict-none-found);
-  --severity-critical: var(--sev-critical);
-  --severity-high: var(--sev-high);
-  --severity-medium: var(--sev-medium);
-  --severity-low: var(--sev-low);
-  --severity-info: var(--sev-info);
-  --llm-bg: var(--bg-panel-raised);
-  --llm-border: var(--border);
 }

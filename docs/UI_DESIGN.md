@@ -444,3 +444,13 @@ The class of a finding is its family tag (sender, link, claim) or else its modul
 
 The tier styles are the classes `.tier--malicious`, `.tier--suspicious`, `.tier--inconclusive` (Needs analyst), `.tier--none-found` and `.tier--unavailable`; the token names did not change.
 Every element that can show message content has `dir="auto"`; the chrome does not. No animation. In forced-colors mode the outline weight and style stay and the filled band becomes a 4px double rule.
+
+### 13.1 The app.css migration and the retired tokens (step 13)
+
+app.css is now in tokens in the whole file: the "Phase B: verdict card, not migrated" exemption is gone, and the guard test (`frontend/src/test/appCss.test.ts`) covers every line.
+The old-shape card (a stored job without `verdict_v2`) keeps its classes (`.verdict-banner`, `.verdict-malicious`, `.verdict-suspicious`, `.verdict-inconclusive`, `.verdict-benign`) but is drawn
+from the tier tokens with the same outline weights as the v2 card.
+
+These legacy tokens were deleted from theme.css, in the dark block and in the light block's mappings, because nothing used them any more: `--border-muted`, `--accent-green`, `--accent-cyan`,
+`--accent-red`, `--accent-amber`, `--verdict-needs-review`, `--verdict-legit`, `--severity-critical`, `--severity-high`, `--severity-medium`, `--severity-low`, `--severity-info`, `--llm-bg`, `--llm-border`.
+Both CSS guard tests list them as retired and fail if one is defined or used again. Where earlier sections of this document say a token is "retired" or "legacy", this is the deletion.

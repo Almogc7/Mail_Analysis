@@ -4,7 +4,7 @@ import { readSrc } from './readSource'
 /**
  * workbench.css is migrated to the design tokens (docs/UI_DESIGN.md): colours come from theme.css only. This test reads the stylesheet text from disk
  * (vitest returns an empty string for an imported .css), drops comments, and fails if a raw colour, a color-mix(), a remote url() or an @import
- * appears, if it uses a custom property that theme.css does not define or that is marked legacy, or if the motion and hover rules drift.
+ * appears, if it uses a custom property that theme.css does not define or that was retired in step 13, or if the motion and hover rules drift.
  */
 const strip = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '')
 const raw = readSrc('workbench.css')
@@ -12,8 +12,11 @@ const css = strip(raw)
 const theme = readSrc('theme.css')
 
 const defined = new Set([...strip(theme).matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]))
-// every declaration that directly follows a "legacy: retire during migration" comment
-const legacy = new Set([...theme.matchAll(/legacy: retire during migration[^\n]*\n\s*(--[\w-]+)\s*:/g)].map((m) => m[1]))
+// the legacy tokens deleted from theme.css in step 13; they must not come back
+const RETIRED = [
+  '--border-muted', '--accent-green', '--accent-cyan', '--accent-red', '--accent-amber', '--verdict-needs-review', '--verdict-legit',
+  '--severity-critical', '--severity-high', '--severity-medium', '--severity-low', '--severity-info', '--llm-bg', '--llm-border',
+]
 
 const RAW_COLOUR: [string, RegExp][] = [
   ['a hex colour', /#[0-9a-fA-F]{3,8}\b/],
@@ -32,7 +35,7 @@ describe('workbench.css uses design tokens only', () => {
     expect(css).toContain('.wb-panel')
     expect(css).toContain('var(--bg-panel')
     expect(defined.has('--bg-panel')).toBe(true)
-    expect(legacy.has('--accent-amber')).toBe(true)
+    expect(RETIRED.filter((name) => defined.has(name))).toEqual([])
   })
 
   it.each(RAW_COLOUR)('contains no %s', (_label, pattern) => {
@@ -43,7 +46,7 @@ describe('workbench.css uses design tokens only', () => {
     const used = [...new Set([...css.matchAll(/var\(\s*(--[\w-]+)/g)].map((m) => m[1]))]
     expect(used.length).toBeGreaterThan(20)
     expect(used.filter((name) => !defined.has(name))).toEqual([])
-    expect(used.filter((name) => legacy.has(name))).toEqual([])
+    expect(used.filter((name) => RETIRED.includes(name))).toEqual([])
   })
 
   it('has no animation: no keyframes, and the only transition is the 100ms hover colour change', () => {
