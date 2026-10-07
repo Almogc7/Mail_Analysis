@@ -54,6 +54,7 @@ def test_the_simulation_is_skipped_when_the_attachment_count_does_not_match_or_t
     assert report_module.first_bytes_from_raw(other, 1) is None
 
 
+@pytest.mark.slow
 def test_the_report_prints_aggregates_only_and_no_content(report_module):
     out = report_module.report()
     ev.apply_mode("configured")
@@ -102,6 +103,7 @@ def test_in_configured_a_message_whose_trusted_receiver_wrote_a_result_has_no_re
     assert found == [("no_trusted_receiver_hop", "no_matching_hop")]
 
 
+@pytest.mark.slow
 def test_the_report_counts_the_receiver_blocker_on_every_message_in_strict(report_module):
     out = report_module.report()
     ev.apply_mode("configured")

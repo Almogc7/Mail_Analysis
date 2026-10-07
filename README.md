@@ -372,11 +372,11 @@ unbiased error rate.
 
 ```bash
 cd backend
-pytest              # the FAST default: skips the few tests marked slow (the 856-row comparisons run through a subprocess, and the corpus-wide scans)
+pytest              # the FAST default: skips the tests marked slow (the 856-row comparisons, the corpus-wide scans and the whole-pipeline checks over the fixtures and the tuning corpus)
 pytest --run-slow   # the FULL run, including the slow tests (RUN_SLOW=1 does the same). Every step of the work ends with this one.
 ```
 
-Both must pass. The slow marker is registered in `backend/pytest.ini`; a test that takes about fifteen seconds or more gets it. The frontend has its own suite (`npm test` in `frontend`).
+Both must pass. The slow marker is registered in `backend/pytest.ini`; a test that takes more than about five seconds (its call, or the setup of a fixture it shares) gets it. The frontend has its own suite (`npm test` in `frontend`).
 The 856-row regression check is separate: `python -m tests.regression_baseline --check` (the v1 columns, and the verdict v2 columns against `tests/fixtures/predicted_tiers.json`).
 
 **A note on the test harness.** In CONFIGURED test mode (`tests/eval.py` `apply_mode`) the harness lists synthetic known senders that include `example.com`, so a link under `*.example.com` is a **known-sender conflict by design of the harness**: a provider flag on it gives Suspicious with the reason evidence conflict, never Confirmed malicious. Tests that need a flagged host to be hard evidence pass an empty known-sender list or use another domain. (Domains under the reserved `.example` top-level domain have no registrable domain, so they never match a list.)

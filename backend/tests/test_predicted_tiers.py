@@ -38,6 +38,7 @@ def test_the_written_prediction_holds_for_every_row_and_no_row_changes_tier(pred
     assert {r["route"] for r in committed.values() if r["tier"] == "T2"} == {"R1", "R2"}  # R3, R3B, R4, R5 and R6 are exercised only by the specification cases
 
 
+@pytest.mark.slow
 def test_the_as_is_clean_rows_recompute_to_the_committed_prediction(predictor, committed):
     try:
         fresh = predictor.compute(variants=rb.FAST_VARIANTS)

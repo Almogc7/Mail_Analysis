@@ -33,7 +33,8 @@ This is an analyst workbench for reported emails. It is read by one person at a 
 6. Accessibility: text contrast at least 4.5:1, visible focus on every interactive element, full keyboard operation, meaning never carried by colour alone.
 7. No decorative animation. Anything that moves respects `prefers-reduced-motion`.
 8. Existing tests stay green and are not weakened.
-9. Scope: verdict card and coverage panel content are untouched until Phase B.
+9. Scope: the verdict card and the coverage panel were reserved slots until Phase B; from step 13 (2026-10-07) they are built from `verdict_v2` and `checks_completed` (section 13). The tier labels below are the
+   source of truth (D21): Confirmed malicious, Suspicious, Needs analyst, No indicators found.
 
 ## 3. Colour tokens
 
@@ -92,20 +93,24 @@ written out as hex; no `color-mix()`):
 | `--sev-low-tint` | `#1c303c` | `#dae7ed` |
 | `--sev-info-tint` | `#272c34` | `#e4e6e7` |
 
-Near-identical pair: Low and the Inconclusive tier (3.3) have almost the same luminance (dark: 0.499 and 0.428, 1.15:1 between them; light: 0.094 and
+Near-identical pair: Low and the Needs analyst tier (3.3) have almost the same luminance (dark: 0.499 and 0.428, 1.15:1 between them; light: 0.094 and
 0.087, 1.06:1). A reader cannot tell them apart by lightness, and in greyscale or with some colour-vision differences not by hue either. Rule: Low severity
-and the Inconclusive tier must never appear next to each other without their written labels ("LOW", "Inconclusive: analyst review"). The labels are never
+and the Needs analyst tier must never appear next to each other without their written labels ("LOW", "Needs analyst"). The labels are never
 shortened to a symbol, never hidden behind a tooltip, and never dropped to save space. The border style (dotted bar versus dashed outline, section 8) is a
 second cue, not a replacement for the words.
 
-### 3.3 Verdict tiers (styles defined now, content in Phase B)
+### 3.3 Verdict tiers (labels per D21; the verdict card of step 13 uses them)
 
-| Tier (UI label) | Internal key | Dark | Light | On panel (dark / light) | On 15% tint (dark / light) |
-|---|---|---|---|---|---|
-| Malicious | `malicious` | `#ff6b78` | `#b3202e` | 6.6 / 6.6 | 5.4 / 5.2 |
-| Suspicious | `suspicious` | `#ffb347` | `#7a4f00` | 10.3 / 7.1 | 7.6 / 5.7 |
-| Inconclusive: analyst review | `inconclusive` | `#7fb0ff` | `#1d4fa8` | 8.3 / 7.7 | 6.4 / 6.1 |
-| No indicators found | `benign` | `#a3adb9` | `#4a5560` | 8.1 / 7.6 | 6.2 / 6.1 |
+| Tier (UI label) | Internal key (`verdict_v2.tier`) | Token | Dark | Light | On panel (dark / light) | On 15% tint (dark / light) |
+|---|---|---|---|---|---|---|
+| Confirmed malicious | `confirmed_malicious` | `--verdict-malicious` | `#ff6b78` | `#b3202e` | 6.6 / 6.6 | 5.4 / 5.2 |
+| Suspicious | `suspicious` | `--verdict-suspicious` | `#ffb347` | `#7a4f00` | 10.3 / 7.1 | 7.6 / 5.7 |
+| Needs analyst | `needs_analyst` | `--verdict-inconclusive` | `#7fb0ff` | `#1d4fa8` | 8.3 / 7.7 | 6.4 / 6.1 |
+| No indicators found | `no_indicators_found` | `--verdict-none-found` | `#a3adb9` | `#4a5560` | 8.1 / 7.6 | 6.2 / 6.1 |
+
+**The labels changed, the internal keys and the token names did not.** Only the visible wording is new (Confirmed malicious, Suspicious, Needs analyst, No indicators found). The token names keep their
+old spelling, so the tier maps to a token as: `confirmed_malicious` to `--verdict-malicious`, `suspicious` to `--verdict-suspicious`, `needs_analyst` to `--verdict-inconclusive`,
+`no_indicators_found` to `--verdict-none-found`. The v1 values (`malicious`, `suspicious`, `inconclusive`, `benign`) are frozen API values and are never shown once `verdict_v2` is present (V13).
 
 Tokens: `--verdict-malicious`, `--verdict-suspicious`, `--verdict-inconclusive`, `--verdict-none-found`, each with an explicit tint token. The last
 colour is the same neutral grey as `--text-secondary` on purpose.
@@ -275,13 +280,13 @@ border style, a border weight, and a fill.
 Findings keep their existing sort order (most severe first) so position carries the same information. The label is real text inside the badge, so a
 screen reader reads it. The bar uses `border-inline-start` so it sits on the correct side for right-to-left content.
 
-### 8.2 Verdict tiers (styles only; wording and content are Phase B)
+### 8.2 Verdict tiers
 
 | Tier | Visible label | Outline | Header band |
 |---|---|---|---|
-| Malicious | Malicious | 4px solid | filled: tier colour background, `--bg-root` text |
+| Confirmed malicious | Confirmed malicious | 4px solid | filled: tier colour background, `--bg-root` text |
 | Suspicious | Suspicious | 3px solid | tier tint token, tier colour text |
-| Inconclusive: analyst review | Inconclusive: analyst review | 2px dashed | tier tint token, tier colour text |
+| Needs analyst | Needs analyst | 2px dashed | tier tint token, tier colour text |
 | No indicators found | No indicators found | 1px dotted `--border-control` | none; `--bg-muted`, secondary text |
 
 The neutral tier has these extra rules, which are part of its style, not optional content:
@@ -290,7 +295,7 @@ The neutral tier has these extra rules, which are part of its style, not optiona
 - The sentence "This is a statement about what was and was not found, not a safety verdict" is rendered inside the same container, directly under the label,
   in `--text-primary` (not muted), and so is the blockers block (what was not checked). The container has a reserved place for both so they cannot be
   dropped by a later change.
-- Never visually quieter than "Inconclusive": the neutral tier uses the same size and weight for its label, only the colour and band differ.
+- Never visually quieter than "Needs analyst": the neutral tier uses the same size and weight for its label, only the colour and band differ.
 
 ### 8.3 Forced colors (Windows high contrast and similar modes)
 
@@ -309,7 +314,7 @@ outline. That is why section 8 specifies marks of that kind, and the rules below
   /* The filled critical badge loses its fill, so it becomes a double 4px frame; the other levels stay single-line outlines. */
   .badge--critical { background: Canvas; color: CanvasText; border: 4px double CanvasText; }
 
-  /* Tiers: outline style and weight are kept; the filled Malicious band becomes a 4px double rule under the label. */
+  /* Tiers: outline style and weight are kept; the filled Confirmed malicious band becomes a 4px double rule under the label. */
   .tier { border-color: CanvasText; }
   .tier--malicious .tier-band { background: Canvas; color: CanvasText; border-bottom: 4px double CanvasText; }
 
@@ -419,5 +424,5 @@ section 5 is derived from the documented 8 to 32px range, not copied from a tool
 - Last migration step: re-enable `prefers-color-scheme` (or add a toggle that sets `data-theme`), switch `color-scheme` to `dark light`, update the
   checker's block selector if the light rule moves, and delete the legacy tokens.
 - Introduce tokens first (theme.css), then migrate component rules to tokens one stylesheet at a time, running `npm test` and `npm run lint` after each.
-- Tier styles from section 8.2 are added as CSS classes now but are only wired into the verdict and coverage markup in Phase B.
+- Tier styles from section 8.2 are wired into the verdict card and the coverage panel in step 13 (section 13).
 - Any new dependency, any theme toggle and any change to panel order needs approval first.

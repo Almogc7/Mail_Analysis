@@ -174,6 +174,7 @@ def test_hard_evidence_and_the_conflict_reason_are_carried():
 
 # ---- the shared positive-evidence logic ---------------------------------------------------------------------------------------------------------------------------------
 
+@pytest.mark.slow
 def test_the_positive_flags_agree_with_the_v1_gap_list_on_every_fixture_and_tuning_message_in_both_modes():
     mismatches = 0
     checked = 0

@@ -24,6 +24,7 @@ def parity():
     return module
 
 
+@pytest.mark.slow
 def test_a_class_based_recompute_and_compute_tier_equal_the_predictor_on_the_as_is_clean_rows(parity):
     try:
         outcome = parity.check(rb.FAST_VARIANTS)

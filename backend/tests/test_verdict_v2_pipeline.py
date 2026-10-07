@@ -39,6 +39,7 @@ def _ip(*parts) -> str:
 
 # ---- (a) the v1 fields are byte-identical ------------------------------------------------------------------------------------------------------------------------------------------
 
+@pytest.mark.slow
 def test_every_existing_section_of_the_real_pipeline_output_is_byte_identical_to_the_snapshot_taken_before_verdict_v2():
     recorded = json.loads(pi.SNAPSHOT.read_text(encoding="utf-8"))["messages"]
     current = pi.compute()
@@ -66,6 +67,7 @@ def _script(name):
     return module
 
 
+@pytest.mark.slow
 def test_the_as_is_clean_rows_give_the_predicted_tier_and_route_through_the_real_pipeline():
     outcome = _script("check_pipeline_tiers").check(rb.FAST_VARIANTS)
     ev.apply_mode("configured")
@@ -211,10 +213,12 @@ def live_results():
     return out
 
 
+@pytest.mark.slow
 def test_v2_t4_never_comes_with_a_blocker(live_results):
     assert [m for m, r in live_results if r.verdict_v2.tier == "no_indicators_found" and r.verdict_v2.blockers] == []
 
 
+@pytest.mark.slow
 def test_v3_and_v15_confirmed_malicious_only_with_hard_evidence_each_with_an_indicator_and_a_source(live_results):
     for _mode, r in live_results:
         v2 = r.verdict_v2
@@ -222,6 +226,7 @@ def test_v3_and_v15_confirmed_malicious_only_with_hard_evidence_each_with_an_ind
         assert all(h.indicator and h.source and h.code in ("H1", "H2", "H3") for h in v2.hard_evidence)
 
 
+@pytest.mark.slow
 def test_v14_every_tier_has_a_non_empty_reasons_list_or_hard_evidence_and_every_reason_has_text(live_results):
     tiers = set()
     for _mode, r in live_results:
@@ -234,6 +239,7 @@ def test_v14_every_tier_has_a_non_empty_reasons_list_or_hard_evidence_and_every_
     assert {"suspicious", "needs_analyst", "no_indicators_found"} <= tiers
 
 
+@pytest.mark.slow
 def test_the_label_matches_the_tier_and_the_priority_is_set_only_for_needs_analyst(live_results):
     labels = {"confirmed_malicious": "Confirmed malicious", "suspicious": "Suspicious", "needs_analyst": "Needs analyst", "no_indicators_found": "No indicators found"}
     for _mode, r in live_results:
@@ -243,6 +249,7 @@ def test_the_label_matches_the_tier_and_the_priority_is_set_only_for_needs_analy
         assert r.scoring.priority is not None  # the v1 priority stays in the response for every tier
 
 
+@pytest.mark.slow
 def test_v16_a_parser_failure_never_gives_no_indicators_found(live_results, monkeypatch):
     assert [m for m, r in live_results if any(b.code == "parse_failure" for b in r.verdict_v2.blockers) and r.verdict_v2.tier == "no_indicators_found"] == []
     lines = ["From: a@example.com", "To: b@example.com", "Subject: s", "MIME-Version: 1.0", 'Content-Type: multipart/mixed; boundary="XX"', "", "--XX", "Content-Type: text/plain", "", TEXT]
@@ -251,6 +258,7 @@ def test_v16_a_parser_failure_never_gives_no_indicators_found(live_results, monk
     assert result.verdict_v2.tier != "no_indicators_found"
 
 
+@pytest.mark.slow
 def test_print_the_tier_counts_by_mode_for_the_report(live_results):
     import collections
 
@@ -309,6 +317,7 @@ def test_distinctive_message_strings_appear_nowhere_in_verdict_v2_checks_logs_fe
 
 # ---- (g) the V1 wording lint ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
+@pytest.mark.slow
 def test_every_string_of_verdict_v2_on_the_live_output_passes_the_v1_word_ban(live_results):
     def strings(value):
         if isinstance(value, str):

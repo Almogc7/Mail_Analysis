@@ -257,6 +257,7 @@ def _corpus_counts(report_module):
     return out
 
 
+@pytest.mark.slow
 def test_the_adapter_equals_the_report_script_on_every_fixture_and_tuning_message_in_both_modes(report_module):
     counts = _corpus_counts(report_module)
     for mode, c in counts.items():
@@ -264,6 +265,7 @@ def test_the_adapter_equals_the_report_script_on_every_fixture_and_tuning_messag
         assert c["differs"] == 0 and c["compared"] == c["messages"], mode
 
 
+@pytest.mark.slow
 def test_the_counts_equal_the_step_9_report_except_for_the_documented_receiver_fix(report_module):
     counts = _corpus_counts(report_module)
     if counts["strict"]["messages"] != 107:

@@ -56,6 +56,7 @@ def test_the_pipeline_still_reproduces_the_fixture_rows(tmp_path):
 
 
 @pytest.mark.skipif(not CORPUS_PRESENT, reason="the local tuning corpus is not on this machine (it is git-ignored)")
+@pytest.mark.slow
 def test_the_pipeline_still_reproduces_the_tuning_rows():
     current = rb.compute(rb.FAST_VARIANTS)
     assert len(current) == 214 and rb.differences(current, rb.load()) == []
@@ -104,6 +105,7 @@ def test_the_pipeline_still_reproduces_the_recorded_tier_columns_for_the_fixture
 
 
 @pytest.mark.skipif(not CORPUS_PRESENT, reason="the local tuning corpus is not on this machine (it is git-ignored)")
+@pytest.mark.slow
 def test_the_pipeline_still_reproduces_the_recorded_tier_columns_for_the_tuning_rows():
     current = rb.compute_tiers(rb.FAST_VARIANTS)
     ev.apply_mode("configured")

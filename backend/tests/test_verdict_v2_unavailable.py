@@ -50,6 +50,7 @@ def test_a_normal_result_says_ok_and_has_no_unavailable_item():
     assert _unavailable_items(result) == []
 
 
+@pytest.mark.slow
 def test_every_fixture_in_both_modes_says_ok():
     statuses = {pi.run(path, mode).verdict_v2_status for mode in ev.MODES for path, _label, _source in ev.collect(None)}
     assert statuses == {"ok"}
