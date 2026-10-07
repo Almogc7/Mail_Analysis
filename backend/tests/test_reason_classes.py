@@ -145,12 +145,13 @@ def test_exactly_the_tier_function_and_the_two_v2_builders_import_the_reason_cla
 
 
 def test_only_the_pipeline_imports_the_tier_function():
-    """verdict_v2 is computed in api/pipeline.py and nowhere else; the frontend only has the optional types (no component uses verdict_v2 until the UI step)."""
+    """verdict_v2 is computed in api/pipeline.py and nowhere else; the frontend only has the optional types (from step 13 only the verdict card reads it)."""
     files = sorted((BACKEND / "app").rglob("*.py"))
     assert [p.relative_to(BACKEND).as_posix() for p in files if _imports_module(p.read_text(encoding="utf-8"), "tiers")] == ["app/api/pipeline.py"]
     frontend = BACKEND.parent / "frontend" / "src"
-    users = [p.relative_to(frontend).as_posix() for p in frontend.rglob("*") if p.suffix in (".ts", ".tsx") and "verdict_v2" in p.read_text(encoding="utf-8", errors="ignore")]
-    assert users == ["types.ts"], "only the optional types in types.ts may mention verdict_v2: no component uses it until the UI step"
+    users = [p.relative_to(frontend).as_posix() for p in frontend.rglob("*") if p.suffix in (".ts", ".tsx") and "verdict_v2" in p.read_text(encoding="utf-8", errors="ignore") and ".test." not in p.name]
+    # Step 13 built the verdict card: the types and the one component that reads verdict_v2 (ResultsView passes the whole result to it and never reads the field itself).
+    assert sorted(users) == ["components/VerdictCard.tsx", "types.ts"], "only the types and the verdict card may mention verdict_v2"
 
 
 def test_the_trusted_and_the_fallback_none_aligned_kinds_are_split_by_where_the_compared_domain_came_from():
