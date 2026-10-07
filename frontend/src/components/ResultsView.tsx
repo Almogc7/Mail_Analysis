@@ -64,7 +64,7 @@ export function ResultsView({ result, onReset, jobId }: ResultsViewProps) {
 
       <FindingsByFamily findings={result.findings} />
 
-      <CoveragePanel items={result.coverage_report} />
+      <CoveragePanel items={result.coverage_report} checks={result.checks_completed} />
 
       {evidence && (
         <>

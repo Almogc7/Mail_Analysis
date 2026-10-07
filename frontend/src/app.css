@@ -260,6 +260,9 @@ input[type='file']::file-selector-button {
 .tier-item--blocker { border-color: var(--notice); border-inline-start-width: 3px; }
 .tier-item-badges { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 
+/* The one completeness figure of the coverage panel: primary text, not the muted lead colour. */
+.coverage-figure { color: var(--text-primary); font-weight: 600; }
+
 /* Module panels */
 .module-panels {
   display: flex;

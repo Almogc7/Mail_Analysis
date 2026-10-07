@@ -1,0 +1,382 @@
+{
+  "seven_of_ten": {
+    "checks_completed": {
+      "completed": 7,
+      "total": 10,
+      "not_checked": 3,
+      "by_design": 3
+    },
+    "coverage_report": [
+      {
+        "area": "check",
+        "subject": "a-0",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "a-1",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "a-2",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "a-3",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "a-4",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "a-5",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "a-6",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "a-gap-0",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": true,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "check",
+        "subject": "a-gap-1",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": true,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "check",
+        "subject": "a-gap-2",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "links",
+        "subject": "opening links",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": true,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "attachments",
+        "subject": "opening attachments",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": true,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "images",
+        "subject": "fetching remote images",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": true,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      }
+    ]
+  },
+  "nine_of_nine": {
+    "checks_completed": {
+      "completed": 9,
+      "total": 9,
+      "not_checked": 0,
+      "by_design": 3
+    },
+    "coverage_report": [
+      {
+        "area": "check",
+        "subject": "b-0",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "b-1",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "b-2",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "b-3",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "b-4",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "b-5",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "b-6",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "b-7",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "b-8",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "links",
+        "subject": "opening links",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": true,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "attachments",
+        "subject": "opening attachments",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": true,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "images",
+        "subject": "fetching remote images",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": true,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      }
+    ]
+  },
+  "one_of_seven": {
+    "checks_completed": {
+      "completed": 1,
+      "total": 7,
+      "not_checked": 6,
+      "by_design": 3
+    },
+    "coverage_report": [
+      {
+        "area": "check",
+        "subject": "c-0",
+        "status": "checked",
+        "reason": "",
+        "detail": "Evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": ""
+      },
+      {
+        "area": "check",
+        "subject": "c-gap-0",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": true,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "check",
+        "subject": "c-gap-1",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": true,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "check",
+        "subject": "c-gap-2",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": true,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "check",
+        "subject": "c-gap-3",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": true,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "check",
+        "subject": "c-gap-4",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "check",
+        "subject": "c-gap-5",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": false,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "links",
+        "subject": "opening links",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": true,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "attachments",
+        "subject": "opening attachments",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": true,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      },
+      {
+        "area": "images",
+        "subject": "fetching remote images",
+        "status": "not_checked",
+        "reason": "not_configured",
+        "detail": "Could not be evaluated.",
+        "by_design": true,
+        "blocks_no_indicators": false,
+        "how_to_clear": "Configure it and analyse the message again."
+      }
+    ]
+  }
+}
