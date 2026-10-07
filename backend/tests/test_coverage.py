@@ -235,7 +235,9 @@ def test_the_pipeline_attaches_a_non_empty_report_and_it_changes_no_verdict_scor
         raise RuntimeError("SECRET-TEXT")
 
     without = _run(monkeypatch, boom)
-    assert without.coverage_report is None and without.evidence is not None  # the evidence block is independent of it
+    # No real report can be built, and that is no longer silent: the report is the one item that says verdict v2 is unavailable (verdict_v2_status says so too)
+    assert [(i.area, i.reason) for i in without.coverage_report] == [("Verdict v2", "verdict_v2_unavailable")] and without.verdict_v2_status == "unavailable"
+    assert without.evidence is not None  # the evidence block is independent of it
     assert (with_report.verdict, with_report.score, with_report.confidence, with_report.scoring.priority) == \
            (without.verdict, without.score, without.confidence, without.scoring.priority)
 

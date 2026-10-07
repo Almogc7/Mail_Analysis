@@ -226,3 +226,6 @@ class AnalysisResult(BaseModel):
     # Verdict v2 and the checks count (docs/PHASE_B_PREREGISTRATION.md). Optional and additive: the v1 fields above are unchanged, and a client that does not know them ignores them.
     verdict_v2: VerdictV2 | None = None
     checks_completed: ChecksCompleted | None = None
+    # Whether verdict_v2 could be built: `ok`, or `unavailable` (the result then says so, and the coverage report carries an item with the reason code verdict_v2_unavailable) instead of silently
+    # showing only the v1 fields. None on a result made before this field existed.
+    verdict_v2_status: Literal["ok", "unavailable"] | None = None

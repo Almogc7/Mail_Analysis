@@ -3,11 +3,11 @@ from typing import Callable
 
 from app import config as app_config
 from app.auth_check import run_auth_check
-from app.contracts.analysis import AnalysisResult
+from app.contracts.analysis import AnalysisResult, CoverageItem
 from app.contracts.findings import ModuleResult
 from app.content_analysis import run_content_analysis
 from app.enrichment import run_enrichment
-from app.coverage import build_coverage_report
+from app.coverage import HOW_TO_CLEAR, build_coverage_report
 from app.evidence import build_evidence
 from app.indicators import build_indicator_pack, visible_pack
 from app.llm import run_llm_opinion
@@ -73,9 +73,12 @@ def run_pipeline(raw_bytes: bytes, filename: str, on_step: StepCallback = _noop)
         logger.warning("coverage report could not be built (%s)", type(exc).__name__)
 
     # Verdict v2 and the checks count: additive fields computed from data already held (no scoring change, no enrichment request, no v1 field touched). Without a coverage report the blockers cannot be
-    # known, so nothing is attached rather than a verdict that could read a gap as an absence; only the exception's class is logged, never its text.
+    # known, so no verdict is attached rather than one that could read a gap as an absence. That is never silent: verdict_v2_status says `unavailable` and the coverage report gains an item with the reason
+    # code verdict_v2_unavailable. Only the exception's class is logged, never its text.
     verdict_v2 = checks_completed = None
-    if coverage is not None:
+    if coverage is None:
+        logger.warning("verdict v2 is unavailable (no coverage report)")
+    else:
         try:
             tier_inputs, blocker_items = build_tier_inputs(parsed, [auth_result, enrichment_result, content_result], analysis_result, coverage,
                                                            known_sender_domains=app_config.KNOWN_SENDER_DOMAINS, own_domains=app_config.OWN_DOMAINS)
@@ -83,6 +86,8 @@ def run_pipeline(raw_bytes: bytes, filename: str, on_step: StepCallback = _noop)
             checks_completed = count_checks(coverage)
         except Exception as exc:
             logger.warning("verdict v2 could not be built (%s)", type(exc).__name__)
+    if verdict_v2 is None:
+        coverage = list(coverage or []) + [CoverageItem(area="Verdict v2", status="not_checked", reason="verdict_v2_unavailable", how_to_clear=HOW_TO_CLEAR["verdict_v2_unavailable"])]
 
     on_step("llm_opinion")
     opinion = run_llm_opinion(analysis_result)
@@ -94,6 +99,7 @@ def run_pipeline(raw_bytes: bytes, filename: str, on_step: StepCallback = _noop)
         update.update(evidence=evidence, schema_version=2)
     if coverage is not None:
         update.update(coverage_report=coverage, schema_version=2)
+    update.update(verdict_v2_status="ok" if verdict_v2 is not None else "unavailable")
     if verdict_v2 is not None:
         update.update(verdict_v2=verdict_v2, checks_completed=checks_completed)
     return analysis_result.model_copy(update=update)

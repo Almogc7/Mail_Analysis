@@ -47,6 +47,7 @@ HOW_TO_CLEAR: dict[str, str] = {
     "images_not_examined": "By design the app does not look inside images.",
     "qr_not_decoded": "QR decoding is not built yet: look at the image for a QR code.",
     "not_rendered": "By design the app never renders HTML.",
+    "verdict_v2_unavailable": "The v2 verdict could not be built for this message; the v1 result is unaffected. Look at the console log for the cause, then analyse the message again.",
 }
 
 _PROBLEM_ORDER = ("provider_error", "rate_limited", "no_api_key", "disabled_by_config", "never_seen_by_source")

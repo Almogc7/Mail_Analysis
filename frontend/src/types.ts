@@ -315,6 +315,7 @@ export interface AnalysisResult {
   coverage_report?: CoverageItem[] | null
   verdict_v2?: VerdictV2 | null
   checks_completed?: ChecksCompleted | null
+  verdict_v2_status?: 'ok' | 'unavailable' | null
 }
 
 export interface AnalysisJob {

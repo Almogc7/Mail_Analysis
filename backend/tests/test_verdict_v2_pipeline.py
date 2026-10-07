@@ -48,11 +48,11 @@ def test_every_existing_section_of_the_real_pipeline_output_is_byte_identical_to
     assert set(pi.SECTIONS) >= {"verdict", "score", "confidence", "scoring", "findings", "module_results", "llm_opinion", "indicators", "parsed_email", "evidence"}
 
 
-def test_the_only_new_fields_of_the_result_are_verdict_v2_and_checks_completed():
+def test_the_only_new_fields_of_the_result_are_verdict_v2_checks_completed_and_the_status():
     result = pi.run(ev.FIXTURES / "malicious" / "kvish6_invoice_phish.eml", "configured")
     dump = result.model_dump(mode="json")
     assert dump["verdict_v2"] is not None and dump["checks_completed"] is not None
-    assert set(dump) - set(pi.SECTIONS) == {"verdict_v2", "checks_completed"}
+    assert set(dump) - set(pi.SECTIONS) == {"verdict_v2", "checks_completed", "verdict_v2_status"} and dump["verdict_v2_status"] == "ok"
 
 
 # ---- (b) the 856 rows through the real pipeline ---------------------------------------------------------------------------------------------------------------------------------
