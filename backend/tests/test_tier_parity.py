@@ -34,6 +34,7 @@ def test_a_class_based_recompute_and_compute_tier_equal_the_predictor_on_the_as_
     assert outcome["compute_tier_differs_from_prediction"] == []
 
 
+@pytest.mark.slow
 def test_a_class_based_recompute_and_compute_tier_equal_the_predictor_on_all_856_rows():
     done = subprocess.run([sys.executable, str(SCRIPT)], capture_output=True, text=True, cwd=ROOT, timeout=900)
     assert done.returncode == 0, done.stdout[-2000:]

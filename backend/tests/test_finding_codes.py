@@ -137,6 +137,7 @@ def corpus_findings():
     return _corpus_findings()
 
 
+@pytest.mark.slow
 def test_every_code_produced_over_the_fixtures_and_the_tuning_corpus_is_registered_and_matches_its_kind(corpus_findings):
     assert corpus_findings, "the corpus produced no findings at all"
     problems = []
@@ -154,6 +155,7 @@ def test_every_code_produced_over_the_fixtures_and_the_tuning_corpus_is_register
     assert problems == [], sorted(set(problems))  # no titles or evidence in the message: they can hold a host from a real sample
 
 
+@pytest.mark.slow
 def test_the_same_kind_gets_the_same_code_whatever_its_title_says(corpus_findings):
     """Titles that carry an indicator (a host, a hash, a brand) differ from message to message; their code must not.
     The shared-platform, internal-host and provider-gap kinds share the 'Enrichment incomplete for <x>' title shape on purpose (scoring reads the

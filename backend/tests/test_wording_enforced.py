@@ -46,6 +46,7 @@ def test_the_runtime_scan_over_the_committed_fixtures_finds_nothing(tmp_path):
     assert _where(cw.runtime_hits(cw.load_allowlist(), corpus_dir=tmp_path)) == []
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(not (TUNING.is_dir() and any(TUNING.glob("*.eml"))), reason="the local tuning corpus is not present on this machine")
 def test_the_runtime_scan_over_the_local_tuning_corpus_finds_nothing():
     assert _where(cw.runtime_hits(cw.load_allowlist(), only_sources=frozenset({"tuning_corpus"}))) == []

@@ -368,6 +368,19 @@ unbiased error rate.
 
 ## Testing & real-world validation
 
+### How to run the tests
+
+```bash
+cd backend
+pytest              # the FAST default: skips the few tests marked slow (the 856-row comparisons run through a subprocess, and the corpus-wide scans)
+pytest --run-slow   # the FULL run, including the slow tests (RUN_SLOW=1 does the same). Every step of the work ends with this one.
+```
+
+Both must pass. The slow marker is registered in `backend/pytest.ini`; a test that takes about fifteen seconds or more gets it. The frontend has its own suite (`npm test` in `frontend`).
+The 856-row regression check is separate: `python -m tests.regression_baseline --check` (the v1 columns, and the verdict v2 columns against `tests/fixtures/predicted_tiers.json`).
+
+**A note on the test harness.** In CONFIGURED test mode (`tests/eval.py` `apply_mode`) the harness lists synthetic known senders that include `example.com`, so a link under `*.example.com` is a **known-sender conflict by design of the harness**: a provider flag on it gives Suspicious with the reason evidence conflict, never Confirmed malicious. Tests that need a flagged host to be hard evidence pass an empty known-sender list or use another domain. (Domains under the reserved `.example` top-level domain have no registrable domain, so they never match a list.)
+
 The backend test suite is network-isolated via dependency injection — every module that
 touches an external service (`enrichment`'s provider clients, `llm`'s Gemini client) accepts
 an injectable client so tests run against stub responses shaped like real provider payloads,
@@ -451,7 +464,7 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 copy .env.example .env        # add your provider API keys (all optional)
-pytest                        # 61 tests should pass
+pytest                        # the fast default (slow tests skipped); see "How to run the tests" for the full run
 uvicorn app.main:app --reload # serves on http://localhost:8000
 
 # Frontend (separate terminal)

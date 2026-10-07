@@ -73,6 +73,7 @@ def test_the_as_is_clean_rows_give_the_predicted_tier_and_route_through_the_real
     assert outcome["differing"] == []
 
 
+@pytest.mark.slow
 def test_all_856_rows_give_the_predicted_tier_and_route_through_the_real_pipeline():
     done = subprocess.run([sys.executable, str(ROOT / "scripts" / "check_pipeline_tiers.py")], capture_output=True, text=True, cwd=ROOT, timeout=900)
     assert done.returncode == 0, done.stdout[-3000:]

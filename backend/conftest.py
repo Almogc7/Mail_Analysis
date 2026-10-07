@@ -1,4 +1,20 @@
+import os
+
 import pytest
+
+
+def pytest_addoption(parser):
+    parser.addoption("--run-slow", action="store_true", default=False, help="also run the tests marked slow (the full run: every step of the work ends with it)")
+
+
+def pytest_collection_modifyitems(config, items):
+    """The fast default skips the tests marked slow; `--run-slow` (or RUN_SLOW=1) runs everything."""
+    if config.getoption("--run-slow") or os.environ.get("RUN_SLOW") == "1":
+        return
+    skip = pytest.mark.skip(reason="slow test: run with --run-slow (or RUN_SLOW=1)")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip)
 
 
 @pytest.fixture(autouse=True)
