@@ -438,8 +438,9 @@ parsing), `rapidfuzz` (fuzzy brand matching), `beautifulsoup4` (HTML parsing),
 **Enrichment**: four first-party, read-only lookup providers in `backend/app/enrichment/providers/` —
 VirusTotal, urlscan.io, ThreatFox and MalwareBazaar — plus the risk scorer that turns their answers into
 the enrichment findings. The repository is self-contained: it has no dependency on any other repository
-and no path or `sys.path` configuration. The provider code originated in the author's earlier IOC_Enricher
-project and is now maintained here independently (see "Origin of the provider code").
+and no path or `sys.path` configuration. The provider code originated in the author's earlier
+[ioc-enrichment-tool](https://github.com/Almogc7/ioc-enrichment-tool) project and is now maintained here
+independently (see "Origin of the provider code").
 
 | Provider | What it is asked | Key |
 |---|---|---|
@@ -506,8 +507,9 @@ dev-server proxy.
 ## Origin of the provider code
 
 The lookup providers (VirusTotal, urlscan.io, ThreatFox, MalwareBazaar), the risk scorer and the small
-Gemini chat client began in an earlier project of the author, a standalone IOC lookup and batch-enrichment
-tool. Only the pieces this app uses were copied, as first-party code under
+Gemini chat client began in an earlier project of the author,
+[ioc-enrichment-tool](https://github.com/Almogc7/ioc-enrichment-tool), a standalone IOC lookup and
+batch-enrichment tool. Only the pieces this app uses were copied, as first-party code under
 `backend/app/enrichment/providers/` and `backend/app/llm/gemini_client.py`, and they are now maintained
 here separately: changes there are not mirrored back, and nothing here imports from it. The copy was
 verified against the original with identical fake HTTP (544 scenarios: same results, same requests) and
